@@ -2,6 +2,7 @@
  * ES plugin for Custom IOS.
  *
  * Copyright (C) 2010 Waninkoko.
+ * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,16 +23,16 @@
 
 /* Macros */
 #define Write8(addr, val)	\
-	*(u8 *)addr = val;	\
-	DCFlushRange((void *)addr, sizeof(u8));
+	*(u8 *)(addr) = (val);	\
+	DCFlushRange((void *)(addr), sizeof(u8));
 
 #define Write16(addr, val)	\
-	*(u16 *)addr = val;	\
-	DCFlushRange((void *)addr, sizeof(u16));
+	*(u16 *)(addr) = (val);	\
+	DCFlushRange((void *)(addr), sizeof(u16));
 
 #define Write32(addr, val)	\
-	*(u32 *)addr = val;	\
-	DCFlushRange((void *)addr, sizeof(u32));
+	*(u32 *)(addr) = (val);	\
+	DCFlushRange((void *)(addr), sizeof(u32));
  
 
 /* Addresses */

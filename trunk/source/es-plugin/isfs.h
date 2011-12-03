@@ -42,6 +42,10 @@ struct isfs
 		} fsrename;
 
 		struct {
+			char filepath[ISFS_MAXPATH];
+		} fsdelete;
+
+		struct {
 			u32  owner_id;
 			u16  group_id;
 			char filepath[ISFS_MAXPATH];
@@ -81,6 +85,7 @@ struct isfs
 s32  ISFS_Open(void);
 void ISFS_Close(void);
 s32  ISFS_CreateFile(const char *filename);
+s32  ISFS_Delete(const char *filename);
 
 #endif
 
