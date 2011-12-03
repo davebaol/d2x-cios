@@ -2,6 +2,7 @@
  * ES plugin for Custom IOS.
  *
  * Copyright (C) 2010 Waninkoko.
+ * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +31,7 @@
 #include "types.h"
 
 /* Global config */
-struct esConfig config = { 0 };
+struct esConfig config = { 0, 0, 0 };
 
 
 s32 __ES_GetTitleID(void *tid)
@@ -122,7 +123,7 @@ s32 __ES_Ioctlv(ipcmessage *message)
 	u32     inlen  = message->ioctlv.num_in;
 	u32     iolen  = message->ioctlv.num_io;
 	u32     cmd    = message->ioctlv.command;
-
+	
 	/* Parse command */
 	switch (cmd) {
 	case IOCTL_ES_LAUNCH: {
@@ -138,13 +139,58 @@ s32 __ES_Ioctlv(ipcmessage *message)
 			/* Fake launch */
 			switch (config.fakelaunch) {
 			case 1:
-				/* Return success */
+				/* Skip ios reload and return success */
 				return 0;
 
 			case 2:
-				/* Launch title (fake ID) */
-				return __ES_CustomLaunch(tidh, 249);
+				if (config.title_id==0) {
+					s32 ret;
+
+					/* Get title ID */
+					ret = __ES_GetTitleID(&config.title_id);
+
+					/* Disc-based games have title IDs of 00010000xxxxxxxx and 00010004xxxxxxxx */
+					if (ret>=0 && (config.title_id>>32==0x00010000 || config.title_id>>32==0x00010004)) {
+					
+						/* Save config */
+						Config_Save(&config, sizeof(config));
+
+						/* Launch title (fake ID) */
+						return __ES_CustomLaunch(tidh, config.ios);
+					}
+
+					/* Reset title ID */
+					config.title_id = 0;
+				}
+				break;
 			}
+		}
+
+		break;
+	}
+
+	case IOCTL_ES_DIVERIFY: {
+		if (config.fakelaunch==2 && config.title_id!=0) {
+			u8* tmd = (u8*)(vector[3].data);
+			if (tmd) {
+
+				/* Get title ID from TitleMetaData */
+				u64 title_id = *(u64 *)(tmd+0x18C);
+ 
+				if(title_id != config.title_id) {
+
+					/* Disable ios reload block */
+					config.fakelaunch = 0;
+				}
+				else {
+
+					/* Remove error 002 */
+					*(u32 *)0x00003140 = (*((u32 *)0x00003188)) | 0xFFFF;
+				}
+			}
+
+			/* Reset title ID */
+			config.title_id = 0;
 		}
 
 		break;
@@ -156,13 +202,13 @@ s32 __ES_Ioctlv(ipcmessage *message)
 	}
 
 	case IOCTL_ES_FAKELAUNCH: {
-		u32 val = *(u32 *)vector[0].data;
+		u32 mode = *(u32 *)vector[0].data;
+		u32 ios = inlen>1 ? *(u32 *)vector[1].data : 249;
 
-		/* Set fake launch mode */
-		config.fakelaunch = val;
-
-		/* Save config */
-		Config_Save(&config, sizeof(config));
+		/* Set fake launch */
+		config.fakelaunch = mode;
+		config.ios        = ios;
+		config.title_id   = 0;
 
 		return 0;
 	}

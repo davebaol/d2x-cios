@@ -5,6 +5,9 @@
 
 [ d2x v4 ]
 
+- Fixed error 002 in method 2 for blocking ios reload.
+- Repeated ios reload are now supported by method 2.
+- Added support to reload any ios, not only 249.
 - Fixed a bug in nand emulation to properly support HDD greater than 1TB.
 - Updated FatFs to 0.8b. This allowed us to remove the workaround on file 
   renaming introduced in d2x v3.
@@ -18,6 +21,10 @@
 - Fixed the length of the output buffer in FAT_ReadDir.
 - Changed timing logic in FAT module.
 - Minor changes and code clean up.
+
+  NOTE:
+  Currently ios reload block improvements are only relevant to disc loading!!!
+  Blocking ios reload for usb loaders will be investigated in future releases.
 
 
 [ d2x v3 ]

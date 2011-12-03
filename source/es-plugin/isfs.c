@@ -88,3 +88,16 @@ s32 ISFS_CreateFile(const char *filename)
 	return os_ioctl(fd, IOCTL_ISFS_CREATEFILE, &isfsBuf.fsattr, sizeof(isfsBuf.fsattr), NULL, 0);
 }
 
+s32 ISFS_Delete(const char *filename)
+{
+	/* Not opened */
+	if (fd < 0)
+		return IPC_ENOENT;
+
+	/* Set filename */
+	strcpy(isfsBuf.fsdelete.filepath, filename);
+
+	/* Delete file */
+	return os_ioctl(fd, IOCTL_ISFS_DELETE, &isfsBuf.fsdelete, sizeof(isfsBuf.fsdelete), NULL, 0);
+}
+
