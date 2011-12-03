@@ -2,7 +2,7 @@
  * DIP plugin for Custom IOS.
  *
  * Copyright (C) 2008-2010 Waninkoko, WiiGator.
- * Copyright (C) 2011 davebaol.
+ * Copyright (C) 2011 davebaol, oggzee.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,8 @@
 #define MODE_CRYPT		0x02
 #define MODE_WBFS		0x04
 #define MODE_FILE		0x08
+#define MODE_FRAG		0x10
+#define MODE_EMUL		( MODE_FILE | MODE_WBFS | MODE_FRAG )
 
 /* Macros */
 #define DI_SetMode(bit)		BIT_SET(config.mode, (bit))
@@ -84,6 +86,13 @@ struct dipConfigState {
 
 		/* FAT filename */
 		char fat_filename[FILENAME_MAX_LEN];
+		
+		/* FRAG state */
+		struct {
+			u32   device;
+			u32   size;
+		} frag;
+
 	};
 };
 

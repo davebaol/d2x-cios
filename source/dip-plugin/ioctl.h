@@ -2,6 +2,7 @@
  * DIP plugin for Custom IOS.
  *
  * Copyright (C) 2008-2010 Waninkoko, WiiGator.
+ * Copyright (C) 2011 davebaol, oggzee.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,6 +53,9 @@
 #define IOCTL_DI_RESET_DISABLE		0xF6
 #define IOCTL_DI_FILE_SET		0xF7
 #define IOCTL_DI_FILE_GET		0xF8
+#define IOCTL_DI_FRAG_SET		0xF9
+#define IOCTL_DI_MODE_GET		0xFA
+#define IOCTL_DI_HELLO			0xFB
 #define IOCTL_DI_SAVE_CONFIG		0xFE
 #define IOCTL_DI_CUSTOMCMD		0xFF
 

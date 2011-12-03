@@ -1,7 +1,7 @@
 /*
  * DIP plugin for Custom IOS.
  *
- * Copyright (C) 2011 davebaol.
+ * Copyright (C) 2011 davebaol, oggzee.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
 #include "isfs.h"
 #include "syscalls.h"
 #include "types.h"
+#include "config.h"
+#include "frag.h"
 
 /* Constants */
 #define FILENAME	"/sys/dip.cfg"
@@ -61,9 +64,9 @@ s32 __Config_Delete(void)
 	return ret;
 }
 
-s32 Config_Load(void *cfg, u32 size)
+s32 Config_Load(struct dipConfigState *cfg, u32 size)
 {
-	s32 fd, ret;
+	s32 fd, ret, ret2;
 
 	/* Open config file */
 	fd = os_open(FILENAME, ISFS_OPEN_READ);
@@ -71,8 +74,30 @@ s32 Config_Load(void *cfg, u32 size)
 	if (fd < 0)
 		return fd;
 
-	/* Read config */
-	ret = os_read(fd, cfg, size);
+	/* Read config.mode */
+	ret = os_read(fd, cfg, sizeof(cfg->mode));
+
+	if (ret == sizeof(cfg->mode)) {
+		size -= sizeof(cfg->mode);
+		if (cfg->mode == MODE_FRAG) {
+			size = sizeof(cfg->frag);
+		}
+		/* Read the rest of config */
+		ret = os_read(fd, (void*)cfg + sizeof(cfg->mode), size);
+		if (ret > 0) {
+			ret += sizeof(cfg->mode);
+			if (cfg->mode == MODE_FRAG) {
+				/* Read frag list */
+				memset(&fraglist_data, 0, sizeof(fraglist_data));
+				if (cfg->frag.size > sizeof(fraglist_data)) {
+					ret2 = -1;
+				} else {	   
+					ret2 = os_read(fd, &fraglist_data, cfg->frag.size);
+				}
+				if (ret2 != cfg->frag.size) ret = -1;
+			}
+		}
+	}
 
 	/* Close config */
 	os_close(fd);
@@ -83,9 +108,9 @@ s32 Config_Load(void *cfg, u32 size)
 	return ret;
 }
 
-s32 Config_Save(void *cfg, u32 size)
+s32 Config_Save(struct dipConfigState *cfg, u32 size)
 {
-	s32 fd, ret;
+	s32 fd, ret, ret2;
 
 	/* Create config file */
 	__Config_Create();
@@ -98,8 +123,14 @@ s32 Config_Save(void *cfg, u32 size)
 	/* Write config */
 	ret = os_write(fd, cfg, size);
 
+	/* Write frag list */
+	if (ret > 0 && cfg->mode == MODE_FRAG) {
+		ret2 = os_write(fd, &fraglist_data, cfg->frag.size);
+		if (ret2 > 0) ret += ret2; else ret = ret2;
+	}
+
 	/* Close config */
 	os_close(fd);
 
 	return ret;
-}                   
+}
