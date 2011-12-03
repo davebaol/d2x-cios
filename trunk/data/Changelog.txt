@@ -1,0 +1,11 @@
++-----------+
+| CHANGELOG |
++-----------+
+
+
+[ d2x v1 ]
+
+- Fixed wiimote lag issue by restoring timing logic from cIOSX rev19.
+- Fixed wiimote synch delay on WiiFlow start up by changing initial period 
+  in timer creation.
+- Fixed os_restart_timer with the correct number of arguments.

@@ -302,7 +302,7 @@ void __EHCI_Watchdog(void)
 			Mem_Free(buffer);
 
 			/* Restart watchdog timer */
-			os_restart_timer(timerId, 0, WATCHDOG_TIMER);
+			os_restart_timer(timerId, WATCHDOG_TIMER, 0);
 		}
 	}
 }
@@ -447,7 +447,7 @@ s32 EHCI_Loop(void)
 
 
 		/* Restart watchdog timer */
-		os_restart_timer(timerId, 0, WATCHDOG_TIMER);
+		os_restart_timer(timerId, WATCHDOG_TIMER, 0);
 
 		/* Acknowledge message */
 		if (ack)

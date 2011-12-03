@@ -11,8 +11,9 @@ STRIP	=	./stripios
 
 # Flags
 ARCH	=	-mcpu=arm926ej-s -mthumb -mthumb-interwork -mbig-endian
-CFLAGS	=	$(ARCH) -I. -Itinyehci -fomit-frame-pointer -Os -Wall -ffunction-sections
+CFLAGS	=	$(ARCH) -I. -Itinyehci -fomit-frame-pointer -Os -Wall -Wstrict-prototypes -ffunction-sections
 LDFLAGS	=	$(ARCH) -nostartfiles -Wl,-T,link.ld,-Map,$(TARGET).map -Wl,--gc-sections -Wl,-static
+
 # Libraries
 LIBS	=
 
