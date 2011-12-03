@@ -3,6 +3,12 @@
 +-----------+
 
 
+[ d2x v3 ]
+
+- Fixed a bug in nand usage causing save creation failure in WiiWare games
+  like Tetris Party, FFCC My Life as a King and Brain Challenge.
+
+
 [ d2x v2 ]
 
 - Fixed secondary USB port lag.
