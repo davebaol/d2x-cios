@@ -5,6 +5,7 @@
 	Copyright (C) 2009 kwiirk.
 	Copyright (C) 2009 Hermes.
 	Copyright (C) 2009 Waninkoko.
+	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -25,7 +26,12 @@
 	.arm
 
 	.EQU	ios_thread_arg,		4
+
+	// FIX d2x v2
+	// Thread priority decreased from 0x78 to 0x48, like it was in rev18 and below,
+	// to fix the lag on secondary usb port when the watchdog is reading.
 	.EQU	ios_thread_priority,	0x48
+
 	.EQU	ios_thread_stacksize,	0x3000
 
 

@@ -2,6 +2,7 @@
  * FFS plugin for Custom IOS.
  *
  * Copyright (C) 2009-2010 Waninkoko.
+ * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -63,6 +64,8 @@ fs_open:
 	bl	FS_Open
 	cmp	r0, #0
 	bge	fs_exit
+
+	// jump to the original FFS open
 	ldr	r0, =addrTable
 	ldr	r3, [r0]
 	ldr	r0, [r3, #4]
@@ -76,6 +79,8 @@ fs_close:
 	bl	FS_Close
 	cmp	r0, #0
 	bge	fs_exit
+
+	// jump to the original FFS close
 	ldr	r0, =addrTable
 	ldr	r3, [r0]
 	ldr	r0, [r3, #8]
@@ -89,6 +94,8 @@ fs_read:
 	bl	FS_Read
 	cmp	r0, #0
 	bge	fs_exit
+
+	// jump to the original FFS read
 	ldr	r0, =addrTable
 	ldr	r3, [r0]
 	ldr	r0, [r3, #12]
@@ -102,6 +109,8 @@ fs_write:
 	bl	FS_Write	
 	cmp	r0, #0
 	bge	fs_exit
+
+	// jump to the original FFS write
 	ldr	r0, =addrTable
 	ldr	r3, [r0]
 	ldr	r0, [r3, #16]
@@ -115,6 +124,8 @@ fs_seek:
 	bl	FS_Seek
 	cmp	r0, #0
 	bge	fs_exit
+
+	// jump to the original FFS seek
 	ldr	r0, =addrTable
 	ldr	r3, [r0]
 	ldr	r0, [r3, #20]
@@ -133,6 +144,8 @@ fs_ioctl:
 	bne	fs_exit	
 	cmp	r0, #0
 	bge	fs_exit
+
+	// jump to the original FFS ioctl
 	ldr	r0, =addrTable
 	ldr	r3, [r0]
 	ldr	r0, [r3, #24]
@@ -151,6 +164,8 @@ fs_ioctlv:
 	bne	fs_exit	
 	cmp	r0, #0
 	bge	fs_exit
+
+	// jump to the original FFS ioctlv
 	ldr	r0, =addrTable
 	ldr	r3, [r0]
 	ldr	r0, [r3, #28]
@@ -168,6 +183,12 @@ fs_exit:
 
 /*
  * Syscall open hook
+ *
+ * NOTE:
+ * The original vector works in thumb mode,
+ * but it has been patched with bx pc and ldr pc, =addr 
+ * to jump without modifying any register.
+ * So we need to change correctly to thumb mode again.
  */
 	.align 4
 	.code 32
@@ -178,14 +199,14 @@ syscall_open:
 	stmfd	sp!, {r4-r7, lr}
 	stmfd	sp!, {r1-r3}
 	nop
-	ldr	r4, =(_syscall_open + 1)
+	ldr	r4, =(_syscall_open_thumb + 1)
 	bx	r4
 
 	.align 4
 	.code 16
 
 	.thumb
-_syscall_open:
+_syscall_open_thumb:
 	bl	__FS_SyscallOpen
 	pop	{r1-r3}
 	mov	r7, r11

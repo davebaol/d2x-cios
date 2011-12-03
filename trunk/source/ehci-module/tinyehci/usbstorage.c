@@ -806,7 +806,7 @@ found:
 	retval = USBSTORAGE_EINIT;
 	try_status=-1201;
 
-    #ifdef MEM_PRINT
+	#ifdef MEM_PRINT
 	s_printf("USBStorage_Open(): conf: %x altInterface: %x\n", dev->configuration, dev->altInterface);
 	
 	#endif
@@ -1022,7 +1022,7 @@ static s32 __USBStorage_Read(usbstorage_handle *dev, u8 lun, u32 sector, u16 n_s
 	if(lun >= dev->max_lun || dev->sector_size[lun] == 0 || !dev)
 		return -EINVAL;
     
-	retval = __cycle(dev, lun, buffer, n_sectors * dev->sector_size[lun], cmd, sizeof(cmd), 0, &status, NULL);
+	retval = __cycle(dev, lun, buffer, ((u32) n_sectors) * dev->sector_size[lun], cmd, sizeof(cmd), 0, &status, NULL);
 	if(retval > 0 && status != 0)
 		retval = USBSTORAGE_ESTATUS;
 	return retval;
@@ -1046,7 +1046,7 @@ static s32 __USBStorage_Write(usbstorage_handle *dev, u8 lun, u32 sector, u16 n_
 		};
 	if(lun >= dev->max_lun || dev->sector_size[lun] == 0)
 		return -EINVAL;
-	retval = __cycle(dev, lun, (u8 *)buffer, n_sectors * dev->sector_size[lun], cmd, sizeof(cmd), 1, &status, NULL);
+	retval = __cycle(dev, lun, (u8 *)buffer, ((u32) n_sectors ) * dev->sector_size[lun], cmd, sizeof(cmd), 1, &status, NULL);
 	if(retval > 0 && status != 0)
 		retval = USBSTORAGE_ESTATUS;
 	return retval;
@@ -1054,14 +1054,14 @@ static s32 __USBStorage_Write(usbstorage_handle *dev, u8 lun, u32 sector, u16 n_
 
 s32 USBStorage_Read(usbstorage_handle *dev, u8 lun, u32 sector, u16 n_sectors, u8 *buffer)
 {
-u32 max_sectors=n_sectors;
-u32 sectors;
-s32 ret=-1;
+	u32 max_sectors=n_sectors;
+	u32 sectors;
+	s32 ret=-1;
 
-	if(n_sectors * dev->sector_size[lun]>32768) max_sectors= 32768/dev->sector_size[lun];
+	if(((u32) n_sectors) * dev->sector_size[lun]>64*1024) max_sectors= 64*1024/dev->sector_size[lun]; // Hermes: surely it fix a problem with some devices...
 
 	while(n_sectors>0)
-		{
+	{
 		sectors=n_sectors>max_sectors ? max_sectors: n_sectors;
 		ret=__USBStorage_Read(dev, lun, sector, sectors, buffer);
 		if(ret<0) return ret;
@@ -1069,9 +1069,9 @@ s32 ret=-1;
 		n_sectors-=sectors;
 		sector+=sectors;
 		buffer+=sectors * dev->sector_size[lun];
-		}
+	}
 
-return ret;
+	return ret;
 }
 
 s32 USBStorage_Write(usbstorage_handle *dev, u8 lun, u32 sector, u16 n_sectors, const u8 *buffer)
@@ -1080,7 +1080,7 @@ u32 max_sectors=n_sectors;
 u32 sectors;
 s32 ret=-1;
 
-	if((n_sectors * dev->sector_size[lun])>32768) max_sectors=32768/dev->sector_size[lun];
+	if(((u32) n_sectors) * dev->sector_size[lun]>64*1024) max_sectors=64*1024/dev->sector_size[lun]; // Hermes: surely it fix a problem with some devices...
 
 	while(n_sectors>0)
 		{
@@ -1221,16 +1221,16 @@ s32 USBStorage_Try_Device(struct ehci_device *fd)
 
 void USBStorage_Umount(void)
 {
-if(!ums_init_done) return;
+	if(!ums_init_done) return;
 	
 	if(__mounted && !unplug_device)
-		{
+	{
 		if(__usbstorage_start_stop(&__usbfd, __lun, 0x0)==0) // stop
 		ehci_msleep(1000);
-		}
+	}
 
 	USBStorage_Close(&__usbfd);__lun= 16;
-    __mounted=0;
+	__mounted=0;
 	ums_init_done=0;
 	unplug_device=0;
 }
@@ -1238,113 +1238,114 @@ if(!ums_init_done) return;
 
 s32 USBStorage_Init(void)
 {
-        int i;
-        debug_printf("usbstorage init %d\n", ums_init_done);
-        if(ums_init_done)
-          return 0;
+	int i;
+	debug_printf("usbstorage init %d\n", ums_init_done);
+	if(ums_init_done)
+		return 0;
 
-	 try_status=-1;      
+	try_status=-1;      
 
 #ifdef MEM_PRINT
 s_printf("\n***************************************************\nUSBStorage_Init()\n***************************************************\n\n");
 
 #endif
 
-        for(i = 0;i<ehci->num_port; i++){
-                struct ehci_device *dev = &ehci->devices[i];
+	for(i = 0;i<ehci->num_port; i++){
+		struct ehci_device *dev = &ehci->devices[i];
 				
-				dev->port=i;
+		dev->port=i;
 
-                if(dev->id != 0){
-                        
+		if(dev->id != 0){
 					
 							
-							handshake_mode=1;
-							if(ehci_reset_port(0)>=0)
-								{
+			handshake_mode=1;
+			if(ehci_reset_port(0)>=0)
+			{
 
-								if(USBStorage_Try_Device(dev)==0) 
-									{first_access=true;handshake_mode=0;ums_init_done = 1;unplug_device=0;
-									#ifdef MEM_PRINT
-									s_printf("USBStorage_Init() Ok\n");
-									
-									#endif
-
-									return 0;
-									}
-								}
-
-						
-                }
-				else
-					{
-				    u32 status;
-                    handshake_mode=1;
-					status = ehci_readl(&ehci->regs->port_status[0]);
-
+				if(USBStorage_Try_Device(dev)==0) 
+				{
+					first_access=true;handshake_mode=0;ums_init_done = 1;unplug_device=0;
 					#ifdef MEM_PRINT
-					s_printf("USBStorage_Init() status %x\n",status);
-					
+					s_printf("USBStorage_Init() Ok\n");
+									
 					#endif
+
+					return 0;
+				}
+			}
+
+		}
+		else
+		{
+			u32 status;
+			handshake_mode=1;
+			status = ehci_readl(&ehci->regs->port_status[0]);
+
+			#ifdef MEM_PRINT
+			s_printf("USBStorage_Init() status %x\n",status);
 					
-					if(status & 1)
-						{
-						if(ehci_reset_port2(0)<0)
-							{
-							ehci_msleep(100);
-							ehci_reset_port(0);
-							}
-						return -101;
-						}
-					else 
-						{
-						return -100;
-						}
-					}
-        }
+			#endif
+					
+			if(status & 1)
+			{
+				if(ehci_reset_port2(0)<0)
+				{
+					ehci_msleep(100);
+					ehci_reset_port(0);
+				}
+				return -101;
+			}
+			else 
+			{
+				return -100;
+			}
+		}
+	}
 
 	
-        return try_status;
+	return try_status;
 }
 
-s32 USBStorage_Get_Capacity(u32*sector_size)
+// FIX d2x v4beta1
+// Now it returns an unsigned int to support HDD greater than 1TB.
+u32 USBStorage_Get_Capacity(u32*sector_size)
 {
-   if(__mounted == 1)
-   {
-           if(sector_size){
-                   *sector_size = __usbfd.sector_size[__lun];
-           }
-           return __usbfd.n_sector[__lun];
-   }
-   return 0;
+	if(__mounted == 1)
+	{
+		if(sector_size){
+			*sector_size = __usbfd.sector_size[__lun];
+		}
+		return __usbfd.n_sector[__lun];
+	}
+	return 0;
 }
 
 int unplug_procedure(void)
 {
-int retval=1;
+	int retval=1;
 
- if(unplug_device!=0 )
-			{
+	if(unplug_device!=0 )
+	{
 			
-			if(__usbfd.usb_fd)
-			   if(ehci_reset_port2(/*__usbfd.usb_fd->port*/0)>=0)	
-				{
-                if(__usbfd.buffer != NULL)
-						USB_Free(__usbfd.buffer);
+		if(__usbfd.usb_fd)
+			if(ehci_reset_port2(/*__usbfd.usb_fd->port*/0)>=0)	
+			{
+				if(__usbfd.buffer != NULL)
+					USB_Free(__usbfd.buffer);
 				__usbfd.buffer= NULL;
 
 				if(ehci_reset_port(0)>=0)
-					{
+				{
 					handshake_mode=1;
 					if(USBStorage_Try_Device(__usbfd.usb_fd)==0) {retval=0;unplug_device=0;}
 					handshake_mode=0;
-					}
-
 				}
-			ehci_msleep(100);
-			}
 
-return retval;
+			}
+		ehci_msleep(100);
+	}
+
+	return retval;
 }
 
 s32 USBStorage_Read_Sectors(u32 sector, u32 numSectors, void *buffer)

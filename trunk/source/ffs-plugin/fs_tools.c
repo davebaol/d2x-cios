@@ -2,6 +2,7 @@
  * FFS plugin for Custom IOS.
  *
  * Copyright (C) 2009-2010 Waninkoko.
+ * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -120,6 +121,7 @@ u32 FS_CheckPath(const char *path)
 	/* Check path */
 	if (config.mode & MODE_FULL) {
 		if (!strncmp(path, "/dev", 4))              return 1;
+		//if (!strncmp(path, "/sys/cert.sys", 13))    return 1;
 		if (!strncmp(path, "/", 1))                 return 0;
 	} else {
 		if (!strncmp(path, "/ticket/00010001", 16)) return 0;
@@ -138,29 +140,31 @@ u32 FS_CheckPath(const char *path)
 
 void FS_GeneratePath(const char *oldpath, char *newpath)
 {
-	/* Set device prefix */
+	/* Generate device */
 	FS_GenerateDevice(newpath);
 
-	/* Generate path */
+	/* Append nand path */
 	__FS_CopyPath(newpath, config.path);
+
+	/* Append required path */
 	__FS_CopyPath(newpath, oldpath);
 }
 
-void FS_GenerateDevice(char *device)
+void FS_GenerateDevice(char *path)
 {
-	u8 mode = (config.mode & 0xFF);
+	u8 device = (config.mode & 0xFF);
 
 	/* Set prefix */
-	switch (mode) {
+	switch (device) {
 	case MODE_SDHC:
-		strcpy(device, "0:");
+		strcpy(path, "0:");
 		break;
 
 	case MODE_USB:
-		strcpy(device, "1:");
+		strcpy(path, "1:");
 		break;
 
 	default:
-		strcpy(device, "");
+		strcpy(path, "");
 	}
 }

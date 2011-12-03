@@ -5,6 +5,7 @@
 	Copyright (C) 2009 kwiirk.
 	Copyright (C) 2009 Hermes.
 	Copyright (C) 2009 Waninkoko.
+	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -29,7 +30,10 @@
 static s32 queuehandle = -1;
 static s32 timerId     = -1;
 
-
+// Fix d2x v1
+// Back to timing logic from rev19 and below.
+// This solves the controller lag introduced by rev20 for certain HDD
+// when the watchdog is reading.
 void Timer_Init(void)
 {
 	void *queuespace = NULL;
@@ -43,7 +47,7 @@ void Timer_Init(void)
 	queuehandle = os_message_queue_create(queuespace, 16);
 
 	/* Create timer */
-	timerId = os_create_timer(1600000, 1, queuehandle, 0x666);
+	timerId = os_create_timer(1000000, 1, queuehandle, 0x666);
 
 	/* Stop timer */
 	os_stop_timer(timerId);
@@ -68,7 +72,7 @@ void Timer_Sleep(u32 time)
 			break;
 	}
 
-	
+	/* Wait to receive message */
 	os_message_queue_receive(queuehandle, (void *)&message, 0);
 
 	/* Stop timer */

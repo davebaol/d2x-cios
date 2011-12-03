@@ -22,13 +22,13 @@
 
 #include "types.h"
 
-//#define DEBUG
+#define DEBUG
 
 /* Debug */
 #ifdef DEBUG
 void FS_printf(const char *fmt, ...);
 #else
-# define FS_printf(fmt, ...)
+#define FS_printf(fmt, ...)
 #endif
 
 /* FFS handlers */

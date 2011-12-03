@@ -2,6 +2,7 @@
  * FFS plugin for Custom IOS.
  *
  * Copyright (C) 2009-2010 Waninkoko.
+ * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,16 +32,6 @@
 
 /* Global config */
 struct fsConfig config = { 0 , "", ""};
-
-void FAT_Rename_Workaround(void)
-{
-	char path[FAT_MAXPATH];
-	
-	/* Generate path */
-	FS_GeneratePath("/tmp/davebaol.fix", path);
-	FAT_CreateFile(path);
-	FAT_Delete(path);
-}
 
 s32 FS_SetMode(u32 mode, char *path, char *logfile)
 {
@@ -264,14 +255,6 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 
 			struct stats stats;
 
-			// FIX  
-			// This is a workaround for fixing the issue
-			// with The Will of Dr.Frankenstein.
-			// After saving the 1st time the file
-			// /tmp/savefile.dat remains there with size 0
-			// and you cannot save anymore. 
-			FAT_Rename_Workaround();
-
 			/* Generate paths */
 			FS_GeneratePath(rename->filepathOld, oldpath);
 			FS_GeneratePath(rename->filepathNew, newpath);
@@ -346,7 +329,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 	/** Get attributes **/
 	case IOCTL_ISFS_GETATTR: {
 		char *path = (char *)inbuf;
-
+		
 		FS_printf("FS_GetAttributes(): %s\n", path);
 
 		/* Check path */
@@ -376,7 +359,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 			attr->groupperm  = ISFS_OPEN_RW;
 			attr->otherperm  = ISFS_OPEN_RW;
 			attr->attributes = 0;
-
+		  
 			/* Copy filepath */
 			memcpy(attr->filepath, path, ISFS_MAXPATH);
 
@@ -432,10 +415,10 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 		u32 mode = inbuf[0];
 
 		FS_printf("FS_SetMode(): (mode: %d, path: /,  logfile: )\n", mode);
-	
+
 		/* Set flag */
 		*flag = 1;
-
+		
 		return FS_SetMode(mode, "", "");
 	}
 
@@ -479,7 +462,7 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 			char *outbuf = NULL;
 			u32  *outlen = NULL;
 			u32   buflen = 0;
-
+			
 			char fatpath[FAT_MAXPATH];
 			u32  entries;
 
@@ -549,10 +532,10 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 			u32 *blocks = (u32 *)vector[1].data;
 			u32 *inodes = (u32 *)vector[2].data;
 
-			//BUG
-			//The following lines have been commented 
-			//because they were causing the save file issue 
-			//in a few WiiWare like Tetris Party and Brain Challenge
+			// BUG
+			// The following lines have been commented 
+			// because they were causing the save file issue 
+			// in a few WiiWare like Tetris Party and Brain Challenge
 			
 			/* Generate path */
 			//FS_GeneratePath(dirpath, fatpath);
@@ -560,8 +543,8 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 			/* Get usage */
 			//ret = FAT_GetUsage(fatpath, blocks, inodes);
 
-			//FIX
-			//Just set fake values as it was in rev17
+			// FIX
+			// Just set fake values as it was in rev17
 			/* Set fake values */
 			*blocks = 1;
 			*inodes = 1;
@@ -571,7 +554,7 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 			os_sync_after_write(blocks, sizeof(u32));
 			os_sync_after_write(inodes, sizeof(u32));
 
-			//BUG
+			// BUG
 			//return ret;
 
 			//FIX
@@ -595,7 +578,7 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 
 		/* Set flag */
 		*flag = 1;
-
+		
 		return FS_SetMode(mode, path, logfile);
 	}
 
@@ -612,4 +595,4 @@ s32 FS_Exit(s32 ret)
 	FS_printf("FS returned: %d\n", ret);
 
 	return ret;
-}      
+}

@@ -2,6 +2,7 @@
  * FFS plugin for Custom IOS.
  *
  * Copyright (C) 2009-2010 Waninkoko.
+ * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,7 +67,7 @@ s32 FAT_DeleteDir(const char *dirpath);
 s32 FAT_Rename(const char *oldpath, const char *newpath);
 s32 FAT_GetStats(const char *path, struct stats *stats);
 s32 FAT_GetUsage(const char *path, u32 *blocks, u32 *inodes);
- 
+
 #ifdef DEBUG
 s32 FAT_OpenLog(const char *path, u32 mode);
 s32 FAT_CloseLog(s32 fd);
