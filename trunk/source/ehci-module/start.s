@@ -25,7 +25,7 @@
 	.arm
 
 	.EQU	ios_thread_arg,		4
-	.EQU	ios_thread_priority,	0x78
+	.EQU	ios_thread_priority,	0x48
 	.EQU	ios_thread_stacksize,	0x3000
 
 

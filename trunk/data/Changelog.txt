@@ -3,6 +3,11 @@
 +-----------+
 
 
+[ d2x v2 ]
+
+- Fixed secondary USB port lag.
+
+
 [ d2x v1 ]
 
 - Fixed wiimote lag issue by restoring timing logic from cIOSX rev19.
