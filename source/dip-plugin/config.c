@@ -74,7 +74,7 @@ s32 Config_Load(struct dipConfigState *cfg, u32 size)
 	if (fd < 0)
 		return fd;
 
-	/* Read config.mode */
+	/* Read config mode */
 	ret = os_read(fd, cfg, sizeof(cfg->mode));
 
 	if (ret == sizeof(cfg->mode)) {
@@ -98,6 +98,8 @@ s32 Config_Load(struct dipConfigState *cfg, u32 size)
 			}
 		}
 	}
+	else if (ret > 0)
+		ret = -1;
 
 	/* Close config */
 	os_close(fd);
@@ -126,7 +128,10 @@ s32 Config_Save(struct dipConfigState *cfg, u32 size)
 	/* Write frag list */
 	if (ret > 0 && cfg->mode == MODE_FRAG) {
 		ret2 = os_write(fd, &fraglist_data, cfg->frag.size);
-		if (ret2 > 0) ret += ret2; else ret = ret2;
+		if (ret2 < 0)
+			ret = ret2;
+		else
+			ret += ret2;
 	}
 
 	/* Close config */

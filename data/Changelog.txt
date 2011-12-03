@@ -8,6 +8,7 @@
 - Added fraglist to support potentially any file system (tnx oggzee).
 - Added support in fraglist for sector size up to 4K (typically required
   for hard drives greater than 2TB).
+- Fixed a compatibility issue with libfat/libntfs in EHCI module.
 
 
 [ d2x v5 ]

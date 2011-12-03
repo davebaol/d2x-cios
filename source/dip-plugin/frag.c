@@ -42,10 +42,10 @@ static u16 frag_idx[MAX_IDX] = { 0 };
 static u32 frag_init = 0;
 static u32 frag_dev = 0;
 FragList fraglist_data = { 0 };
-FragList *frag_list = 0;
-u32	sector_size = 0;
-u32	ss_num_bits = 0;
-static u8* sector_buf;
+FragList *frag_list = NULL;
+u32 sector_size = 0;
+u32 ss_num_bits = 0;
+static u8* sector_buf = NULL;
 
 void optimize_frag_list(void);
 
@@ -54,7 +54,7 @@ u32 numBits(u32 value)
 	u32 nb = 0;
 	do {
 		value >>= 1;
-		nb ++;
+		nb++;
 	} while (value);
 
 	return nb;
@@ -74,22 +74,19 @@ s32 Frag_Init(u32 device, void *fraglist, int size)
 {
 	static int ret;
 	if (frag_init) Frag_Close();
-	if (!device || device > 2) return -1;
+	if (device != DEV_USB && device != DEV_SDHC) return -1;
 	if (!size) return -2;
 	if (size > sizeof(FragList)) return -3;
 
-	if (device == DEV_USB) {
-		ret = usbstorage_Init();
-	} else {
-		ret = sdhc_Init();
-	}
+	/* Init device */
+	ret = (device == DEV_USB ? usbstorage_Init() : sdhc_Init());
 
 	if (ret) return -4; 
 
 	sector_size = SECTOR_SIZE(device);
 	ss_num_bits = numBits(sector_size - 1);
 
-	/* Allocate memory */
+	/* Allocate sector buffer */
 	sector_buf = DI_Alloc(sector_size, 32);
 	if (!sector_buf)
 		return -5;
@@ -104,6 +101,7 @@ s32 Frag_Init(u32 device, void *fraglist, int size)
 	}
 	optimize_frag_list();
 	frag_init = 1;
+
 	return 0;
 }
 
@@ -112,6 +110,12 @@ void Frag_Close(void)
 	frag_init = 0;
 	frag_list = 0;
 	frag_dev = 0;
+
+	/* Free sector buffer */
+	if (sector_buf) {
+		DI_Free(sector_buf);
+		sector_buf = NULL;
+	}
 }
 
 

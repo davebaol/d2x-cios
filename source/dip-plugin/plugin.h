@@ -101,7 +101,4 @@ s32 DI_EmulateIoctl(ioctl *buffer, s32 fd);
 s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size);
 void DI_EmulateInitStage2(void);
 
-/* Extern */
-//extern struct dipConfig config;
-
 #endif
