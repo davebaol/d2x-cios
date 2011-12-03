@@ -29,6 +29,9 @@
 #include "syscalls.h"
 #include "types.h"
 
+/* Global config */
+struct fsConfig config = { 0 , "", ""};
+
 void FAT_Rename_Workaround(void)
 {
 	char path[FAT_MAXPATH];
@@ -39,15 +42,65 @@ void FAT_Rename_Workaround(void)
 	FAT_Delete(path);
 }
 
-/* Global config */
-struct fsConfig config = { 0 , ""};
+s32 FS_SetMode(u32 mode, char *path, char *logfile)
+{
+	/* FAT mode enabled */
+	if (mode) {
+		u32 ret;
+		char fatpath[FAT_MAXPATH];
 
+		/* Initialize FAT */
+		ret = FAT_Init();
+		if (ret < 0)
+			return ret;
+
+		// FIX
+		// Force FS mode now because FS_GeneratePath needs it. 
+		// Without forcing FS mode the generated path will be wrong
+		// and the temp dir will not be deleted
+		/* Set FS mode */
+		config.mode = mode;
+
+		/* Set path */
+		strcpy(config.path, path);
+
+		/* Set logfile */
+		if (logfile[0] == '\0')
+			config.logfile[0] = '\0';
+		else {
+			FS_GenerateDevice(config.logfile);
+			strcat(config.logfile, logfile);
+
+			/* Delete logfile */
+			FAT_Delete(config.logfile);
+		}
+
+		/* Generate path */
+		FS_GeneratePath("/tmp", fatpath);
+
+		/* Delete "/tmp" */
+		FAT_DeleteDir(fatpath);
+	}
+	else {
+		/* Set FS mode */
+		config.mode = mode;
+
+		/* Set nand path */
+		config.path[0] = '\0';
+
+		/* Set logfile */
+		config.logfile[0] = '\0';
+	}
+
+	return 0;
+}
 
 s32 FS_Open(ipcmessage *message)
 {
 	char *path = message->open.device;
+	u32 mode = message->open.mode;
 
-	FS_printf("FS_Open(): %s\n", path);
+	FS_printf("FS_Open(): (path: %s, mode: %d)\n", path, mode);
 
 	return -6;
 }
@@ -376,43 +429,14 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 
 	/** Set FS mode **/
 	case IOCTL_ISFS_SETMODE: {
-		u32 val = inbuf[0];
+		u32 mode = inbuf[0];
 
-		FS_printf("FS_SetMode(): %d\n", val);
+		FS_printf("FS_SetMode(): (mode: %d, path: /,  logfile: )\n", mode);
 	
 		/* Set flag */
 		*flag = 1;
 
-		/* Set path */
-		strcpy(config.path, "");
-
-		/* FAT mode enabled */
-		if (val) {
-			char fatpath[FAT_MAXPATH];
-
-			/* Initialize FAT */
-			ret = FAT_Init();
-			if (ret < 0)
-				return ret;
-
-			// FIX
-			// Force FS mode now because FS_GeneratePath needs it. 
-			// Without forcing FS mode the generated path will be wrong
-			// and the temp dir will not be deleted
-			/* Set FS mode */
-			config.mode = val;
-
-			/* Generate path */
-			FS_GeneratePath("/tmp", fatpath);
-
-			/* Delete "/tmp" */
-			FAT_DeleteDir(fatpath);
-		}
-
-		/* Set FS mode */
-		config.mode = val;
-
-		return 0;
+		return FS_SetMode(mode, "", "");
 	}
 
 	default:
@@ -441,7 +465,7 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 	case IOCTL_ISFS_READDIR: {
 		char *dirpath = (char *)vector[0].data;
 
-		FS_printf("FS_Readdir(): %s\n", dirpath);
+		FS_printf("FS_Readdir(): (path: %s, iolen: %d)\n", dirpath, iolen);
 
 		/* Check path */
 		ret = FS_CheckPath(dirpath);
@@ -471,16 +495,33 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 			/* Generate path */
 			FS_GeneratePath(dirpath, fatpath);
 
+			FS_printf("FS_Readdir(): Calling FAT_ReadDir(%s, %x, %d)\n", (char *)fatpath, outbuf, entries);
+
 			/* Read directory */
 			ret = FAT_ReadDir(fatpath, outbuf, &entries);
+
+			FS_printf("FS_Readdir(): Return from FAT_ReadDir: outbuf=%x, entries=%d\n", outbuf, entries);
+
 			if (ret >= 0) {
 				*outlen = entries;
+				FS_printf("FS_Readdir(): Calling os_sync_after_write(%x,%d)\n", outlen, sizeof(u32));   
 				os_sync_after_write(outlen, sizeof(u32));
 			}
 
 			/* Flush cache */
-			if (outbuf)
+			if (outbuf) {
+#ifdef DEBUG
+				int i;
+				char *fn = outbuf;
+				for(i=1; i<=entries; i++, fn+=strlen(fn)+1)
+					FS_printf("%d: %s\n", i, fn);  
+#endif
+				FS_printf("FS_Readdir(): Calling os_sync_after_write(%x,%d) ----> outlen: %d\n", outbuf, buflen, *outlen);
+
 				os_sync_after_write(outbuf, buflen);
+			}
+
+			FS_printf("FS_Readdir(): Returning %d\n", ret);
 
 			return ret;
 		}
@@ -503,7 +544,7 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 
 		/* FAT mode */
 		if (config.mode) {
-			char fatpath[FAT_MAXPATH];
+			//char fatpath[FAT_MAXPATH];
 
 			u32 *blocks = (u32 *)vector[1].data;
 			u32 *inodes = (u32 *)vector[2].data;
@@ -542,46 +583,20 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 
 	/** Set FS mode **/
 	case IOCTL_ISFS_SETMODE: {
-		u32   val  = *(u32 *)vector[0].data;
+		u32  mode  = *(u32 *)vector[0].data;
 		char *path = "";
+		char *logfile = "/ffs_log.txt";
 
 		/* Get path */
 		if (inlen > 1)
 			path = (char *)vector[1].data;
 
+		FS_printf("FS_SetMode(): (mode: %d, path: %s)\n", mode, (*path=='\0'? "/" : path));
+
 		/* Set flag */
 		*flag = 1;
 
-		/* Set path */
-		strcpy(config.path, path);
-
-		/* FAT mode enabled */
-		if (val) {
-			char fatpath[FAT_MAXPATH];
-
-			/* Initialize FAT */
-			ret = FAT_Init();
-			if (ret < 0)
-				return ret;
-
-			// FIX
-			// Force FS mode now because FS_GeneratePath needs it. 
-			// Without forcing FS mode the generated path will be wrong
-			// and the temp dir will not be deleted
-			/* Set FS mode */
-			config.mode = val;
-
-			/* Generate path */
-			FS_GeneratePath("/tmp", fatpath);
-
-			/* Delete "/tmp" */
-			FAT_DeleteDir(fatpath);
-		}
-
-		/* Set FS mode */
-		config.mode = val;
-
-		return 0;
+		return FS_SetMode(mode, path, logfile);
 	}
 
 	default:

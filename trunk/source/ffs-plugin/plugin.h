@@ -35,6 +35,9 @@ struct fsConfig {
 
 	/* FS path */
 	char path[FAT_MAXPATH];
+
+	/* Log file */
+	char logfile[FAT_MAXPATH];
 };
 
 /* Extern */

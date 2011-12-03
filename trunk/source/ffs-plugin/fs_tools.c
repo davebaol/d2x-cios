@@ -138,23 +138,29 @@ u32 FS_CheckPath(const char *path)
 
 void FS_GeneratePath(const char *oldpath, char *newpath)
 {
+	/* Set device prefix */
+	FS_GenerateDevice(newpath);
+
+	/* Generate path */
+	__FS_CopyPath(newpath, config.path);
+	__FS_CopyPath(newpath, oldpath);
+}
+
+void FS_GenerateDevice(char *device)
+{
 	u8 mode = (config.mode & 0xFF);
 
 	/* Set prefix */
 	switch (mode) {
 	case MODE_SDHC:
-		strcpy(newpath, "0:");
+		strcpy(device, "0:");
 		break;
 
 	case MODE_USB:
-		strcpy(newpath, "1:");
+		strcpy(device, "1:");
 		break;
 
 	default:
-		strcpy(newpath, "");
+		strcpy(device, "");
 	}
-
-	/* Generate path */
-	__FS_CopyPath(newpath, config.path);
-	__FS_CopyPath(newpath, oldpath);
 }
