@@ -528,14 +528,6 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 		break;
 	}
 
-	/** debug stuff **/
-	case IOCTL_DI_HELLO: {
-		memcpy(outbuf,"HELO",4);
-		outbuf[1] = config.mode;
-		outbuf[2] = config.type;
-		break;
-	}
-
 	/** Save config **/
 	case IOCTL_DI_SAVE_CONFIG: {
 		/* Check modes */

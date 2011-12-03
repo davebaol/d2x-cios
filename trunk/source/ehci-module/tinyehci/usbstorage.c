@@ -1058,7 +1058,11 @@ s32 USBStorage_Read(usbstorage_handle *dev, u8 lun, u32 sector, u16 n_sectors, u
 	u32 sectors;
 	s32 ret=-1;
 
-	if(((u32) n_sectors) * dev->sector_size[lun]>64*1024) max_sectors= 64*1024/dev->sector_size[lun]; // Hermes: surely it fix a problem with some devices...
+	// FIX d2x v6 final
+	// This line has been replaced with the old one from d2x v3
+	// since it breaks libfat/libntfs compatibility.
+	//if(((u32) n_sectors) * dev->sector_size[lun]>64*1024) max_sectors= 64*1024/dev->sector_size[lun]; // Hermes: surely it fix a problem with some devices...
+	if(n_sectors * dev->sector_size[lun]>32768) max_sectors= 32768/dev->sector_size[lun];
 
 	while(n_sectors>0)
 	{
@@ -1080,7 +1084,11 @@ u32 max_sectors=n_sectors;
 u32 sectors;
 s32 ret=-1;
 
-	if(((u32) n_sectors) * dev->sector_size[lun]>64*1024) max_sectors=64*1024/dev->sector_size[lun]; // Hermes: surely it fix a problem with some devices...
+	// FIX d2x v6 final
+	// This line has been replaced with the old one from d2x v3
+	// since it breaks libfat/libntfs compatibility.
+	//if(((u32) n_sectors) * dev->sector_size[lun]>64*1024) max_sectors=64*1024/dev->sector_size[lun]; // Hermes: surely it fix a problem with some devices...
+	if((n_sectors * dev->sector_size[lun])>32768) max_sectors=32768/dev->sector_size[lun];
 
 	while(n_sectors>0)
 		{
