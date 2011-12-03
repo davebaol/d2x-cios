@@ -2,6 +2,7 @@
  * FFS plugin for Custom IOS.
  *
  * Copyright (C) 2008-2010 Waninkoko, WiiGator.
+ * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,7 +56,7 @@ s32   os_ioctl(s32 fd, s32 request, void *in,  s32 bytes_in, void *out, s32 byte
 s32   os_create_timer(s32 time_us, s32 repeat_time_us, s32 message_queue, s32 message);
 s32   os_destroy_timer(s32 time_id);
 s32   os_stop_timer(s32 timer_id);
-s32   os_restart_timer(s32 timer_id, s32 time_us);
+s32   os_restart_timer(s32 timer_id, s32 time_us, s32 repeat_time_us);
 s32   os_timer_now(s32 time_id); 
 s32   os_register_event_handler(s32 device, s32 queue, s32 message);
 s32   os_unregister_event_handler(s32 device);

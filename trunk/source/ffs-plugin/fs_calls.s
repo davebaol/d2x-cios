@@ -188,7 +188,7 @@ fs_exit:
  * The original vector works in thumb mode,
  * but it has been patched with bx pc and ldr pc, =addr 
  * to jump without modifying any register.
- * So we need to change correctly to thumb mode again.
+ * So we need to switch to thumb mode again.
  */
 	.align 4
 	.code 32

@@ -10,11 +10,14 @@ struct esConfig {
 	/* Fake launch mode */
 	u32 fakelaunch;
 
-	/* ios to launch instead of the requested one */
+	/* ios to be launched in place of the requested one */
 	u32 ios;
 
 	/* title_id of the game requesting ios reload */
 	u64 title_id;
+
+	/* title_id to be launched in place of the system menu */
+	u64 sm_title_id;
 };
 
 /* Prototypes */
