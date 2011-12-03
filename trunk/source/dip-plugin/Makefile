@@ -26,15 +26,18 @@ OBJS	=	config.o		\
 		dip_calls.o		\
 		dma.o			\
 		file.o			\
+		frag.o			\
 		ipc.o			\
 		isfs.o			\
 		main.o			\
 		patches.o		\
 		plugin.o		\
+		sdhc.o			\
 		start.o			\
 		swi_mload.o		\
 		syscalls.o		\
 		tools.o			\
+		usbstorage.o		\
 		wbfs.o
 
 

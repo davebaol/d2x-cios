@@ -56,6 +56,7 @@
 
 [ KUDOS ]
 
+- Oggzee, for his brilliant fraglist.
 - WiiPower, for the great help with ios reload block from usb.
 - dragbe and NutNut, for their d2x cios installer.
 - XFlak, for his wonderful ModMii which supported d2x wads since its birth.

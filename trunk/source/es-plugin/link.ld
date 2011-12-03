@@ -5,14 +5,14 @@ ENTRY(_start)
 /* Sections area */ 
 MEMORY {
 	ios_info_table	: ORIGIN = 0x0, LENGTH = 0x4000
-	exe(rwx)	: ORIGIN = 0x13818000, LENGTH = 0x1000
-	ram(rwx)	: ORIGIN = 0x13819000, LENGTH = 0x4000
+	exe(rwx)	: ORIGIN = 0x13848000, LENGTH = 0x1000
+	ram(rwx)	: ORIGIN = 0x13849000, LENGTH = 0x4000
 }
 
-__exe_start_virt__		= 0x13818000;
-__exe_start_phys__		= 0x13818000;
-__ram_start_virt__		= 0x13819000;
-__ram_start_phys__		= 0x13819000;
+__exe_start_virt__		= 0x13848000;
+__exe_start_phys__		= 0x13848000;
+__ram_start_virt__		= 0x13849000;
+__ram_start_phys__		= 0x13849000;
 __ios_info_table_start		= 0x0;
 
  
