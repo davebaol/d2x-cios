@@ -19,6 +19,14 @@
 #define IOCTL_FAT_MOUNT_USB	0xF2
 #define IOCTL_FAT_UMOUNT_USB	0xF3
 
+
+/* IOCTLV commands used by FFS module for logging */
+#define IOCTL_FAT_OPEN		0x81
+#define IOCTL_FAT_CLOSE		0x82
+#define IOCTL_FAT_READ		0x83
+#define IOCTL_FAT_WRITE		0x84
+#define IOCTL_FAT_SEEK		0x85
+
 /* Device name */
 #define DEVICE_FAT		"fat"
 

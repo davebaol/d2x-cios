@@ -22,6 +22,8 @@
 
 #include "types.h"
 
+//#define DEBUG
+
 /* Debug */
 #ifdef DEBUG
 void FS_printf(const char *fmt, ...);

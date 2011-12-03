@@ -12,6 +12,10 @@
   the 2nd save in games like The Will of Dr.Frankenstein.
 - Added multiple partition support for nand emulation (default partition is 0
   for backward compatibility).
+- Implemented logging system to make debugging easier.
+- Fixed a bug causing the message "corrupted data" in The Tower of Druaga.
+- Fixed a bug causing stall in LIT.
+- Other minor changes and code clean up.
 
 
 [ d2x v2 ]

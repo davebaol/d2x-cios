@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <fcntl.h>
 
 #include "ff.h"
 #include "fs.h"
@@ -54,7 +55,11 @@ s32 __FAT_OpenDir(DIR *dir, const char *dirpath)
 		return FS_SUCCESS;
 
 	case FR_INVALID_NAME:
-//	case FR_NO_PATH:
+
+	// FIX:
+	// Case uncommented in d2x v3beta6 for error code compatibility
+	// to fix the message "corrupted data" in The Tower of Druaga
+	case FR_NO_PATH:
 		return FS_ENOENT;
 	}
 
@@ -69,8 +74,8 @@ s32 __FAT_ReadDir(DIR *dir, FILINFO *fno)
 	while (1) {
 		/* Read entry */
 		ret = f_readdir(dir, fno);
-		if (ret)
-			return FS_ENOENT;
+		if (ret != FR_OK)
+			return FS_EFATAL;
 
 		/* Read end */
 		if (fno->fname[0] == '\0')
@@ -311,7 +316,7 @@ s32 FAT_ReadDir(const char *dirpath, char *outbuf, u32 buflen, u32 *outlen, u32 
 
 		/* Read entry */
 		ret = __FAT_ReadDir(&dir, &fno);
-		if (ret)
+		if (ret != FS_SUCCESS)
 			break;
 
 		/* Copy entry */
@@ -348,6 +353,9 @@ s32 FAT_ReadDir(const char *dirpath, char *outbuf, u32 buflen, u32 *outlen, u32 
 
 	/* Set value */
 	*outlen = cnt;
+
+	if (ret == FS_EFATAL)
+		return FS_EFATAL;
 
 	return FS_SUCCESS;
 }
@@ -422,6 +430,9 @@ s32 FAT_DeleteDir(const char *dirpath)
 			return ret;
 	}
 
+	if (ret == FS_EFATAL)
+		return FS_EFATAL;
+
 	return FS_SUCCESS;
 }
 
@@ -462,15 +473,27 @@ s32 FAT_GetStats(const char *path, struct stats *stats)
 	/* Get stats */
 	ret = f_stat(path, &fno);
 
+	// FIX:
+	// Error code compatibility improved in d2x v3beta6.
+	// This way LIT doesn't stall anymore
+	switch(ret) {
+		case FR_OK:
 	/* Fill info */
-	if (!ret && stats) {
+			if (stats) {
 		stats->size   = fno.fsize;
 		stats->date   = fno.fdate;
 		stats->time   = fno.ftime;
 		stats->attrib = fno.fattrib;
 	}
+			return FS_SUCCESS;
 
-	return ret;
+		case FR_NO_FILE:
+		case FR_NO_PATH:
+		case FR_INVALID_NAME:
+			return FS_ENOENT;
+	}
+
+	return FS_EFATAL;
 }
 
 s32 FAT_GetFileStats(s32 fd, struct fstats *stats)

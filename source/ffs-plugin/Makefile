@@ -28,6 +28,7 @@ OBJS	=	fat.o			\
 		main.o			\
 		patches.o		\
 		plugin.o		\
+		printf.o		\
 		start.o			\
 		swi_mload.o		\
 		syscalls.o		\
