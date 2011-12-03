@@ -133,7 +133,7 @@
 /  to the disk_ioctl function. */
 
 
-#define	_MULTI_PARTITION	0	/* 0:Single parition or 1:Multiple partition */
+#define	_MULTI_PARTITION	1	/* 0:Single parition or 1:Multiple partition */
 /* When _MULTI_PARTITION is set to 0, each volume is bound to the same physical
 / drive number and can mount only first primaly partition. When it is set to 1,
 / each volume is tied to the partitions listed in Drives[]. */

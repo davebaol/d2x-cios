@@ -233,7 +233,7 @@ typedef struct {
 	BYTE pd;	/* Physical drive# */
 	BYTE pt;	/* Partition # (0-3) */
 } PARTITION;
-extern const PARTITION Drives[];	/* Logical drive# to physical location conversion table */
+extern /*const*/ PARTITION Drives[];	/* Logical drive# to physical location conversion table */
 
 #else						/* Single partition configuration */
 #define LD2PD(drv) (drv)	/* Physical drive# is equal to the logical drive# */

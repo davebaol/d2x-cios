@@ -33,6 +33,10 @@
 /* Variables */
 static FATFS fatFs[_DRIVES] ATTRIBUTE_ALIGN(32);
 
+PARTITION Drives[_DRIVES]  ATTRIBUTE_ALIGN(32) = {
+{0,0}, {1,0}
+};
+
 /* Buffer */
 static char  lfnBuf[_MAX_LFN + 1] ATTRIBUTE_ALIGN(32);
 
@@ -81,9 +85,12 @@ s32 __FAT_ReadDir(DIR *dir, FILINFO *fno)
 }
 
 
-s32 FAT_Mount(u8 device)
+s32 FAT_Mount(u8 device, u8 partition)
 {
 	s32 ret;
+
+	/* Set partition */
+	Drives[device].pt = partition;
 
 	/* Mount device */
 	ret = f_mount(device, fatFs);
