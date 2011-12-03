@@ -2,6 +2,7 @@
  * FFS plugin for Custom IOS.
  *
  * Copyright (C) 2009-2010 Waninkoko.
+ * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,8 +41,8 @@
 #endif
 #define IOCTL_FAT_MKDIR		0x01
 #define IOCTL_FAT_MKFILE	0x02
-#define IOCTL_FAT_READDIR	0x03
-#define IOCTL_FAT_READDIR_LFN	0x04
+#define IOCTL_FAT_READDIR_FS	0x03
+#define IOCTL_FAT_READDIR	0x04
 #define IOCTL_FAT_DELETE	0x05
 #define IOCTL_FAT_DELETEDIR	0x06
 #define IOCTL_FAT_RENAME	0x07
@@ -197,7 +198,11 @@ s32 FAT_ReadDir(const char *dirpath, void *outbuf, u32 *entries)
 
 		/* Setup vector */
 		iobuf->vector[2].data = outbuf;
-		iobuf->vector[2].len  = (FAT_MAXPATH * cnt);
+		// FIX
+		// This line has been commented in d2x v4beta1
+		// to avoid potential problems in the os_ioctlv below.
+		//iobuf->vector[2].len  = (FAT_MAXPATH * cnt);
+		iobuf->vector[2].len  = (13 * cnt); 
 		iobuf->vector[3].data = &iobuf->dir.entries;
 		iobuf->vector[3].len  = 4;
 	}
@@ -205,10 +210,9 @@ s32 FAT_ReadDir(const char *dirpath, void *outbuf, u32 *entries)
 	os_sync_after_write(iobuf, sizeof(*iobuf));
 
 	/* Read directory */
-	ret = os_ioctlv(fatFd, IOCTL_FAT_READDIR, in, io, iobuf->vector);
-//	ret = os_ioctlv(fatFd, IOCTL_FAT_READDIR_LFN, in, io, iobuf->vector);
+	ret = os_ioctlv(fatFd, IOCTL_FAT_READDIR_FS, in, io, iobuf->vector);
 
-
+	
 	/* Copy data */
 	if (ret >= 0)
 		*entries = iobuf->dir.entries;

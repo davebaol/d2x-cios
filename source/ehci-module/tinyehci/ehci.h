@@ -270,7 +270,7 @@ extern int ehci_release_ports(void);
 /* UMS API */
 
 s32 USBStorage_Init(void);
-s32 USBStorage_Get_Capacity(u32*sector_size);
+u32 USBStorage_Get_Capacity(u32*sector_size);
 s32 USBStorage_Read_Sectors(u32 sector, u32 numSectors, void *buffer);
 s32 USBStorage_Read_Stress(u32 sector, u32 numSectors, void *buffer);
 s32 USBStorage_Write_Sectors(u32 sector, u32 numSectors, const void *buffer);

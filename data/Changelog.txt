@@ -3,6 +3,23 @@
 +-----------+
 
 
+[ d2x v4 ]
+
+- Fixed a bug in nand emulation to properly support HDD greater than 1TB.
+- Updated FatFs to 0.8b. This allowed us to remove the workaround on file 
+  renaming introduced in d2x v3.
+- Fixed a potential buffer overflow while reading a directory.
+- Fixed the error code returned by FAT_Readdir when the requested folder is
+  an existing file (now all Strong Bad episodes are working properly).
+- Fixed a bug in FAT_GetStats (now games like Max & the Magic Marker,
+  FFCC My Life as a King and FFCC My Life as a Darklord are working properly).
+- Fixed a bug in FAT_Seek to prevent from increasing the file size when seeking
+  out of the file.
+- Fixed the length of the output buffer in FAT_ReadDir.
+- Changed timing logic in FAT module.
+- Minor changes and code clean up.
+
+
 [ d2x v3 ]
 
 - Fixed a bug in nand usage causing save creation failure in WiiWare games

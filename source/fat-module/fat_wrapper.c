@@ -4,6 +4,7 @@
 	Copyright (C) 2008 neimod.
 	Copyright (C) 2009 WiiGator.
 	Copyright (C) 2009 Waninkoko.
+	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -32,9 +33,9 @@
 #include "types.h"
 
 /* Variables */
-static FATFS fatFs[_DRIVES] ATTRIBUTE_ALIGN(32);
+static FATFS fatFs[_VOLUMES] ATTRIBUTE_ALIGN(32);
 
-PARTITION Drives[_DRIVES]  ATTRIBUTE_ALIGN(32) = {
+PARTITION VolToPart[_VOLUMES]  ATTRIBUTE_ALIGN(32) = {
 {0,0}, {1,0}
 };
 
@@ -58,7 +59,7 @@ s32 __FAT_OpenDir(DIR *dir, const char *dirpath)
 
 	// FIX:
 	// Case uncommented in d2x v3beta6 for error code compatibility
-	// to fix the message "corrupted data" in The Tower of Druaga
+	// to fix the message "corrupted data" in The Tower of Druaga.
 	case FR_NO_PATH:
 		return FS_ENOENT;
 	}
@@ -74,8 +75,8 @@ s32 __FAT_ReadDir(DIR *dir, FILINFO *fno)
 	while (1) {
 		/* Read entry */
 		ret = f_readdir(dir, fno);
-		if (ret != FR_OK)
-			return FS_EFATAL;
+		if (ret)
+			return FS_ENOENT;
 
 		/* Read end */
 		if (fno->fname[0] == '\0')
@@ -95,7 +96,7 @@ s32 FAT_Mount(u8 device, u8 partition)
 	s32 ret;
 
 	/* Set partition */
-	Drives[device].pt = partition;
+	VolToPart[device].pt = partition;
 
 	/* Mount device */
 	ret = f_mount(device, fatFs);
@@ -221,8 +222,17 @@ s32 FAT_Seek(s32 fd, s32 where, s32 whence)
 		break;
 
 	default:
-		return FS_EINVAL;
+		// FIX:
+ 		// Modified in d2x v4beta2 to improve
+ 		// error code compatibility.
+		return FS_EFATAL; //FS_EINVAL;
 	}
+
+	// FIX:
+ 	// Check added in d2x v4beta2 to prevent from increasing
+ 	// the file size when seeking out of the file.
+	if(offset > f_size(fil))
+		return FS_EFATAL;
 
 	/* Seek file */
 	ret = f_lseek(fil, offset);
@@ -293,6 +303,17 @@ s32 FAT_ReadDir(const char *dirpath, char *outbuf, u32 buflen, u32 *outlen, u32 
 	char *buffer = NULL;
 	u32   cnt = 0, pos = 0;
 	s32   ret;
+	FIL   fil;
+	
+	// FIX:
+	// Check added in d2x v4beta2 to improve error code compatibility.
+	// Now FS_EFATAL is returned when the requested folder is an existing file.
+	// With this fix some games like all Strong Bad episodes are working now.
+	ret = f_open(&fil, dirpath, FA_OPEN_EXISTING);
+	if (ret == FR_OK) {
+		f_close(&fil);
+		return FS_EFATAL;
+	}
 
 	/* Open directory */
 	ret = __FAT_OpenDir(&dir, dirpath);
@@ -313,22 +334,26 @@ s32 FAT_ReadDir(const char *dirpath, char *outbuf, u32 buflen, u32 *outlen, u32 
 	/* Read directory */
 	while (!entries || (entries > cnt)) {
 		u32 len;
+		char *name;
 
 		/* Read entry */
 		ret = __FAT_ReadDir(&dir, &fno);
-		if (ret != FS_SUCCESS)
+		if (ret)
 			break;
+
+		/* Get name */
+		name = (*fno.lfname) ? fno.lfname : fno.fname;
+
+		/* Get length */
+		len = strnlen(name, _MAX_LFN);
+		
+		/* Skip entries that are too long for FS */
+		if(!lfn && len > 12)
+			continue;
 
 		/* Copy entry */
 		if (buffer) {
 			char *ptr = buffer + pos;
-			char *name;
-
-			/* Get name */
-			name = (*fno.lfname) ? fno.lfname : fno.fname;
-
-			/* Get length */
-			len = strnlen(name, (lfn) ? _MAX_LFN : 12);
 
 			/* Copy filename */
 			strncpy(ptr, name, len);
@@ -353,9 +378,6 @@ s32 FAT_ReadDir(const char *dirpath, char *outbuf, u32 buflen, u32 *outlen, u32 
 
 	/* Set value */
 	*outlen = cnt;
-
-	if (ret == FS_EFATAL)
-		return FS_EFATAL;
 
 	return FS_SUCCESS;
 }
@@ -430,9 +452,6 @@ s32 FAT_DeleteDir(const char *dirpath)
 			return ret;
 	}
 
-	if (ret == FS_EFATAL)
-		return FS_EFATAL;
-
 	return FS_SUCCESS;
 }
 
@@ -470,23 +489,32 @@ s32 FAT_GetStats(const char *path, struct stats *stats)
 	FILINFO fno;
 	s32     ret;
 
+	// FIX:
+	// Initialization code added in d2x v4beta2 because members lfname 
+	// and lfsize MUST be inited before using FILEINFO structure.
+	// Now games like Max & the Magic Marker, FFCC My Life as a King
+	// and FFCC My Life as a Darklord are working poperly.
+	/* Setup LFN */
+	fno.lfname = lfnBuf;
+	fno.lfsize = sizeof(lfnBuf);
+
 	/* Get stats */
 	ret = f_stat(path, &fno);
-
+	
 	// FIX:
 	// Error code compatibility improved in d2x v3beta6.
 	// This way LIT doesn't stall anymore
 	switch(ret) {
 		case FR_OK:
-	/* Fill info */
+			/* Fill info */
 			if (stats) {
-		stats->size   = fno.fsize;
-		stats->date   = fno.fdate;
-		stats->time   = fno.ftime;
-		stats->attrib = fno.fattrib;
-	}
+				stats->size   = fno.fsize;
+				stats->date   = fno.fdate;
+				stats->time   = fno.ftime;
+				stats->attrib = fno.fattrib;
+			}
 			return FS_SUCCESS;
-
+			
 		case FR_NO_FILE:
 		case FR_NO_PATH:
 		case FR_INVALID_NAME:

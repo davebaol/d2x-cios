@@ -4,6 +4,7 @@
 	Copyright (C) 2008 neimod.
 	Copyright (C) 2009 WiiGator.
 	Copyright (C) 2010 Waninkoko.
+	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -140,13 +141,17 @@ bool __ehci_Write(u32 sector, u32 numSectors, void *buffer)
 	return true;
 }
 
-s32 __ehci_GetCapacity(u32 *_sectorSz)
+// FIX:
+// This function has been modified in d2x v4beta1.
+// Now it returns an unsigned int to support HDD greater than 1TB.
+// If 0 is returned then an error has occurred.
+u32 __ehci_GetCapacity(u32 *_sectorSz)
 {
 	ioctlv *vector = __iovec;
 	u32    *buffer = __buffer1;
 
 	if (fd >= 0) {
-		s32 ret;
+		u32 nbSector;
 
 		/* Setup vector */
 		vector[0].data = buffer;
@@ -155,7 +160,7 @@ s32 __ehci_GetCapacity(u32 *_sectorSz)
 		os_sync_after_write(vector, sizeof(ioctlv));
 
 		/* Get capacity */
-		ret = os_ioctlv(fd, USB_IOCTL_UMS_GET_CAPACITY, 0, 1, vector);
+		nbSector = os_ioctlv(fd, USB_IOCTL_UMS_GET_CAPACITY, 0, 1, vector);
 
 		/* Flush cache */
 		os_sync_after_write(buffer, sizeof(u32));
@@ -163,13 +168,13 @@ s32 __ehci_GetCapacity(u32 *_sectorSz)
 		/* Set sector size */
 		sectorSz = buffer[0];
 
-		if (ret && _sectorSz)
+		if (nbSector && _sectorSz)
 			*_sectorSz = sectorSz;
 
-		return ret;
+		return nbSector;
 	}
 
-	return IPC_ENOENT;
+	return 0;
 }
 
 
@@ -204,7 +209,7 @@ bool ehci_Init(void)
 
 	/* Get device capacity */
 	ret = __ehci_GetCapacity(NULL);
-	if (ret <= 0)
+	if (ret == 0)
 		goto err;
 
 	return true;
@@ -230,12 +235,12 @@ bool ehci_Shutdown(void)
 
 bool ehci_IsInserted(void)
 {
-	s32 ret;
+	u32 nbSector;
 
 	/* Get device capacity */
-	ret = __ehci_GetCapacity(NULL);
+	nbSector = __ehci_GetCapacity(NULL);
 
-	return (ret > 0);
+	return (nbSector != 0);
 }
 
 bool ehci_ReadSectors(u32 sector, u32 numSectors, void *buffer)

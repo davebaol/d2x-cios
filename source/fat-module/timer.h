@@ -4,7 +4,7 @@
 /* Macros */
 #define udelay(t)	Timer_Sleep(t)
 #define usleep(t)	Timer_Sleep(t)
-#define msleep(t)	Timer_Sleep(t*1000)
+#define msleep(t)	Timer_Sleep((t)*1000)
 
 /* Prototypes */
 void Timer_Init(void);

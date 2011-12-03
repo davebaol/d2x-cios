@@ -4,6 +4,7 @@
 	Copyright (C) 2008 neimod.
 	Copyright (C) 2009 WiiGator.
 	Copyright (C) 2010 Waninkoko.
+	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -160,8 +161,8 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 	}
 
 	/** Read directory **/
-	case IOCTL_FAT_READDIR:
-	case IOCTL_FAT_READDIR_LFN: {
+	case IOCTL_FAT_READDIR_FS:
+	case IOCTL_FAT_READDIR: {
 		char *dirpath = (char *)vector[0].data;
 		char *outbuf  = NULL;
 		u32  *outlen  = NULL;
@@ -179,7 +180,7 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 			outlen =  (u32 *)vector[1].data;
 
 		/* Set LFN flag */
-		lfn = (cmd == IOCTL_FAT_READDIR_LFN);
+		lfn = (cmd == IOCTL_FAT_READDIR);
 
 		/* Read directory */
 		ret = FAT_ReadDir(dirpath, outbuf, buflen, outlen, entries, lfn);
