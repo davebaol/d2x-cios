@@ -69,6 +69,10 @@ if "%clean%"=="clean" goto :done
 :: Replace variables in some files 
 call :replace_vars ciosmaps.xml "build"
 call :replace_vars d2x-beta.bat "build\%d2x_build%"
+call :replace_vars ReadMe.txt   "build"
+
+:: Copy Changelog.txt to the build directory 
+copy "%~dp0\data\Changelog.txt" "%~dp0\build" > NUL
 
 
 if "%dist%"=="" goto :done
