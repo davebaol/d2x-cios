@@ -1,0 +1,31 @@
++-----------+
+| CHANGELOG |
++-----------+
+
+
+[ d2x v3 ]
+
+- Fixed a bug in nand usage causing save creation failure in WiiWare games
+  like Tetris Party, FFCC My Life as a King and Brain Challenge.
+- Fixed the deletion of folder /tmp on nand emulation start up.
+- Added a workaround to fix a bug on file renaming causing the failure on 
+  the 2nd save in games like The Will of Dr.Frankenstein.
+- Added multiple partition support for nand emulation (default partition is 0
+  for backward compatibility).
+- Implemented logging system to make debugging easier.
+- Fixed a bug causing the message "corrupted data" in The Tower of Druaga.
+- Fixed a bug causing stall in LIT.
+- Other minor changes and code clean up.
+
+
+[ d2x v2 ]
+
+- Fixed secondary USB port lag.
+
+
+[ d2x v1 ]
+
+- Fixed wiimote lag issue by restoring timing logic from cIOSX rev19.
+- Fixed wiimote synch delay on WiiFlow start up by changing initial period 
+  in timer creation.
+- Fixed os_restart_timer with the correct number of arguments.
