@@ -29,8 +29,18 @@
 #include "syscalls.h"
 #include "types.h"
 
+void FAT_Rename_Workaround(void)
+{
+	char path[FAT_MAXPATH];
+	
+	/* Generate path */
+	FS_GeneratePath("/tmp/davebaol.fix", path);
+	FAT_CreateFile(path);
+	FAT_Delete(path);
+}
+
 /* Global config */
-struct fsConfig config = { 0 };
+struct fsConfig config = { 0 , ""};
 
 
 s32 FS_Open(ipcmessage *message)
@@ -200,6 +210,14 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 			char newpath[FAT_MAXPATH];
 
 			struct stats stats;
+
+			// FIX  
+			// This is a workaround for fixing the issue
+			// with The Will of Dr.Frankenstein.
+			// After saving the 1st time the file
+			// /tmp/savefile.dat remains there with size 0
+			// and you cannot save anymore. 
+			FAT_Rename_Workaround();
 
 			/* Generate paths */
 			FS_GeneratePath(rename->filepathOld, oldpath);
@@ -377,6 +395,13 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 			if (ret < 0)
 				return ret;
 
+			// FIX
+			// Force FS mode now because FS_GeneratePath needs it. 
+			// Without forcing FS mode the generated path will be wrong
+			// and the temp dir will not be deleted
+			/* Set FS mode */
+			config.mode = val;
+
 			/* Generate path */
 			FS_GeneratePath("/tmp", fatpath);
 
@@ -506,7 +531,7 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 			os_sync_after_write(inodes, sizeof(u32));
 
 			//BUG
-			return ret;
+			//return ret;
 
 			//FIX
 			return 0;
@@ -539,6 +564,13 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 			if (ret < 0)
 				return ret;
 
+			// FIX
+			// Force FS mode now because FS_GeneratePath needs it. 
+			// Without forcing FS mode the generated path will be wrong
+			// and the temp dir will not be deleted
+			/* Set FS mode */
+			config.mode = val;
+
 			/* Generate path */
 			FS_GeneratePath("/tmp", fatpath);
 
@@ -565,4 +597,4 @@ s32 FS_Exit(s32 ret)
 	FS_printf("FS returned: %d\n", ret);
 
 	return ret;
-}
+}      
