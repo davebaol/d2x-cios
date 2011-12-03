@@ -2,6 +2,7 @@
  * DIP plugin for Custom IOS.
  *
  * Copyright (C) 2008-2010 Waninkoko, WiiGator.
+ * Copyright (C) 2011 davebaol, WiiPower.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
+#include "config.h" 
 #include "dip.h"
 #include "dip_calls.h"
 #include "errno.h"
@@ -28,7 +31,7 @@
 
 /* Global config */
 struct dipConfig config = { 0 };
-
+struct dipConfigState cfgState = { 0 };
 
 s32 __DI_CheckOffset(u32 offset)
 {
@@ -117,15 +120,24 @@ s32 __DI_ReadDiscId(u32 *outbuf, u32 len)
 void __DI_CheckDisc(void)
 {
 	void *buffer;
-	s32   ret;
+	s32   ret, cnt;
+	u32   offset[3] = {0x50000000, 0x60000000, 0x70000000};
 
 	/* Allocate buffer */
 	buffer = DI_Alloc(SECTOR_SIZE, 32);
 	if (!buffer)
 		return;
 
-	/* Read second layer */
-	ret = __DI_ReadUnencrypted(buffer, SECTOR_SIZE, 0x50000000);
+	// FIX d2x v5beta1
+	// This is a workaround to properly detect DL games like Sakura Wars.
+	// Offset 0x50000000 fails for that game, even though it works 
+	// for games having bigger size. Surprisingly higher offsets succeed.
+	// Not sure, but this can be related to PTP/OTP.
+	// See http://gbatemp.net/t277659-ciosx-rev21d2x-yet-another-hot-fix?view=findpost&p=3667487
+	for (cnt=0, ret=1; cnt<3 && ret; cnt++) {
+		/* Read second layer */
+		ret = __DI_ReadUnencrypted(buffer, SECTOR_SIZE, offset[cnt]);
+	}
 
 	/* Set disc type */
 	config.type = (!ret) ? DISC_DVD9 : DISC_DVD5;
@@ -206,8 +218,17 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 			ret = __DI_ReadDiscId(outbuf, size);
 
 		/* Check disc type */
-		if (!ret)
-			__DI_CheckDisc();
+		if (!ret) {
+			// Fix d2x v5beta1
+			// For gamecube games it's not required to know the disc type,
+			// but DL access has to be possible for GC DL multi game discs.
+			// If there was a read executed here for GC games, 
+			// IOCTL_DI_AUDIO_CONFIG would fail(->audio streaming error).
+			if (outbuf[7] == GC_MAGIC)
+				config.type = DISC_DVD9;
+			else
+				__DI_CheckDisc();
+		}
 
 		break;
 	}
@@ -398,9 +419,14 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 			/* Open device */
 			ret = WBFS_Open(device-1, discid);
 
-			/* Enable mode */
-			if (!ret)
+			if (!ret) {
+				/* Enable mode */
 				DI_SetMode(MODE_WBFS);
+
+				/* Set wbfs state for ios reload */
+				cfgState.mode = config.mode;
+				cfgState.wbfs_device = device;
+			}
 		}
 
 		break;
@@ -433,8 +459,13 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 			ret = File_Open(filename);
 
 			/* Enable mode */
-			if (!ret)
+			if (!ret) {
 				DI_SetMode(MODE_FILE);
+
+				/* Set file state for ios reload */
+				cfgState.mode = config.mode;
+				strncpy((char*) &cfgState.fat_filename, filename, FILENAME_MAX_LEN);
+			}
 		}
 
 		break;
@@ -444,6 +475,24 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 	case IOCTL_DI_FILE_GET: {
 		/* Check file bit */
 		*outbuf = DI_ChkMode(MODE_FILE);
+
+		break;
+	}
+
+	/** Save config **/
+	case IOCTL_DI_SAVE_CONFIG: {
+		/* Check modes */
+		if (DI_ChkMode(MODE_WBFS)) {
+			/* Save WBFS config */
+			ret = Config_Save(&cfgState, sizeof(cfgState.mode)+sizeof(cfgState.wbfs_device));
+		}
+		else if (DI_ChkMode(MODE_FILE)) {
+			/* Save FAT config */
+			ret = Config_Save(&cfgState, sizeof(cfgState.mode)+sizeof(cfgState.fat_filename));
+		}
+
+		if (ret>0)
+			ret = 0;
 
 		break;
 	}
@@ -563,4 +612,47 @@ s32 DI_EmulateIoctl(ioctl *buffer, s32 fd)
 	}
 
 	return ret;
+}
+
+void __DI_InitEmulationDevice(void)
+{
+	/* Load config state */
+	u32 ret = Config_Load(&cfgState, sizeof(cfgState)) ;
+
+	/* Config state found */
+	if (ret>sizeof(cfgState.mode)) {
+
+		ret -= sizeof(cfgState.mode);
+		
+		/* Set mode */
+		config.mode = cfgState.mode;
+
+		if (DI_ChkMode(MODE_WBFS) && ret==sizeof(cfgState.wbfs_device)) {
+			/* Open wbfs device */
+			WBFS_Open(cfgState.wbfs_device-1, (u8 *)0x00000000);
+		}
+		else if (DI_ChkMode(MODE_FILE) && ret==sizeof(cfgState.fat_filename)) {
+			/* Open file */
+			File_Open((char*) &cfgState.fat_filename);
+		}
+	}
+}
+
+/*
+ * Added in cIOS d2x v5 alpha1 in order 
+ * to support ios reload block through USB/SD
+ *  
+ * NOTE:
+ * This function is redirected from DI_InitStage2 included inside 
+ * the original Nintendo DI module and it is invoked only once 
+ * as soon as the dvd driver receives the first ipc message of type 
+ * open, ioctl or ioctlv.  
+ */
+void DI_EmulateInitStage2(void)
+{
+	/* Init DVD driver */
+	DI_InitStage2();
+
+	/* Init USB/SD after the cIOS has been reloaded */
+	__DI_InitEmulationDevice();
 }

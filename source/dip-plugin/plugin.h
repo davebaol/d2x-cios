@@ -2,6 +2,7 @@
  * DIP plugin for Custom IOS.
  *
  * Copyright (C) 2008-2010 Waninkoko, WiiGator.
+ * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +27,9 @@
 
 /* WOD magic word */
 #define WOD_MAGIC		0x5D1C9EA3
+
+/* GameCube disc magic word */
+#define GC_MAGIC		0xC2339F3D
 
 /* Mode codes */
 #define MODE_DVDROM		0x01
@@ -65,11 +69,30 @@ struct dipConfig {
 	u32 noreset;
 };
 
+#define FILENAME_MAX_LEN  256
+
+/* Config structure */
+struct dipConfigState {
+
+	/* Modes */
+	u32 mode;
+	
+	union {
+
+		/* WBFS device */
+		u32 wbfs_device;
+
+		/* FAT filename */
+		char fat_filename[FILENAME_MAX_LEN];
+	};
+};
+
 /* Prototypes */
 s32 DI_EmulateIoctl(ioctl *buffer, s32 fd);
 s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size);
+void DI_EmulateInitStage2(void);
 
 /* Extern */
-extern struct dipConfig config;
+//extern struct dipConfig config;
 
 #endif

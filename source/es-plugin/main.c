@@ -18,8 +18,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-
 #include "config.h"
 #include "ipc.h"
 #include "main.h"
@@ -53,7 +51,6 @@ s32 __ES_System(u32 arg1, u32 arg2)
 
 	return 0;
 }
-
 
 int main(void)
 {

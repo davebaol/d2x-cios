@@ -22,6 +22,7 @@ TARGET	=	es-plugin
 
 # Objects
 OBJS	=	config.o		\
+		di.o			\
 		es_calls.o		\
 		ipc.o			\
 		isfs.o			\

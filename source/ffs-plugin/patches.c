@@ -19,6 +19,7 @@
  */
 
 #include "fs_calls.h"
+#include "syscalls.h"
 #include "tools.h"
 
 /* Macros */
@@ -94,6 +95,10 @@ void Patch_FfsModule(u32 version)
 	case 0x492AC9EA:
 		__Patch_FfsModule(0x200061B8, 0x20006304, 0x2000618A);
 		break;
+
+	default:
+		write("FFSP: Error -> Can't patch FFS module (unknown version)\n");
+		break;
 	}
 }
 
@@ -122,6 +127,10 @@ void Patch_IopModule(u32 version)
 	case 0x492ACAA0:
 	case 0x4B8E3D46:
 		__Patch_IopModule(0xFFFF302C, 0xFFFF3020);
+		break;
+
+	default:
+		write("FFSP: Error -> Can't patch IOP module (unknown version)\n");
 		break;
 	}
 }

@@ -2,6 +2,7 @@
  * DIP plugin for Custom IOS.
  *
  * Copyright (C) 2008-2010 Waninkoko, WiiGator.
+ * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -100,5 +101,20 @@ DI_HandleCmd:
 	push	{r4-r7}
 
 	ldr	r3, =addr_handleCmd
+	ldr	r3, [r3]
+	bx	r3
+
+
+/*
+ * DVD driver initializer (2nd stage)
+ */
+	.code 32
+	.global DI_InitStage2
+DI_InitStage2:
+	push {r4, lr}
+	bl   os_check_DI_reset
+	lsls r0, r0, #0x18
+
+	ldr	r3, =addr_initStage2
 	ldr	r3, [r3]
 	bx	r3

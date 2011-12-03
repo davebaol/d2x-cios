@@ -56,6 +56,7 @@
 
 [ KUDOS ]
 
+- WiiPower, for the great help with ios reload block from usb.
 - dragbe and NutNut, for their d2x cios installer.
 - XFlak, for his wonderful ModMii which supported d2x wads since its birth.
   Without ModMii d2x cios would probably never have existed. Also, XFlak had 
