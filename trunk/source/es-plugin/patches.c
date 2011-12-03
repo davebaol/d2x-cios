@@ -19,6 +19,7 @@
  */
 
 #include "plugin.h"
+#include "syscalls.h"
 #include "tools.h"
 
 /* Macros */
@@ -73,6 +74,11 @@ void Patch_EsModule(u32 version)
 
 		break;
 
+	// FIX d2x v5 beta1
+	// Added missing identification of ES module in ios 53v5662 and 55v5662
+	/** 03/01/10 03:26:03 **/
+	case 0x4B8B882B:
+
 	/** 03/01/10 03:28:58 **/
 	case 0x4B8B88DA:
 		/* Patch IOCTLV handler */
@@ -98,6 +104,11 @@ void Patch_EsModule(u32 version)
 		addrLaunchTitle = 0x20104544 + 1;
 		addrPrintf      = 0x2010933C + 1;
 		addrSnprintf    = 0x201097E4 + 1;
+
+		break;
+
+	default:
+		write("ESP: Error -> Can't patch ES module (unknown version)\n");
 
 		break;
 	}

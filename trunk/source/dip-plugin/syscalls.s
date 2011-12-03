@@ -2,6 +2,7 @@
  * DIP plugin for Custom IOS.
  *
  * Copyright (C) 2008-2010 Waninkoko, WiiGator.
+ * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -256,6 +257,11 @@ os_sync_before_read:
 	.global os_sync_after_write
 os_sync_after_write:
 	syscall 0x40
+
+	.code 32
+	.global os_check_DI_reset
+os_check_DI_reset:
+	syscall 0x46
 
 	.code 32
 	.global os_virt_to_phys

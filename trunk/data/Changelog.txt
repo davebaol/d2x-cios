@@ -3,6 +3,16 @@
 +-----------+
 
 
+[ d2x v5 ]
+
+- Added USB/SD support for games affected by ios reload. Currently only WBFS
+  partitions are supported (tnx WiiPower for your help).
+- Fixed dual layer detection for games like Sakura Wars.
+- Fixed GameCube audio streaming command for retail discs (tnx WiiPower).
+- Added missing patches for base ios 53 and 55 in ES module. 
+- Minor changes and code clean up.
+
+
 [ d2x v4 ]
 
 - Fixed error 002 in method 2 for blocking ios reload.

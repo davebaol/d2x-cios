@@ -21,11 +21,13 @@ LIBS	=
 TARGET	=	dip-plugin
 
 # Objects
-OBJS	=	dip.o			\
+OBJS	=	config.o		\
+		dip.o			\
 		dip_calls.o		\
 		dma.o			\
 		file.o			\
 		ipc.o			\
+		isfs.o			\
 		main.o			\
 		patches.o		\
 		plugin.o		\

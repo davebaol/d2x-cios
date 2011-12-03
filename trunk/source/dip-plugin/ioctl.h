@@ -52,6 +52,7 @@
 #define IOCTL_DI_RESET_DISABLE		0xF6
 #define IOCTL_DI_FILE_SET		0xF7
 #define IOCTL_DI_FILE_GET		0xF8
+#define IOCTL_DI_SAVE_CONFIG		0xFE
 #define IOCTL_DI_CUSTOMCMD		0xFF
 
 #endif

@@ -1,7 +1,6 @@
 /*
- * ES plugin for Custom IOS.
+ * DIP plugin for Custom IOS.
  *
- * Copyright (C) 2010 Waninkoko.
  * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,7 +22,7 @@
 #include "types.h"
 
 /* Constants */
-#define FILENAME	"/sys/esp.cfg"
+#define FILENAME	"/sys/dip.cfg"
 
 
 s32 __Config_Create(void)
@@ -62,20 +61,13 @@ s32 __Config_Delete(void)
 	return ret;
 }
 
-// NOTE:
-// This function is called by the main that is 
-// out of the patched es life cycle. 
-// So for debugging purpose don't use ES_printf here,
-// use write instead.
 s32 Config_Load(void *cfg, u32 size)
 {
 	s32 fd, ret;
 
-	//write("ESP: Loading config file "FILENAME"\n");
-
 	/* Open config file */
 	fd = os_open(FILENAME, ISFS_OPEN_READ);
-	//write("ESP: Config file ");write(fd<0? "found\n": "NOT found\n");
+
 	if (fd < 0)
 		return fd;
 

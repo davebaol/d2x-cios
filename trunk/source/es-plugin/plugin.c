@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "config.h"
+#include "di.h"
 #include "es.h"
 #include "es_calls.h"
 #include "ioctl.h"
@@ -164,6 +165,9 @@ s32 __ES_Ioctlv(ipcmessage *message)
 							/* Save config */
 							Config_Save(&config, sizeof(config));
 
+							/* Save DI config */
+							DI_Config_Save();
+
 							/* Launch title (fake ID) */
 							return __ES_CustomLaunch(tidh, config.ios);
 						}
@@ -180,6 +184,7 @@ s32 __ES_Ioctlv(ipcmessage *message)
 	}
 
 	case IOCTL_ES_DIVERIFY: {
+		/* Check whether the cios has been reloaded by a disc-based game */
 		if (config.fakelaunch==2 && config.title_id!=0) {
 			u8* tmd = (u8*)(vector[3].data);
 			if (tmd) {
@@ -225,7 +230,7 @@ s32 __ES_Ioctlv(ipcmessage *message)
 
 	case IOCTL_ES_FAKE_SM_LAUNCH: {
 		u64 sm_title_id = *(u64 *)vector[0].data;
-
+    
 		/* Set fake system menu launch */
 		config.sm_title_id = sm_title_id;
 
