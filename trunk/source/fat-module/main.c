@@ -177,6 +177,8 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 
 	/** Mount SD card **/
 	case IOCTL_FAT_MOUNT_SD: {
+		u32 partition = 0;
+
 		/* Initialize SDIO */
 		ret = sdio_Startup();
 		if (!ret) {
@@ -184,8 +186,12 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 			break;
 		}
 
+		/* Set partition */
+		if(inlen > 0)
+			partition = *(u32 *)vector[0].data;
+
 		/* Mount SD card */
-		ret = FAT_Mount(0);
+		ret = FAT_Mount(0, (u8)partition);
 
 		break;
 	}
@@ -207,6 +213,8 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 
 	/** Mount USB device **/
 	case IOCTL_FAT_MOUNT_USB: {
+		u32 partition = 0;
+	
 		/* Initialize EHCI */
 		ret = ehci_Init();
 		if (!ret) {
@@ -214,8 +222,12 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 			break;
 		}
 
+		/* Set partition */
+		if(inlen > 0)
+			partition = *(u32 *)vector[0].data;
+
 		/* Mount USB device */
-		ret = FAT_Mount(1);
+		ret = FAT_Mount(1, (u8)partition);
 
 		break;
 	}

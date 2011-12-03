@@ -10,6 +10,8 @@
 - Fixed the deletion of folder /tmp on nand emulation start up.
 - Added a workaround to fix a bug on file renaming causing the failure on 
   the 2nd save in games like The Will of Dr.Frankenstein.
+- Added multiple partition support for nand emulation (default partition is 0
+  for backward compatibility).
 
 
 [ d2x v2 ]

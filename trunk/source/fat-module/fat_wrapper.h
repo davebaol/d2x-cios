@@ -25,7 +25,7 @@ struct fstats {
 
 
 /* Prototypes */
-s32 FAT_Mount(u8 dev);
+s32 FAT_Mount(u8 dev, u8 partition);
 s32 FAT_Unmount(u8 dev);
 s32 FAT_Open(const char *path, u32 mode);
 s32 FAT_Close(s32 fd);
