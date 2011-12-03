@@ -483,17 +483,33 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 			u32 *blocks = (u32 *)vector[1].data;
 			u32 *inodes = (u32 *)vector[2].data;
 
+			//BUG
+			//The following lines have been commented 
+			//because they were causing the save file issue 
+			//in a few WiiWare like Tetris Party and Brain Challenge
+			
 			/* Generate path */
-			FS_GeneratePath(dirpath, fatpath);
+			//FS_GeneratePath(dirpath, fatpath);
 
 			/* Get usage */
-			ret = FAT_GetUsage(fatpath, blocks, inodes);
+			//ret = FAT_GetUsage(fatpath, blocks, inodes);
+
+			//FIX
+			//Just set fake values as it was in rev17
+			/* Set fake values */
+			*blocks = 1;
+			*inodes = 1;
+
 
 			/* Flush cache */
 			os_sync_after_write(blocks, sizeof(u32));
 			os_sync_after_write(inodes, sizeof(u32));
 
+			//BUG
 			return ret;
+
+			//FIX
+			return 0;
 		}
 
 		break;

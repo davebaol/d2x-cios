@@ -63,6 +63,7 @@
   working one from rev19. 
 - HackWii.it and GBAtemp.net communities, for their ideas and support.
 - Totoro, for the official d2x logo
+- ChaN, for his FatFs.
 - Waninkoko, for his cIOSX rev21.
 - Team Twiizers and devkitPRO devs for their great work in libogc.
 - WiiGator, for his work in the DIP plugin.
