@@ -305,6 +305,14 @@ bool ehci_WriteSectors(u32 sector, u32 numSectors, void *buffer)
 	return true;
 }
 
+// Function added in d2x v4beta4 to support hard drives
+// with sector size up to 4KB.
+u32 ehci_GetSectorSize()
+{
+	/* Return sector size or 0 if device not opened */
+	return (fd < 0) ? 0 : sectorSz;
+}
+
 bool ehci_ClearStatus(void)
 {
 	return true;

@@ -68,11 +68,4 @@ s32 FAT_Rename(const char *oldpath, const char *newpath);
 s32 FAT_GetStats(const char *path, struct stats *stats);
 s32 FAT_GetUsage(const char *path, u32 *blocks, u32 *inodes);
 
-#ifdef DEBUG
-s32 FAT_OpenLog(const char *path, u32 mode);
-s32 FAT_CloseLog(s32 fd);
-s32 FAT_WriteLog(s32 fd, void *buffer, u32 len);
-s32 FAT_SeekLog(s32 fd, u32 where, u32 whence);
-#endif
- 
 #endif

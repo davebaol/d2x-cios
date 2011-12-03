@@ -8,7 +8,12 @@
 - Fixed error 002 in method 2 for blocking ios reload.
 - Repeated ios reload are now supported by method 2.
 - Added support to reload any ios, not only 249.
+- Added "return to channel" feature compatible with all games out there.
 - Fixed a bug in nand emulation to properly support HDD greater than 1TB.
+- Added support for sector size up to 4KB (typically required for hard drives
+  greater than 2TB).
+- Removed file logging introduced in v3 since has proved harmful to games like
+  LostWinds and LostWinds Winter of the Melodies.
 - Updated FatFs to 0.8b. This allowed us to remove the workaround on file 
   renaming introduced in d2x v3.
 - Fixed a potential buffer overflow while reading a directory.

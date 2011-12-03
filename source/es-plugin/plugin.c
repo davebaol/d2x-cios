@@ -31,7 +31,7 @@
 #include "types.h"
 
 /* Global config */
-struct esConfig config = { 0, 0, 0 };
+struct esConfig config = { 0, 0, 0, 0 };
 
 
 s32 __ES_GetTitleID(void *tid)
@@ -63,7 +63,7 @@ s32 __ES_GetTicketView(u32 tidh, u32 tidl, u8 *view)
 	s32  fd, ret;
 
 	/* Generate path */
-	ES_snprintf(path,  sizeof(path), "/ticket/%08x/", tidh);
+	ES_snprintf(path, sizeof(path), "/ticket/%08x/", tidh);
 	ES_snprintf(path + strlen(path), sizeof(path), "%08x.tik", tidl);
 
 	/* Open ticket */
@@ -132,35 +132,45 @@ s32 __ES_Ioctlv(ipcmessage *message)
 		u32 tidh = (u32)(tid >> 32);
 		u32 tidl = (u32)(tid & 0xFFFFFFFF);
 
-		/* IOS title launch */
-		if (tidh == 1 &&
-		   (tidl >= 3 && tidl <= 255)) {
+		/* System title launch */
+		if (tidh == 1) {
 
-			/* Fake launch */
-			switch (config.fakelaunch) {
-			case 1:
-				/* Skip ios reload and return success */
-				return 0;
+			/* System menu launch */
+			if (tidl == 2 && config.sm_title_id != 0) {
 
-			case 2:
-				if (config.title_id==0) {
-					s32 ret;
+				/* Launch title (fake ID) */
+				return __ES_CustomLaunch((u32) (config.sm_title_id>>32), (u32) config.sm_title_id);
+			}
 
-					/* Get title ID */
-					ret = __ES_GetTitleID(&config.title_id);
+			/* IOS launch */
+			if (tidl >= 3 && tidl <= 255) {
 
-					/* Disc-based games have title IDs of 00010000xxxxxxxx and 00010004xxxxxxxx */
-					if (ret>=0 && (config.title_id>>32==0x00010000 || config.title_id>>32==0x00010004)) {
+				/* Fake launch */
+				switch (config.fakelaunch) {
+				case 1:
+					/* Skip ios reload and return success */
+					return 0;
+
+				case 2:
+					if (config.title_id==0) {
+						s32 ret;
+
+						/* Get title ID */
+						ret = __ES_GetTitleID(&config.title_id);
+
+						/* Disc-based games have title IDs of 00010000xxxxxxxx and 00010004xxxxxxxx */
+						if (ret>=0 && (config.title_id>>32==0x00010000 || config.title_id>>32==0x00010004)) {
 					
-						/* Save config */
-						Config_Save(&config, sizeof(config));
+							/* Save config */
+							Config_Save(&config, sizeof(config));
 
-						/* Launch title (fake ID) */
-						return __ES_CustomLaunch(tidh, config.ios);
+							/* Launch title (fake ID) */
+							return __ES_CustomLaunch(tidh, config.ios);
+						}
+
+						/* Reset title ID */
+						config.title_id = 0;
 					}
-
-					/* Reset title ID */
-					config.title_id = 0;
 				}
 				break;
 			}
@@ -201,14 +211,23 @@ s32 __ES_Ioctlv(ipcmessage *message)
 		return -1017;
 	}
 
-	case IOCTL_ES_FAKELAUNCH: {
+	case IOCTL_ES_FAKE_IOS_LAUNCH: {
 		u32 mode = *(u32 *)vector[0].data;
 		u32 ios = inlen>1 ? *(u32 *)vector[1].data : 249;
 
-		/* Set fake launch */
+		/* Set fake ios launch */
 		config.fakelaunch = mode;
 		config.ios        = ios;
 		config.title_id   = 0;
+
+		return 0;
+	}
+
+	case IOCTL_ES_FAKE_SM_LAUNCH: {
+		u64 sm_title_id = *(u64 *)vector[0].data;
+
+		/* Set fake system menu launch */
+		config.sm_title_id = sm_title_id;
 
 		return 0;
 	}

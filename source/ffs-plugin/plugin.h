@@ -2,6 +2,7 @@
  * FFS plugin for Custom IOS.
  *
  * Copyright (C) 2009-2010 Waninkoko.
+ * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,9 +36,6 @@ struct fsConfig {
 
 	/* FS path */
 	char path[FAT_MAXPATH];
-
-	/* Log file */
-	char logfile[FAT_MAXPATH];
 };
 
 /* Extern */

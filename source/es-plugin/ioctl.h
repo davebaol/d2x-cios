@@ -7,8 +7,9 @@
 #define IOCTL_ES_KOREANCHECK  0x45
  
 /* Custom commands */
-#define IOCTL_ES_FAKELAUNCH   0xA0
-#define IOCTL_ES_LEET         0x1337
+#define IOCTL_ES_FAKE_IOS_LAUNCH   0xA0
+#define IOCTL_ES_FAKE_SM_LAUNCH    0xA1
+#define IOCTL_ES_LEET              0x1337
 
 #endif
 

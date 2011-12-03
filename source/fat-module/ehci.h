@@ -9,6 +9,7 @@ bool ehci_Shutdown(void);
 bool ehci_IsInserted(void);
 bool ehci_ReadSectors (u32 sector, u32 numSectors, void *buffer);
 bool ehci_WriteSectors(u32 sector, u32 numSectors, void *buffer);
+u32 ehci_GetSectorSize();
 bool ehci_ClearStatus(void);
 
 #endif

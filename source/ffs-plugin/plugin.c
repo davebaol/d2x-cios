@@ -31,9 +31,9 @@
 #include "types.h"
 
 /* Global config */
-struct fsConfig config = { 0 , "", ""};
+struct fsConfig config = { 0 , ""};
 
-s32 FS_SetMode(u32 mode, char *path, char *logfile)
+s32 FS_SetMode(u32 mode, char *path)
 {
 	/* FAT mode enabled */
 	if (mode) {
@@ -55,17 +55,6 @@ s32 FS_SetMode(u32 mode, char *path, char *logfile)
 		/* Set path */
 		strcpy(config.path, path);
 
-		/* Set logfile */
-		if (logfile[0] == '\0')
-			config.logfile[0] = '\0';
-		else {
-			FS_GenerateDevice(config.logfile);
-			strcat(config.logfile, logfile);
-
-			/* Delete logfile */
-			FAT_Delete(config.logfile);
-		}
-
 		/* Generate path */
 		FS_GeneratePath("/tmp", fatpath);
 
@@ -78,9 +67,6 @@ s32 FS_SetMode(u32 mode, char *path, char *logfile)
 
 		/* Set nand path */
 		config.path[0] = '\0';
-
-		/* Set logfile */
-		config.logfile[0] = '\0';
 	}
 
 	return 0;
@@ -419,7 +405,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 		/* Set flag */
 		*flag = 1;
 		
-		return FS_SetMode(mode, "", "");
+		return FS_SetMode(mode, "");
 	}
 
 	default:
@@ -478,33 +464,16 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 			/* Generate path */
 			FS_GeneratePath(dirpath, fatpath);
 
-			FS_printf("FS_Readdir(): Calling FAT_ReadDir(%s, %x, %d)\n", (char *)fatpath, outbuf, entries);
-
 			/* Read directory */
 			ret = FAT_ReadDir(fatpath, outbuf, &entries);
-
-			FS_printf("FS_Readdir(): Return from FAT_ReadDir: outbuf=%x, entries=%d\n", outbuf, entries);
-
 			if (ret >= 0) {
 				*outlen = entries;
-				FS_printf("FS_Readdir(): Calling os_sync_after_write(%x,%d)\n", outlen, sizeof(u32));   
 				os_sync_after_write(outlen, sizeof(u32));
 			}
 
 			/* Flush cache */
-			if (outbuf) {
-#ifdef DEBUG
-				int i;
-				char *fn = outbuf;
-				for(i=1; i<=entries; i++, fn+=strlen(fn)+1)
-					FS_printf("%d: %s\n", i, fn);  
-#endif
-				FS_printf("FS_Readdir(): Calling os_sync_after_write(%x,%d) ----> outlen: %d\n", outbuf, buflen, *outlen);
-
+			if (outbuf)
 				os_sync_after_write(outbuf, buflen);
-			}
-
-			FS_printf("FS_Readdir(): Returning %d\n", ret);
 
 			return ret;
 		}
@@ -568,18 +537,15 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 	case IOCTL_ISFS_SETMODE: {
 		u32  mode  = *(u32 *)vector[0].data;
 		char *path = "";
-		char *logfile = "/ffs_log.txt";
 
 		/* Get path */
 		if (inlen > 1)
 			path = (char *)vector[1].data;
 
-		FS_printf("FS_SetMode(): (mode: %d, path: %s)\n", mode, (*path=='\0'? "/" : path));
-
 		/* Set flag */
 		*flag = 1;
 		
-		return FS_SetMode(mode, path, logfile);
+		return FS_SetMode(mode, path);
 	}
 
 	default:

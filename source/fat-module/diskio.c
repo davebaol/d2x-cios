@@ -19,7 +19,8 @@
 #define DRIVE_EHCI	1
 
 /* Disk constants */
-#define SECTOR_SZ	512
+#define SECTOR_SZ(drv)		((drv)==DRIVE_SDHC ? 512 :	\
+	((drv)==DRIVE_EHCI ? ehci_GetSectorSize() : 0))
 
 
 DSTATUS disk_initialize(BYTE drv)
@@ -71,10 +72,12 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
 	s32 ret = 0;
 
 	/* Buffer length */
-	len = (count * SECTOR_SZ);
+	len = count * SECTOR_SZ(drv);
+	if (!len)
+		return RES_ERROR;
 
 	/* Allocate buffer */
-	buffer = Mem_Alloc(count * 512);
+	buffer = Mem_Alloc(len);
 	if (!buffer)
 		return RES_ERROR;
 
@@ -110,10 +113,12 @@ DRESULT disk_write(BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
 	s32 ret = 0;
 
 	/* Buffer length */
-	len = (count * SECTOR_SZ);
+	len = count * SECTOR_SZ(drv);
+	if (!len)
+		return RES_ERROR;
 
 	/* Allocate buffer */
-	buffer = Mem_Alloc(count * 512);
+	buffer = Mem_Alloc(len);
 	if (!buffer)
 		return RES_ERROR;
 
@@ -142,7 +147,12 @@ DRESULT disk_write(BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
 
 DRESULT disk_ioctl(BYTE drv, BYTE ctrl, void *buff)
 {
+	if (ctrl!=GET_SECTOR_SIZE)
 	return RES_OK;
+
+	s32 ret = *((WORD *) buff) = (WORD) SECTOR_SZ(drv);
+
+	return (ret) ? RES_OK : RES_ERROR;
 }
 
 
