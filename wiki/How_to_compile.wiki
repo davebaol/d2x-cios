@@ -8,7 +8,7 @@ This is a guide which helps you to compile d2x-cios correctly.
 = Details =
 
 *REQUIREMENTS*:
-  * DevkitPro environment, get it with the [http://www.sourceforge.net/projects/devkitpro/files/latest/download devkitpro installer].
+  * !DevkitPro environment, get it with the [http://www.sourceforge.net/projects/devkitpro/files/latest/download devkitpro installer].
 
   * [http://sourceforge.net/projects/devkitpro/files/devkitARM/previous/devkitARM_r32-win32.exe/download devkitARM r32].
 
