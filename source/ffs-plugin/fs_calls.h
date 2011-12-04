@@ -24,6 +24,8 @@
 #include "types.h"
 
 //#define DEBUG
+#define FILTER_OPENING_REQUESTS
+
 
 /* Debug */
 #ifdef DEBUG

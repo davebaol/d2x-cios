@@ -116,7 +116,7 @@ u32 FS_CheckRealPath(const char *path)
 	/* Emulation is ON */
 	if (config.mode) {
 
-		/* Never emulate '/tmp/launch.sys' */
+		/* Never emulate '/tmp/launch.sys' (used by ES_LAUNCHTITLE) */
 		if (!strcmp(path, "/tmp/launch.sys")) return 1;
 
 		/* Full emulation */
@@ -140,6 +140,7 @@ u32 FS_CheckRealPath(const char *path)
 		if (!strncmp(path, "/title/00010004",  15)) return 0;
 		if (!strncmp(path, "/title/00010005",  15)) return 0;
 		if (!strncmp(path, "/tmp", 4))              return 0;
+		if (!strncmp(path, "/import", 7))           return 0;  /* Used by ES during title install */
 		if (!strcmp(path, "/sys/disc.sys"))         return 0;
 //		if (!strcmp(path, "/sys/uid.sys"))          return 0;
 	}

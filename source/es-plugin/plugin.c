@@ -236,9 +236,13 @@ s32 __ES_Ioctlv(ipcmessage *message)
 	//u32     iolen  = message->ioctlv.num_io;
 	u32     cmd    = message->ioctlv.command;
 
+	s32 ret;
+
 	/* Parse command */
 	switch (cmd) {
 	case IOCTL_ES_LAUNCH: {
+		ES_printf("__ES_Ioctlv: LaunchTitle\n");
+
 		u64 tid = *(u64 *)vector[0].data;
 
 		u32 tidh = (u32)(tid >> 32);
@@ -302,6 +306,8 @@ s32 __ES_Ioctlv(ipcmessage *message)
 	}
 
 	case IOCTL_ES_DIVERIFY: {
+		ES_printf("__ES_Ioctlv: DIVerify\n");
+
 		/* Check whether the cios has been reloaded by a disc-based game */
 		if (config.fakelaunch == 2 && config.title_id != 0) {
 			/* Get TitleMetaData */
@@ -363,7 +369,9 @@ s32 __ES_Ioctlv(ipcmessage *message)
 		return 0;
 	}
 
-	case IOCTL_ES_LEET: {
+	case IOCTL_ES_LAUNCHMIOS: {
+		ES_printf("__ES_Ioctlv: LanchMIOS\n");
+
 		/* Launch MIOS */
 		return __ES_CustomLaunch(1, 257);
 	}
@@ -372,27 +380,26 @@ s32 __ES_Ioctlv(ipcmessage *message)
 		break;
 	}
 
+	ES_printf("__ES_Ioctlv(cmd = 0x%x) ...\n", cmd);
+
 	/* Call IOCTLV handler */
-	return ES_HandleIoctlv(message);
+	ret = ES_HandleIoctlv(message);
+
+	ES_printf("__ES_Ioctlv(cmd = 0x%x): ret = %d\n", cmd, ret);
+
+	return ret;
 }
 
 
 s32 ES_EmulateCmd(ipcmessage *message)
 {
-	s32 ret = 0;
-
 	/* Parse IPC command */
-	switch (message->command) {
-	case IOS_IOCTLV: {
+	if (message->command == IOS_IOCTLV) {
 		/* Parse IOCTLV message */
-		ret = __ES_Ioctlv(message);
-
-		break;
+		return __ES_Ioctlv(message);
 	}
 
-	default:
-		ret = IPC_EINVAL;
-	}
+	svc_write("ES_EmulateCmd: Unexpected IPC command!!!\n");
 
-	return ret;
+	return IPC_EINVAL;
 }

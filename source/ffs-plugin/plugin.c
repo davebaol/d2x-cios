@@ -76,9 +76,10 @@ void __FS_UnregisterAllFiles(void)
 
 void __FS_PrepareFolders(void)
 {
-	static const char dirs[10][17] = {
+	static const char dirs[11][17] = {
 		"/tmp",
 		"/sys",
+		"/import",
 		"/ticket",
 		"/ticket/00010001",
 		"/ticket/00010005",
@@ -93,7 +94,7 @@ void __FS_PrepareFolders(void)
 	s32 cnt;
 
 	/* Create directories */
-	for (cnt = 0; cnt < 10; cnt++) {
+	for (cnt = 0; cnt < 11; cnt++) {
 		/* Generate path */
 		FS_GeneratePath(&dirs[cnt][0], fatpath);
 
@@ -187,7 +188,13 @@ s32 FS_Open(ipcmessage *message, u32 *performed)
 	char *path = message->open.device;
 	u32 mode = message->open.mode;
 
-	FS_printf("FS_Open(\"%s\", %d)\n", path, mode);
+
+#ifdef DEBUG
+#ifdef FILTER_OPENING_REQUESTS
+	if (strncmp("/dev", path, 3) || !strncmp("/dev/fs", path, 7))
+#endif
+		FS_printf("FS_Open(\"%s\", %d)\n", path, mode);
+#endif
 
 	/* Clear flag */
 	*performed = 0;
@@ -599,13 +606,40 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 			if (ret < 0)
 				return ret;
 
-			/* Fake attributes */
-			attr->owner_id   = FS_GetUID();
-			attr->group_id   = FS_GetGID();
-			attr->ownerperm  = ISFS_OPEN_RW;
-			attr->groupperm  = ISFS_OPEN_RW;
-			attr->otherperm  = ISFS_OPEN_RW;
-			attr->attributes = 0;
+			// This is a fix for MW3 online patch.
+			// IOCTL_ES_ADDTITLEFINISH pretends that the
+			// attributes of "/tmp/title.tmd" match the
+			// values below.
+			// 
+			// NOTE:
+			// Actually these attribute values are required only 
+			// if the request arrives from ES. Maybe might be
+			// worth considering a way to check this situation
+			// before returning these attribute values.
+
+			if(!strncmp("/tmp/", path, 5) || !strncmp("/import", path, 7)) {
+				/* Fake attributes for ES */
+				attr->owner_id   = 0;
+				attr->group_id   = 0;
+				attr->ownerperm  = ISFS_OPEN_RW;
+				attr->groupperm  = ISFS_OPEN_RW;
+				attr->otherperm  = 0;
+				attr->attributes = 0;
+			}
+			else {
+				s32 nocopy;
+
+				/* Check no-copy protection */
+				nocopy = FS_MatchPath(path, "/title/0001000#/########/data/nocopy", 0);
+
+				/* Fake attributes */
+				attr->owner_id   = FS_GetUID();
+				attr->group_id   = FS_GetGID();
+				attr->ownerperm  = ISFS_OPEN_RW;
+				attr->groupperm  = ISFS_OPEN_RW;
+				attr->otherperm  = nocopy ? 0 : ISFS_OPEN_RW;
+				attr->attributes = 0;
+			}
 		  
 			/* Copy filepath */
 			memcpy(attr->filepath, path, ISFS_MAXPATH);

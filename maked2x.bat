@@ -83,7 +83,7 @@ echo Creating distribution package...
 if exist "%MODMII%\Support\d2x-beta" rd /S /Q "%MODMII%\Support\d2x-beta"
 md "%MODMII%\Support\d2x-beta"
 copy "%~dp0\build\%d2x_build%\*.*" "%MODMII%\Support\d2x-beta" > NUL
-copy "%~dp0\build\ciosmaps.xml" "%MODMII%\Support\d2x-beta" > NUL
+copy "%~dp0\build\ciosmaps.xml"    "%MODMII%\Support\d2x-beta" > NUL
 copy "%~dp0\build\ReadMe.txt"      "%MODMII%\Support\d2x-beta" > NUL
 copy "%~dp0\build\Changelog.txt"   "%MODMII%\Support\d2x-beta" > NUL
 :: Launch ModMii to build the wad files, calculate their md5 and generate the zip file
@@ -121,7 +121,7 @@ echo   distribution package. Be aware that:
 echo     - it may take several minutes  
 echo     - ModMii is required --^> http://gbatemp.net/topic/207126-modmii-for-windows
 echo     - the MODMII environment variable must be set to ModMii install directory
-echo     - internet connection is required   
+echo     - internet connection is required 
 echo   Contrary to DIST, the dist option removes the generated files from ModMii,
 echo   allowing you to keep it clean. 
 echo   Examples:

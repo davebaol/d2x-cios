@@ -34,17 +34,17 @@ s32 (*ES_LaunchTitle)(u32 tidh, u32 tidl, void *view, u32 reset) = 0;
 
 void __Patch_EsModule(u32 aIoctlv, u32 aLaunchTitle, u32 aPrintf, u32 aSnprintf)
 {
-		/* Patch IOCTLV handler */
-		DCWrite32(aIoctlv    , 0x4B004718);
-		DCWrite32(aIoctlv + 4, (u32)ES_EmulateCmd);
+	/* Patch IOCTLV handler */
+	DCWrite32(aIoctlv    , 0x4B004718);
+	DCWrite32(aIoctlv + 4, (u32)ES_EmulateCmd);
 
-		/* Set addresses */
-		addrIoctlv      = aIoctlv + 8 + 1;
+	/* Set addresses */
+	addrIoctlv      = aIoctlv + 8 + 1;
 
-		/* Set function pointers */
-		ES_LaunchTitle = (void *)aLaunchTitle + 1;
-		ES_printf      = (void *)aPrintf      + 1;
-		ES_snprintf    = (void *)aSnprintf    + 1;
+	/* Set function pointers */
+	ES_LaunchTitle = (void *)aLaunchTitle + 1;
+	ES_printf      = (void *)aPrintf      + 1;
+	ES_snprintf    = (void *)aSnprintf    + 1;
 }
 
 void Patch_EsModule(u32 version)
