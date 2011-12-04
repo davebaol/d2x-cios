@@ -26,9 +26,7 @@ distribution.
 
 -------------------------------------------------------------*/
 
-//#include "mem.h"
 #include "syscalls.h"
-//#include "timer.h"
 #include "types.h"
 #include "usbstorage.h"
 

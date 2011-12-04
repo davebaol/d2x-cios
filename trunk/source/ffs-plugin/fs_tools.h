@@ -28,7 +28,9 @@
 u16  FS_GetUID(void);
 u16  FS_GetGID(void);
 u32  FS_CheckRealPath(const char *path);
+u32  FS_CheckSpecialPath(const char *path);
+u32  FS_MatchPath(char *path, const char *pattern, s32 strict);
 void FS_GeneratePath(const char *oldpath, char *newpath);
-void FS_GenerateDevice(char *device);
+s32  FS_GeneratePathWithPrefix(const char *fspath, char *fatpath);
 
 #endif

@@ -56,6 +56,7 @@
 
 [ KUDOS ]
 
+- Crediar, for all I learned studying Sneek source code.
 - Oggzee, for his brilliant fraglist.
 - WiiPower, for the great help with ios reload block from usb.
 - dragbe and NutNut, for their d2x cios installer.

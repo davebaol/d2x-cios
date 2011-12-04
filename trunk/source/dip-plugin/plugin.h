@@ -22,6 +22,7 @@
 #define _PLUGIN_H_
 
 #include "ipc.h"
+#include "isfs.h"
 #include "tools.h"
 #include "types.h"
 
@@ -35,9 +36,8 @@
 #define MODE_DVDROM		0x01
 #define MODE_CRYPT		0x02
 #define MODE_WBFS		0x04
-#define MODE_FILE		0x08
 #define MODE_FRAG		0x10
-#define MODE_EMUL		( MODE_FILE | MODE_WBFS | MODE_FRAG )
+#define MODE_EMUL		( MODE_WBFS | MODE_FRAG )
 
 /* Macros */
 #define DI_SetMode(bit)		BIT_SET(config.mode, (bit))
@@ -76,29 +76,28 @@ struct dipConfig {
 	u32 noreset;
 };
 
-#define FILENAME_MAX_LEN  256
-
-/* Config structure */
+/* DIP config state */
 struct dipConfigState {
-
-	/* Modes */
+	/* DIP mode */
 	u32 mode;
+
+	/* DIP device */
+	u32   device;
 	
-	union {
+	/* DIP fraglist size */
+	u32 frag_size;
+};
 
-		/* WBFS device */
-		u32 wbfs_device;
+/* FFS config state */
+struct ffsConfigState {
+	/* FFS mode */
+	u32 mode;
 
-		/* FAT filename */
-		char fat_filename[FILENAME_MAX_LEN];
-		
-		/* FRAG state */
-		struct {
-			u32   device;
-			u32   size;
-		} frag;
+	/* FFS partition */
+	u32 partition;
 
-	};
+	/* FFS path */
+	char path[ISFS_MAXPATH];
 };
 
 /* IOCTL structure */

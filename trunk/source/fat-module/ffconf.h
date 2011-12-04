@@ -185,5 +185,6 @@
 /* To enable file shareing feature, set _FS_SHARE to 1 or greater. The value
    defines how many files can be opened simultaneously. */
 
+#define	CIOS_D2X 1	/* 0:All functions or 1:Exclude functions not used by cIOS d2x */
 
 #endif /* _FFCONFIG */

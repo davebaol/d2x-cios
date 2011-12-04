@@ -134,17 +134,24 @@ typedef struct {
 struct esConfig config = { 0, 0, 0, 0 };
 
 
-s32 __ES_GetTitleID(void *tid)
+s32 __ES_GetTitleID(u64 *tid)
 {
-	ipcmessage message;
-	ioctlv     vector;
+	// FIX v7
+	// Now these 2 variables are static and aligned.
+	// Without this fix COD3 crashes on ios reload block 
+	// when using the new ehci module.
+	static ipcmessage message ATTRIBUTE_ALIGN(32);
+	static ioctlv     vector  ATTRIBUTE_ALIGN(32);
+	static u64        tmp_tid ATTRIBUTE_ALIGN(32);
+
+	s32 ret;
 
 	/* Clear buffer */
 	memset(&message, 0, sizeof(message));
 
 	/* Setup vector */
-	vector.data = tid;
-	vector.len  = 8;
+	vector.data = &tmp_tid;
+	vector.len  = sizeof(tmp_tid);
 
 	/* Setup message */
 	message.ioctlv.command = 0x20;
@@ -152,14 +159,20 @@ s32 __ES_GetTitleID(void *tid)
 	message.ioctlv.vector  = &vector;
 
 	/* Call handler */
-	return ES_HandleIoctlv(&message);
+	ret = ES_HandleIoctlv(&message);
+	
+	/* Set title ID */
+	if (tid)
+		*tid = ret < 0 ? 0 : tmp_tid;
+
+	return ret;
 }
 
 s32 __ES_GetTicketView(u32 tidh, u32 tidl, u8 *view)
 {
 	static u8 buffer[TIK_SIZE] ATTRIBUTE_ALIGN(32);
 
-	char path[256];
+	char path[ISFS_MAXPATH];
 	s32  fd, ret;
 
 	/* Generate path */
@@ -239,7 +252,7 @@ s32 __ES_Ioctlv(ipcmessage *message)
 			if (tidl == 2) {
 
 				/* Disable NAND emulation */
-				ISFS_DisableEmulation();
+				ISFS_SetMode(ISFS_MODE_NAND, "");
 
 				/* Launch title (fake ID) */
 				if (config.sm_title_id != 0)
@@ -262,18 +275,20 @@ s32 __ES_Ioctlv(ipcmessage *message)
 
 						/* Get title ID */
 						ret = __ES_GetTitleID(&config.title_id);
+						if (ret >= 0) {
 
-						/* Disc-based games have title IDs of 00010000xxxxxxxx and 00010004xxxxxxxx */
-						if (ret>=0 && (config.title_id>>32==0x00010000 || config.title_id>>32==0x00010004)) {
-					
-							/* Save config */
-							Config_Save(&config, sizeof(config));
+							/* Disc-based games have title IDs of 00010000xxxxxxxx and 00010004xxxxxxxx */
+							if (config.title_id >> 32 == 0x00010000 || config.title_id >> 32 == 0x00010004) {
 
-							/* Save DI config */
-							DI_Config_Save();
+								/* Save DI and FFS config after disabling nand emulation */
+								DI_Config_Save();
 
-							/* Launch title (fake ID) */
-							return __ES_CustomLaunch(tidh, config.ios);
+								/* Save ES config */
+								Config_Save(&config, sizeof(config));
+
+								/* Launch title (fake ID) */
+								return __ES_CustomLaunch(tidh, config.ios);
+							}
 						}
 
 						/* Reset title ID */
@@ -290,22 +305,17 @@ s32 __ES_Ioctlv(ipcmessage *message)
 	case IOCTL_ES_DIVERIFY: {
 		/* Check whether the cios has been reloaded by a disc-based game */
 		if (config.fakelaunch==2 && config.title_id!=0) {
-			u8* tmd = (u8*)(vector[3].data);
-			if (tmd) {
+			/* Get TitleMetaData */
+			if (vector[3].data != NULL && vector[3].len >= sizeof(sig_rsa2048) + sizeof(tmd)) {
+				tmd* titleMetaData = (tmd*)(vector[3].data + sizeof(sig_rsa2048));
 
-				/* Get title ID from TitleMetaData */
-				u64 title_id = *(u64 *)(tmd+0x18C);
- 
-				/* Check title ID */
-				if(title_id != config.title_id) {
+				/* Not matched title ID */
+				if(titleMetaData->title_id != config.title_id) {
 
 					/* Disable ios reload block */
 					config.fakelaunch = 0;
 				}
 				else {
-
-					/* Get the required ios from TitleMetaData */
-					u64 required_ios = *(u64 *)(tmd+0x184);
 
 					// Fix d2x v7 beta1
 					// This line 
@@ -315,8 +325,9 @@ s32 __ES_Ioctlv(ipcmessage *message)
 					// games that reload different IOSs are now supported.
 					// For example in Wii Fit Plus IOS53 is required for the game 
 					// while IOS33 is required for the channel installation.
+
 					/* Remove error 002 */
-					*(u32 *)0x00003140 = (((u32)required_ios)<<16) | 0xFFFF;
+					*(u32 *)0x00003140 = (((u32)titleMetaData->sys_version)<<16) | 0xFFFF;
 				}
 			}
 

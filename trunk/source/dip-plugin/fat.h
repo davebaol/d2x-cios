@@ -1,7 +1,7 @@
 /*
  * DIP plugin for Custom IOS.
  *
- * Copyright (C) 2008-2010 Waninkoko, WiiGator.
+ * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,45 +17,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "syscalls.h"
+#ifndef _FAT_H_
+#define _FAT_H_
 
-/* Variables */
-static s32 fd = -1;
+#include "types.h"
 
 
-s32 File_Open(const char *path)
-{
-	/* Open file */
-	fd = os_open(path, 0);
-	if (fd < 0)
-		return fd;
+/* Prototypes */
+s32 FAT_Mount(u32 device, u32 partition);
+s32 FAT_GetPartition(u32 device, u32 *partition);
 
-	return 0;
-}
-
-void File_Close(void)
-{
-	/* Close file */
-	if (fd >= 0)
-		os_close(fd);
-
-	/* Reset descriptor */
-	fd = -1;
-}
-
-s32 File_Read(void *buffer, u32 len, u32 offset)
-{
-	s32 ret;
-
-	/* Seek file */
-	ret = os_seek(fd, offset << 2, 0);
-	if (ret < 0)
-		return ret;
-
-	/* Read file */
-	ret = os_read(fd, buffer, len);
-	if (ret < 0)
-		return ret;
-
-	return 0;
-}
+#endif

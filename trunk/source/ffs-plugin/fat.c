@@ -40,7 +40,8 @@
 #define IOCTL_FAT_DELETEDIR	0x06
 #define IOCTL_FAT_RENAME	0x07
 #define IOCTL_FAT_STATS		0x08
-#define IOCTL_FAT_GETUSAGE	0x09
+#define IOCTL_FAT_GETUSAGE_FS	0x09
+#define IOCTL_FAT_GETUSAGE	0x0A
 #define IOCTL_FAT_MOUNT_SD	0xF0
 #define IOCTL_FAT_UMOUNT_SD	0xF1
 #define IOCTL_FAT_MOUNT_USB	0xF2
@@ -78,8 +79,10 @@ typedef struct {
 		struct {
 			char filename[FAT_MAXPATH];
 			u64  size;
-			u8   padding[24];
+			u8   padding0[24];
 			u32  files;
+			u8   padding1[28];
+			u32  dirs;
 		} usage;
 	};
 } ATTRIBUTE_PACKED fatBuf;
@@ -182,6 +185,7 @@ s32 FAT_ReadDir(const char *dirpath, void *outbuf, u32 *entries)
 	/* Read directory */
 	ret = os_ioctlv(fatFd, IOCTL_FAT_READDIR_FS, in, io, iobuf->vector);
 
+	os_sync_before_read(iobuf, sizeof(*iobuf));
 	
 	/* Copy data */
 	if (ret >= 0)
@@ -256,9 +260,15 @@ s32 FAT_GetStats(const char *path, struct stats *stats)
 	/* Get stats */
 	ret = os_ioctlv(fatFd, IOCTL_FAT_STATS, 1, 1, iobuf->vector);
 
+ 	os_sync_before_read(iobuf, sizeof(*iobuf));
+
 	/* Copy data */
-	if (ret >= 0 && stats)
+	if (ret >= 0 && stats) {
 		memcpy(stats, &iobuf->stats.stats, sizeof(struct stats));
+
+		/* Flush cache */
+		os_sync_after_write(stats, sizeof(struct stats));
+  }
 
 	return ret;
 }
@@ -277,17 +287,48 @@ s32 FAT_GetUsage(const char *path, u32 *blocks, u32 *inodes)
 	iobuf->vector[1].len  = 8;
 	iobuf->vector[2].data = &iobuf->usage.files;
 	iobuf->vector[2].len  = 4;
+	iobuf->vector[3].data = &iobuf->usage.dirs;
+	iobuf->vector[3].len  = 4;
 
 	os_sync_after_write(iobuf, sizeof(*iobuf));
 
 	/* Get usage */
-	ret = os_ioctlv(fatFd, IOCTL_FAT_GETUSAGE, 1, 2, iobuf->vector);
+	ret = os_ioctlv(fatFd, IOCTL_FAT_GETUSAGE_FS, 1, 3, iobuf->vector);
+
+	os_sync_before_read(iobuf, sizeof(*iobuf));
+
+	FS_printf("FS_GetUsage(): ret   = %d\n", ret);
 
 	/* Copy data */
 	if (ret >= 0) {
-		*blocks = (iobuf->usage.size / 0x4000);
-		*inodes = (iobuf->usage.files) ? iobuf->usage.files : 1;
+		FS_printf("FS_GetUsage(): size  = %lu\n", iobuf->usage.size);
+		FS_printf("FS_GetUsage(): files = %u\n", iobuf->usage.files);
+		FS_printf("FS_GetUsage(): dirs  = %u\n", iobuf->usage.dirs);
+
+		*blocks = (u32) (iobuf->usage.size / 0x4000);
+		*inodes = iobuf->usage.files + 1;
+
+		/*
+		 * This check limits the number of used blocks to 128 MB
+		 * to prevent no space error in case of big emulated nand
+		 */
+		if (*blocks > 0x2000) 
+			*blocks = 0x1000 + (*blocks & 0xFFF);
+		FS_printf("FS_GetUsage(): blocks  = %x\n", *blocks);
+		FS_printf("FS_GetUsage(): inodes  = %u\n", *inodes);
 	}
+
+	return ret;
+	}
+
+s32 FAT_GetFileStats(s32 fd, struct fstats *stats)
+{
+	s32 ret;
+
+	/* Get filestats */
+	ret = os_ioctl(fd, IOCTL_FAT_FILESTATS, 0,  0, iobuf, sizeof(struct fstats));
+	if (ret >= 0)
+		memcpy(stats, iobuf, sizeof(struct fstats));
 
 	return ret;
 }

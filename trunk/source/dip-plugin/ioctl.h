@@ -43,7 +43,7 @@
 #define IOCTL_DI_STOP_MOTOR		0xE3
 #define IOCTL_DI_AUDIO_CONFIG		0xE4
 
-/* Custom commands */
+/* Custom IOCTL commands */
 #define IOCTL_DI_OFFSET_SET		0xF0
 #define IOCTL_DI_OFFSET_GET		0xF1
 #define IOCTL_DI_CRYPT_SET		0xF2
@@ -51,8 +51,6 @@
 #define IOCTL_DI_WBFS_SET		0xF4
 #define IOCTL_DI_WBFS_GET		0xF5
 #define IOCTL_DI_RESET_DISABLE		0xF6
-#define IOCTL_DI_FILE_SET		0xF7
-#define IOCTL_DI_FILE_GET		0xF8
 #define IOCTL_DI_FRAG_SET		0xF9
 #define IOCTL_DI_MODE_GET		0xFA
 #define IOCTL_DI_SAVE_CONFIG		0xFE

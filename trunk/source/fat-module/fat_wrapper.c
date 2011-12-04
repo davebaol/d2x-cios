@@ -41,9 +41,44 @@ PARTITION VolToPart[_VOLUMES]  ATTRIBUTE_ALIGN(32) = {
 {0,4}, {1,4}
 };
 
-/* Buffer */
+/* Long file name buffer */
 static char  lfnBuf[_MAX_LFN + 1] ATTRIBUTE_ALIGN(32);
 
+
+s32 __FAT_Unescape(char *path)
+{
+	char *src = path;
+	char *dst = path;
+	char c;
+
+	/* Unescape invalid FAT characters */
+	while ((c = *(src++)) != '\0') {
+
+		/* Check character */
+		if (c == '&') {
+			if      (!strncmp(src, "qt;", 3)) c = '"'; // Unescape double quote     
+			else if (!strncmp(src, "st;", 3)) c = '*'; // Unescape star             
+			else if (!strncmp(src, "cl;", 3)) c = ':'; // Unescape colon            
+			else if (!strncmp(src, "lt;", 3)) c = '<'; // Unescape lesser than      
+			else if (!strncmp(src, "gt;", 3)) c = '>'; // Unescape greater than     
+			else if (!strncmp(src, "qm;", 3)) c = '?'; // Unescape question mark    
+			else if (!strncmp(src, "vb;", 3)) c = '|'; // Unescape vertical bar     
+
+			/* Skip matched escape sequence */
+			if (c != '&')
+				src += 3;
+		} 
+
+		/* Copy character */
+		*(dst++) = c;
+	}
+
+	/* End of string */
+	*dst = '\0';
+
+	/* Return length */
+	return dst - path;
+}
 
 s32 __FAT_OpenDir(DIR *dir, const char *dirpath)
 {
@@ -69,7 +104,7 @@ s32 __FAT_OpenDir(DIR *dir, const char *dirpath)
 	return FS_EFATAL;
 }
 
-s32 __FAT_ReadDir(DIR *dir, FILINFO *fno)
+s32 __FAT_ReadDirEntry(DIR *dir, FILINFO *fno)
 {
 	s32 ret;
 
@@ -176,6 +211,16 @@ s32 FAT_Unmount(u8 device)
 	return FS_SUCCESS;
 }
 
+s32 FAT_GetPartition(u8 device, u32 *partition)
+{
+	if (VolToPart[device].pt >= 4)
+		return -1;
+
+	*partition = VolToPart[device].pt;
+   
+	return 0;
+}
+
 s32 FAT_Open(const char *path, u32 mode)
 {
 	FIL *fil = NULL;
@@ -192,7 +237,7 @@ s32 FAT_Open(const char *path, u32 mode)
 		/* Free entry */
 		Mem_Free(fil);
 
-		return FS_ENOENT;
+		return ret == FR_TOO_MANY_OPEN_FILES ? FS_ENFILE : FS_ENOENT;
 	}
 
 	return (u32)fil;
@@ -261,9 +306,7 @@ s32 FAT_Write(s32 fd, void *buffer, u32 len)
 s32 FAT_Seek(s32 fd, s32 where, s32 whence)
 {
 	FIL *fil = (FIL *)fd;
-
 	u32 offset;
-	s32 ret;
 
 	/* Calculate offset */
 	switch (whence) {
@@ -289,17 +332,18 @@ s32 FAT_Seek(s32 fd, s32 where, s32 whence)
 	// FIX:
  	// Check added in d2x v4beta2 to prevent from increasing
  	// the file size when seeking out of the file.
-	if(offset > f_size(fil))
-		return FS_EFATAL;
+	if(offset <= f_size(fil)) {
+		s32 ret;
 
-	/* Seek file */
-	ret = f_lseek(fil, offset);
+		/* Seek file */
+		ret = f_lseek(fil, offset);
 
-	/* Error */
-	if (ret)
-		return FS_EFATAL;
+		/* No error */
+		if (!ret)
+			return offset;
+	}
 
-	return offset;
+	return FS_EFATAL;
 }
 
 s32 FAT_CreateDir(const char *dirpath)
@@ -353,7 +397,7 @@ s32 FAT_CreateFile(const char *filepath)
 	return FS_EFATAL;
 }
 
-s32 FAT_ReadDir(const char *dirpath, char *outbuf, u32 buflen, u32 *outlen, u32 entries, u8 lfn)
+s32 FAT_ReadDir(const char *dirpath, char *outbuf, u32 buflen, u32 *outlen, u32 entries, u8 forFS)
 {
 	DIR     dir;
 	FILINFO fno;
@@ -395,19 +439,26 @@ s32 FAT_ReadDir(const char *dirpath, char *outbuf, u32 buflen, u32 *outlen, u32 
 		char *name;
 
 		/* Read entry */
-		ret = __FAT_ReadDir(&dir, &fno);
+		ret = __FAT_ReadDirEntry(&dir, &fno);
 		if (ret)
 			break;
 
 		/* Get name */
 		name = (*fno.lfname) ? fno.lfname : fno.fname;
 
-		/* Get length */
-		len = strnlen(name, _MAX_LFN);
-		
-		/* Skip entries that are too long for FS */
-		if(!lfn && len > 12)
-			continue;
+		/* Request coming from FS */
+		if (forFS) {
+			/* Unescape invalid FAT characters in place */
+			len = __FAT_Unescape(name);
+
+			/* Skip entries too long for FS */
+			if (len > 12)
+				continue;
+		}
+		else {
+			/* Get length */
+			len = strnlen(name, _MAX_LFN);
+		}
 
 		/* Copy entry */
 		if (buffer) {
@@ -488,7 +539,7 @@ s32 FAT_DeleteDir(const char *dirpath)
 		char *name;
 
 		/* Read entry */
-		ret = __FAT_ReadDir(&dir, &fno);
+		ret = __FAT_ReadDirEntry(&dir, &fno);
 		if (ret)
 			break;
 
@@ -591,20 +642,18 @@ s32 FAT_GetFileStats(s32 fd, struct fstats *stats)
 		return FS_EFATAL;
 
 	/* Fill stats */
-	stats->length = fil->fsize;
-	stats->pos    = fil->fptr;
+	if (stats) {
+		stats->length = fil->fsize;
+		stats->pos    = fil->fptr;
+	}
 
 	return FS_SUCCESS;
 }
 
-s32 FAT_GetUsage(const char *dirpath, u64 *size, u32 *files)
+s32 FAT_GetUsage(const char *dirpath, u64 *size, u32 *files, u32 *dirs, u8 forFS)
 {
 	DIR     dir;
 	FILINFO fno;
-
-	u64 totalSz  = 0;
-	u32 totalCnt = 0;
-
 	s32 ret;
 
 	/* Open directory */
@@ -618,45 +667,53 @@ s32 FAT_GetUsage(const char *dirpath, u64 *size, u32 *files)
 
 	/* Read directory */
 	for (;;) {
-		u64 fsize;
-		u32 fcount;
+		char *name;
+		u32 len;
 
 		/* Read entry */
-		ret = __FAT_ReadDir(&dir, &fno);
+		ret = __FAT_ReadDirEntry(&dir, &fno);
 		if (ret)
 			break;
 
-		/* Entry is directory */
-		if (fno.fattrib & AM_DIR) {
-			char  path[_MAX_LFN + 1];
-			char *name;
+		/* Get name */
+		name = (*fno.lfname) ? fno.lfname : fno.fname;
 
-			/* Get name */
-			name = (*fno.lfname) ? fno.lfname : fno.fname;
+		/* Request coming from FS */
+		if (forFS) {
 
-			/* Generate path */
-			strcpy(path, dirpath);
-			strcat(path, "/");
-			strcat(path, name);
+			/* Unescape invalid FAT characters in place */
+			len = __FAT_Unescape(name);
 
-			/* Get directory usage */
-			ret = FAT_GetUsage(path, &fsize, &fcount);
-			if (ret)
-				return ret;
-		} else {
-			/* Get file info */
-			fcount = 1;
-			fsize  = fno.fsize;
+			/* Skip entries too long for FS */
+			if (len > 12)
+				continue;
 		}
 
-		/* Update variables */
-		totalCnt += fcount;
-		totalSz  += fsize;
-	}
+		/* Entry is subdirectory */
+		if (fno.fattrib & AM_DIR) {
+			char subdirpath[_MAX_LFN + 1];
 
-	/* Set values */
-	*files = totalCnt;
-	*size  = totalSz;
+			/* Generate path */
+			strcpy(subdirpath, dirpath);
+			len = strlen(dirpath);
+			subdirpath[len] = '/';
+			strcpy(subdirpath + len + 1, name);
+
+			/* Update directory counter */
+			*dirs = *dirs + 1;
+
+			/* Get subdirectory usage */
+			ret = FAT_GetUsage(subdirpath, size, files, dirs, forFS);
+			if (ret)
+				return ret;
+
+		} else {
+			/* Update file counters */
+			*size  = *size + fno.fsize;
+			*files = *files + 1;
+		}
+	}
 
 	return FS_SUCCESS;
 }
+

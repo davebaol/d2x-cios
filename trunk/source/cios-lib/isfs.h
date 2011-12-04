@@ -35,6 +35,13 @@
 #define ISFS_OPEN_WRITE		0x02
 #define ISFS_OPEN_RW		(ISFS_OPEN_READ | ISFS_OPEN_WRITE)
 
+/* ISFS Mode codes */
+#define ISFS_MODE_NAND		0x00
+#define ISFS_MODE_SDHC		0x01
+#define ISFS_MODE_USB		0x02
+#define ISFS_MODE_FULL		0x100
+
+
 /* ISFS structure */
 struct isfs
 {
@@ -82,6 +89,13 @@ struct isfs
 			u32 f;
 			u32 g;
 		} fsstats;
+
+		struct {
+			ioctlv vector[4];
+			u32  mode;
+			u8   pad0[28];
+			char path[ISFS_MAXPATH];
+		} fsconfig;
 	};
 };
 
@@ -91,7 +105,8 @@ s32  ISFS_Open(void);
 void ISFS_Close(void);
 s32  ISFS_CreateFile(const char *filename);
 s32  ISFS_Delete(const char *filename);
-s32  ISFS_DisableEmulation(void);
+s32  ISFS_SetMode(u32 mode, char *path);
+s32  ISFS_GetMode(u32 *mode, char *path);
 
 #endif
 

@@ -25,6 +25,8 @@
 #include "plugin.h"
 #include "types.h"
 
+#define FAT_DEVICE       "fat"
+#define FAT_DEVICE_LEN   3
 
 char *__FS_SyscallOpen(char *path, s32 mode)
 {
@@ -50,11 +52,8 @@ char *__FS_SyscallOpen(char *path, s32 mode)
 
 		/* Emulate path */
 		if (!ret) {
-			/* Set FAT prefix */
-			strcpy(newpath, "fat");
-
 			/* Generate path */
-			FS_GeneratePath(path, newpath + 3);
+			FS_GeneratePathWithPrefix(path, newpath);
 
 			/* Return path */
 			return newpath;
@@ -67,35 +66,31 @@ char *__FS_SyscallOpen(char *path, s32 mode)
 
 void __FS_CopyPath(char *dst, const char *src)
 {
-	u32 cnt;
+	char c;
 
-	/* Move to end */
-	dst += strlen(dst);
-
-	/* Copy path */
-	for (cnt = 0; src[cnt]; cnt++) {
-		char c = src[cnt];
+	/* Escape invalid FAT characters */
+	while ((c = *(src++)) != '\0') {
+		char *esc;
 
 		/* Check character */
 		switch (c) {
-		case '"':
-		case '*':
-		case ':':
-		case '<':
-		case '>':
-		case '?':
-		case '|':
-			/* Replace character */
-			c = '_';
-			break;
+		case '"': esc = "&qt;"; break;   // Escape double quote
+		case '*': esc = "&st;"; break;   // Escape star
+		case ':': esc = "&cl;"; break;   // Escape colon
+		case '<': esc = "&lt;"; break;   // Escape lesser than
+		case '>': esc = "&gt;"; break;   // Escape greater than
+		case '?': esc = "&qm;"; break;   // Escape question mark
+		case '|': esc = "&vb;"; break;   // Escape vertical bar
+		default: *(dst++) = c; continue; // Copy valid FAT character
 		}
 
-		/* Copy character */
-		dst[cnt] = c;
+		/* Replace escape sequence */
+		strcpy(dst, esc);
+		dst += 4;
 	}
 
 	/* End of string */
-	dst[cnt] = 0;
+	*dst = '\0';
 }
 
 
@@ -115,15 +110,26 @@ u16 FS_GetGID(void)
 
 u32 FS_CheckRealPath(const char *path)
 {
-	/* Ignore 'launch.sys' */
-	if (!strncmp(path, "/tmp/launch.sys", 15)) return 1;
+	/* Emulation is ON */
+	if (config.mode) {
 
-	/* Check path */
-	if (config.mode & MODE_FULL) {
-		if (!strncmp(path, "/dev", 4))              return 1;
-		//if (!strncmp(path, "/sys/cert.sys", 13))    return 1;
-		if (!strncmp(path, "/", 1))                 return 0;
-	} else {
+		/* Never emulate '/tmp/launch.sys' */
+		if (!strcmp(path, "/tmp/launch.sys")) return 1;
+
+		/* Full emulation */
+		if (config.mode & MODE_FULL) {
+	
+			/* Don't emulate paths starting with '/dev', i.e. virtual devices */
+			if (!strncmp(path, "/dev", 4)) return 1;
+		
+			//if (!strncmp(path, "/sys/cert.sys", 13))    return 1;
+		
+			/* Emulate paths starting with '/', remaining ones are real */
+			return *path != '/';
+		}
+
+		/* Partial emulation */
+
 		if (!strncmp(path, "/ticket/00010001", 16)) return 0;
 		if (!strncmp(path, "/ticket/00010005", 16)) return 0;
 		if (!strncmp(path, "/title/00010000",  15)) return 0;
@@ -131,40 +137,59 @@ u32 FS_CheckRealPath(const char *path)
 		if (!strncmp(path, "/title/00010004",  15)) return 0;
 		if (!strncmp(path, "/title/00010005",  15)) return 0;
 		if (!strncmp(path, "/tmp", 4))              return 0;
-		if (!strncmp(path, "/sys/disc.sys", 13))    return 0;
-		if (!strncmp(path, "/sys/uid.sys",  12))    return 0;
+		if (!strcmp(path, "/sys/disc.sys"))         return 0;
+		if (!strcmp(path, "/sys/uid.sys"))          return 0;
+	}
+
+	/* All unmatched paths are on real nand */
+	return 1;
+}
+
+u32 FS_MatchPath(char *path, const char *pattern, s32 strict)
+{
+	while (*path != 0 || *pattern != 0) {
+		if (*path == 0) return 0;
+		if (*pattern == 0) return !strict;
+		if (*pattern != '#' && *path != *pattern) return 0;
+		path++;
+		pattern++;
 	}
 
 	return 1;
 }
 
-void FS_GeneratePath(const char *oldpath, char *newpath)
+void FS_GeneratePath(const char *fspath, char *fatpath)
 {
-	/* Generate device */
-	FS_GenerateDevice(newpath);
+	u32 device = config.mode & (MODE_SDHC | MODE_USB);
 
-	/* Append nand path */
-	__FS_CopyPath(newpath, config.path);
-
-	/* Append required path */
-	__FS_CopyPath(newpath, oldpath);
-}
-
-void FS_GenerateDevice(char *path)
-{
-	u8 device = (config.mode & 0xFF);
-
-	/* Set prefix */
+	/* Copy device prefix */
 	switch (device) {
 	case MODE_SDHC:
-		strcpy(path, "0:");
+		strcpy(fatpath, "0:");
+		fatpath += 2;
 		break;
 
 	case MODE_USB:
-		strcpy(path, "1:");
+		strcpy(fatpath, "1:");
+		fatpath += 2;
 		break;
-
-	default:
-		strcpy(path, "");
 	}
+
+	/* Append nand folder */
+	strcpy(fatpath, config.path);
+
+	/* Append and escape required path */
+	__FS_CopyPath(fatpath + config.pathlen, fspath);
+}
+
+s32 FS_GeneratePathWithPrefix(const char *fspath, char *fatpath)
+{
+	/* Set FAT prefix */
+	strcpy(fatpath, FAT_DEVICE);
+
+	/* Generate path */
+	FS_GeneratePath(fspath, fatpath + FAT_DEVICE_LEN);
+
+	/* Return prefix length */
+	return FAT_DEVICE_LEN;
 }

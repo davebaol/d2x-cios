@@ -78,7 +78,7 @@ s32 Config_Load(void *cfg, u32 size)
 	/* Open config file */
 	fd = os_open(FILENAME, ISFS_OPEN_READ);
 #ifdef DEBUG
-	svc_write("ESP: Config_Load(): Config file ");svc_write(fd<0? "found\n": "NOT found\n");
+	svc_write("ESP: Config_Load(): Config file ");svc_write(fd<0? "NOT found\n": "found\n");
 #endif
 	if (fd < 0)
 		return fd;

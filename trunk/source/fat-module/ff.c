@@ -2871,7 +2871,9 @@ FRESULT f_lseek (
 
 		if (ofs > fp->fsize					/* In read-only mode, clip offset with the file size */
 #if !_FS_READONLY
+#if !CIOS_D2X
 			 && !(fp->flag & FA_WRITE)
+#endif /* !CIOS_D2X */
 #endif
 			) ofs = fp->fsize;
 
@@ -2887,24 +2889,28 @@ FRESULT f_lseek (
 			} else {									/* When seek to back cluster, */
 				clst = fp->sclust;						/* start from the first cluster */
 #if !_FS_READONLY
+#if !CIOS_D2X
 				if (clst == 0) {						/* If no cluster chain, create a new chain */
 					clst = create_chain(fp->fs, 0);
 					if (clst == 1) ABORT(fp->fs, FR_INT_ERR);
 					if (clst == 0xFFFFFFFF) ABORT(fp->fs, FR_DISK_ERR);
 					fp->sclust = clst;
 				}
+#endif /* !CIOS_D2X */
 #endif
 				fp->clust = clst;
 			}
 			if (clst != 0) {
 				while (ofs > bcs) {						/* Cluster following loop */
 #if !_FS_READONLY
+#if !CIOS_D2X
 					if (fp->flag & FA_WRITE) {			/* Check if in write mode or not */
 						clst = create_chain(fp->fs, clst);	/* Force stretch if in write mode */
 						if (clst == 0) {				/* When disk gets full, clip file size */
 							ofs = bcs; break;
 						}
 					} else
+#endif /* !CIOS_D2X */
 #endif
 						clst = get_fat(fp->fs, clst);	/* Follow cluster chain if not in write mode */
 					if (clst == 0xFFFFFFFF) ABORT(fp->fs, FR_DISK_ERR);
@@ -2936,10 +2942,12 @@ FRESULT f_lseek (
 			fp->dsect = nsect;
 		}
 #if !_FS_READONLY
+#if !CIOS_D2X
 		if (fp->fptr > fp->fsize) {			/* Set file change flag if the file size is extended */
 			fp->fsize = fp->fptr;
 			fp->flag |= FA__WRITTEN;
 		}
+#endif /* !CIOS_D2X */
 #endif
 	}
 
@@ -3064,6 +3072,7 @@ FRESULT f_stat (
 
 
 #if !_FS_READONLY
+#if !CIOS_D2X
 /*-----------------------------------------------------------------------*/
 /* Get Number of Free Clusters                                           */
 /*-----------------------------------------------------------------------*/
@@ -3125,10 +3134,12 @@ FRESULT f_getfree (
 	}
 	LEAVE_FF(*fatfs, res);
 }
+#endif   /* !CIOS_D2X */
 
 
 
 
+#if !CIOS_D2X
 /*-----------------------------------------------------------------------*/
 /* Truncate File                                                         */
 /*-----------------------------------------------------------------------*/
@@ -3173,6 +3184,7 @@ FRESULT f_truncate (
 
 	LEAVE_FF(fp->fs, res);
 }
+#endif   /* !CIOS_D2X */
 
 
 
@@ -3317,7 +3329,7 @@ FRESULT f_mkdir (
 
 
 
-
+#if !CIOS_D2X
 /*-----------------------------------------------------------------------*/
 /* Change Attribute                                                      */
 /*-----------------------------------------------------------------------*/
@@ -3356,10 +3368,11 @@ FRESULT f_chmod (
 
 	LEAVE_FF(dj.fs, res);
 }
+#endif   /* !CIOS_D2X */
 
 
 
-
+#if !CIOS_D2X
 /*-----------------------------------------------------------------------*/
 /* Change Timestamp                                                      */
 /*-----------------------------------------------------------------------*/
@@ -3397,6 +3410,7 @@ FRESULT f_utime (
 
 	LEAVE_FF(dj.fs, res);
 }
+#endif   /* !CIOS_D2X */
 
 
 

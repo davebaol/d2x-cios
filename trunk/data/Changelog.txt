@@ -21,6 +21,14 @@
 - Fixed a bug when closing FAT module.
 - Fixed an alignement issue on file renaming in FFS plugin.
 - Removed support for base IOSs with old version like IOS38 v3610.
+- Added ios reload block capability for nand emulation.
+- Removed FAT ISO loading support from DIP plugin (never used by any loader
+  and completely useless now thanks to fraglist capability added in v6).
+- Fixed a memory alignement issue that could break ios reload block.
+- Added bidirectional escape for invalid FAT characters in nand emulation.
+- Implemented FAT_GetUsage to take real values from FAT instead of returning
+  fake values. Now disc-based games like SSBB and MPT can successfully
+  create their save file in nand emulation mode.
 
 
 [ d2x v6 ]
