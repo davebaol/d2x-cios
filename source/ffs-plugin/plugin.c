@@ -33,7 +33,7 @@
 /* Global config */
 struct fsConfig config = { 0 , ""};
 
-s32 FS_SetMode(u32 mode, char *path)
+s32 __FS_SetMode(u32 mode, char *path)
 {
 	/* FAT mode enabled */
 	if (mode) {
@@ -134,8 +134,14 @@ s32 FS_Seek(ipcmessage *message)
 	return -6;
 }
 
-s32 FS_Ioctl(ipcmessage *message, u32 *flag)
+/*
+ * NOTE: 
+ * The 2nd parameter is used to determine if call the original handler or not. 
+ */
+s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 {
+	static struct stats stats ATTRIBUTE_ALIGN(32);
+
 	u32 *inbuf = message->ioctl.buffer_in;
 	u32 *iobuf = message->ioctl.buffer_io;
 	u32  iolen = message->ioctl.length_io;
@@ -144,9 +150,9 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 	s32 ret;
 
 	/* Set flag */
-	*flag = config.mode;
+	*performed = config.mode;
 
-	/* Parse comamnd */
+	/* Parse command */
 	switch (cmd) {
 	/** Create directory **/
 	case IOCTL_ISFS_CREATEDIR: {
@@ -155,9 +161,9 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 		FS_printf("FS_CreateDir(): %s\n", attr->filepath);
 
 		/* Check path */
-		ret = FS_CheckPath(attr->filepath);
+		ret = FS_CheckRealPath(attr->filepath);
 		if (ret) {
-			*flag = 0;
+			*performed = 0;
 			break;
 		}
 
@@ -182,9 +188,9 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 		FS_printf("FS_CreateFile(): %s\n", attr->filepath);
 
 		/* Check path */
-		ret = FS_CheckPath(attr->filepath);
+		ret = FS_CheckRealPath(attr->filepath);
 		if (ret) {
-			*flag = 0;
+			*performed = 0;
 			break;
 		}
 
@@ -209,9 +215,9 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 		FS_printf("FS_Delete(): %s\n", filepath);
 
 		/* Check path */
-		ret = FS_CheckPath(filepath);
+		ret = FS_CheckRealPath(filepath);
 		if (ret) {
-			*flag = 0;
+			*performed = 0;
 			break;
 		}
 
@@ -236,11 +242,11 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 		FS_printf("FS_Rename(): %s -> %s\n", rename->filepathOld, rename->filepathNew);
 
 		/* Check paths */
-		ret  = FS_CheckPath(rename->filepathOld);
-		ret |= FS_CheckPath(rename->filepathNew);
+		ret  = FS_CheckRealPath(rename->filepathOld);
+		ret |= FS_CheckRealPath(rename->filepathNew);
 
 		if (ret) {
-			*flag = 0;
+			*performed = 0;
 			break;
 		}
 
@@ -249,7 +255,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 			char oldpath[FAT_MAXPATH];
 			char newpath[FAT_MAXPATH];
 
-			struct stats stats;
+//			struct stats stats;
 
 			/* Generate paths */
 			FS_GeneratePath(rename->filepathOld, oldpath);
@@ -289,6 +295,10 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 		if (config.mode) {
 			fsstats *stats = (fsstats *)iobuf;
 
+			/* Check buffer length */
+			if (iolen < 0x1C)
+				return -1017;
+
 			/* Clear buffer */
 			memset(iobuf, 0, iolen);
 
@@ -315,7 +325,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 		FS_printf("FS_GetFileStats(): %d\n", message->fd);
 
 		/* Disable flag */
-		*flag = 0;
+		*performed = 0;
 
 		break;
 	}
@@ -327,9 +337,9 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 		FS_printf("FS_GetAttributes(): %s\n", path);
 
 		/* Check path */
-		ret = FS_CheckPath(path);
+		ret = FS_CheckRealPath(path);
 		if (ret) {
-			*flag = 0;
+			*performed = 0;
 			break;
 		}
 
@@ -373,9 +383,9 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 		FS_printf("FS_SetAttributes(): %s\n", attr->filepath);
 
 		/* Check path */
-		ret = FS_CheckPath(attr->filepath);
+		ret = FS_CheckRealPath(attr->filepath);
 		if (ret) {
-			*flag = 0;
+			*performed = 0;
 			break;
 		}
 
@@ -386,7 +396,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 			/* Generate path */
 			FS_GeneratePath(attr->filepath, fatpath);
 
-			/* Check path */
+			/* Check path exists, permission ignored */
 			return FAT_GetStats(fatpath, NULL);
 		}
 
@@ -398,8 +408,10 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 		FS_printf("FS_Format():\n");
 
 		/* FAT mode */
-		if (config.mode)
+		if (config.mode) {
+			/* Do nothing */
 			return 0;
+		}
 
 		break;
 	}
@@ -411,9 +423,9 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 		FS_printf("FS_SetMode(): (mode: %d, path: /,  logfile: )\n", mode);
 
 		/* Set flag */
-		*flag = 1;
+		*performed = 1;
 		
-		return FS_SetMode(mode, "");
+		return __FS_SetMode(mode, "");
 	}
 
 	default:
@@ -424,7 +436,11 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 	return -6;
 }
 
-s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
+/*
+ * NOTE: 
+ * The 2nd parameter is used to determine if call the original handler or not. 
+ */
+s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 {
 	ioctlv *vector = message->ioctlv.vector;
 	u32     inlen  = message->ioctlv.num_in;
@@ -434,9 +450,9 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 	s32 ret;
 
 	/* Set flag */
-	*flag = config.mode;
+	*performed = config.mode;
 
-	/* Parse comamnd */
+	/* Parse command */
 	switch (cmd) {
 	/** Read directory **/
 	case IOCTL_ISFS_READDIR: {
@@ -445,9 +461,9 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 		FS_printf("FS_Readdir(): (path: %s, iolen: %d)\n", dirpath, iolen);
 
 		/* Check path */
-		ret = FS_CheckPath(dirpath);
+		ret = FS_CheckRealPath(dirpath);
 		if (ret) {
-			*flag = 0;
+			*performed = 0;
 			break;
 		}
 
@@ -496,9 +512,9 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 		FS_printf("FS_GetUsage(): %s\n", dirpath);
 
 		/* Check path */
-		ret = FS_CheckPath(dirpath);
+		ret = FS_CheckRealPath(dirpath);
 		if (ret) {
-			*flag = 0;
+			*performed = 0;
 			break;
 		}
 
@@ -551,9 +567,9 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *flag)
 			path = (char *)vector[1].data;
 
 		/* Set flag */
-		*flag = 1;
+		*performed = 1;
 		
-		return FS_SetMode(mode, path);
+		return __FS_SetMode(mode, path);
 	}
 
 	default:

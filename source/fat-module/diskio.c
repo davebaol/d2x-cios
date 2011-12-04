@@ -147,12 +147,13 @@ DRESULT disk_write(BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
 
 DRESULT disk_ioctl(BYTE drv, BYTE ctrl, void *buff)
 {
-	if (ctrl!=GET_SECTOR_SIZE)
+	if (ctrl == GET_SECTOR_SIZE) {
+		s32 ret = *((WORD *) buff) = (WORD) SECTOR_SZ(drv);
+
+		return (ret) ? RES_OK : RES_ERROR;
+	}
+
 	return RES_OK;
-
-	s32 ret = *((WORD *) buff) = (WORD) SECTOR_SZ(drv);
-
-	return (ret) ? RES_OK : RES_ERROR;
 }
 
 

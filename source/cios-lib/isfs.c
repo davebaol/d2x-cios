@@ -42,8 +42,12 @@
 #define IOCTL_ISFS_GETUSAGE		12
 #define IOCTL_ISFS_SHUTDOWN		13
 
-/* Buffer */
+/* IOCTL custom commands */
+#define IOCTL_ISFS_SETMODE		100
+
+/* Buffers */
 static struct isfs isfsBuf ATTRIBUTE_ALIGN(32);
+static u32 inbuf[8] ATTRIBUTE_ALIGN(32);
 
 /* Variables */
 static s32 fd = -1;
@@ -104,5 +108,26 @@ s32 ISFS_Delete(const char *filename)
 
 	/* Delete file */
 	return os_ioctl(fd, IOCTL_ISFS_DELETE, &isfsBuf.fsdelete, sizeof(isfsBuf.fsdelete), NULL, 0);
+}
+
+s32 ISFS_DisableEmulation(void)
+{
+	s32 ret;
+
+	/* Open resource */
+	ret = ISFS_Open();
+	if (ret < 0)
+		return ret;
+
+	/* Setup buffer */
+	inbuf[0] = 0;
+
+	/* Disable NAND emulator */
+	ret = os_ioctl(fd, IOCTL_ISFS_SETMODE, inbuf, sizeof(inbuf), NULL, 0);
+
+	/* Close resource */
+	ISFS_Close();
+
+	return ret;
 }
 

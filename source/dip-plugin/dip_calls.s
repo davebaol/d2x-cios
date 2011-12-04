@@ -21,6 +21,23 @@
 #define _DIP_CALLS_S_
 #include "dip_calls.h"
 
+/*
+ * Macros
+ */
+.macro call addr
+	stmfd	sp!, {r7, lr}
+	ldr	r7, =\addr
+	ldr	r7, [r7]
+	blx	r7
+	ldmfd	sp!, {r7, lr}
+	bx	lr
+.endm
+
+.macro jump addr
+	ldr	r3, =\addr
+	ldr	r3, [r3]
+	bx	r3
+.endm
 
 	.align 4
 
@@ -30,48 +47,24 @@
 	.code 32
 	.global DI_ReadHash
 DI_ReadHash:
-	stmfd	sp!, {r7, lr}
-	ldr	r7, =addr_readHash
-	ldr	r7, [r7]
-	bl	_call_di
-	ldmfd	sp!, {r7, lr}
-	bx	lr
+	call addr_readHash
 
 	.code 32
 	.global DI_Alloc
 DI_Alloc:
-	stmfd	sp!, {r7, lr}
-	ldr	r7, =addr_alloc
-	ldr	r7, [r7]
-	bl	_call_di
-	ldmfd	sp!, {r7, lr}
-	bx	lr
+	call addr_alloc
 
 	.code 32
 	.global DI_Free
 DI_Free:
-	stmfd	sp!, {r7, lr}
-	ldr	r7, =addr_free
-	ldr	r7, [r7]
-	bl	_call_di
-	ldmfd	sp!, {r7, lr}
-	bx	lr
+	call addr_free
 
 #ifdef DEBUG
 	.code 32
 	.global DI_Printf
 DI_Printf:
-	stmfd	sp!, {r7, lr}
-	ldr	r7, =addr_printf
-	ldr	r7, [r7]
-	bl	_call_di
-	ldmfd	sp!, {r7, lr}
-	bx	lr
+	call addr_printf
 #endif
-
-	.code 32
-_call_di:
-	bx	r7
 
 
 /*
@@ -89,9 +82,7 @@ DI_HandleIoctl:
 	ldr	r5, [r0]
 	mov	r10, r1
 
-	ldr	r3, =addr_handleIoctl
-	ldr	r3, [r3]
-	bx	r3
+	jump addr_handleIoctl
 
 	.code 16
 	.thumb_func
@@ -105,9 +96,7 @@ DI_HandleCmd:
 	mov	r4, r8
 	push	{r4-r7}
 
-	ldr	r3, =addr_handleCmd
-	ldr	r3, [r3]
-	bx	r3
+	jump addr_handleCmd
 
 
 /*
@@ -120,6 +109,4 @@ DI_InitStage2:
 	bl   os_check_DI_reset
 	lsls r0, r0, #0x18
 
-	ldr	r3, =addr_initStage2
-	ldr	r3, [r3]
-	bx	r3
+	jump addr_initStage2

@@ -2,6 +2,7 @@
  * ES plugin for Custom IOS.
  *
  * Copyright (C) 2010 Waninkoko.
+ * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +21,25 @@
 #define _ES_CALLS_S_
 #include "es_calls.h"
 
+/*
+ * Macros
+ */
+.macro call addr
+	stmfd	sp!, {r7, lr}
+	ldr	r7, =\addr
+	ldr	r7, [r7]
+	blx	r7
+	ldmfd	sp!, {r7, lr}
+	bx	lr
+.endm
+
+.macro jump addr
+	ldr	r3, =\addr
+	ldr	r3, [r3]
+	bx	r3
+.endm
+
+
 	.align 4
 
 /*
@@ -29,33 +49,18 @@
 	.code 32
 	.global ES_printf
 ES_printf:
-	stmfd	sp!, {r7, lr}
-	ldr	r7, =addrPrintf
-	ldr	r7, [r7]
-	blx	r7
-	ldmfd	sp!, {r7, lr}
-	bx	lr
+	call addrPrintf
 #endif
 	
 	.code 32
 	.global ES_snprintf
 ES_snprintf:
-	stmfd	sp!, {r7, lr}
-	ldr	r7, =addrSnprintf
-	ldr	r7, [r7]
-	blx	r7
-	ldmfd	sp!, {r7, lr}
-	bx	lr
+	call addrSnprintf
 
 	.code 32
 	.global ES_LaunchTitle
 ES_LaunchTitle:
-	stmfd	sp!, {r7, lr}
-	ldr	r7, =addrLaunchTitle
-	ldr	r7, [r7]
-	blx	r7
-	ldmfd	sp!, {r7, lr}
-	bx	lr
+	call addrLaunchTitle
 
 
 /*
@@ -71,6 +76,4 @@ ES_HandleIoctlv:
 	ldr	r5, [r0, #8]
 	add	r1, r0, #0
 
-	ldr	r3, =addrIoctlv
-	ldr	r3, [r3]
-	bx	r3
+	jump addrIoctlv

@@ -4,6 +4,7 @@
 	Copyright (C) 2008 neimod.
 	Copyright (C) 2010 Hermes.
 	Copyright (C) 2010 Waninkoko.
+	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -35,6 +36,29 @@ SwiFunc SwiTable[256] = { NULL };
 u8 *SwiAddr = NULL;
 
 
+void __MemCopy(u32 fromUncached, void *dst, void *src, u32 len)
+{
+	u32 perms;
+
+	/* Apply permissions */
+	perms = Perms_Read();
+	Perms_Write(0xFFFFFFFF);
+
+	/* Invalidate data cache */
+	if (fromUncached)
+		DCInvalidateRange(src, len);
+
+	/* Copy data */
+	memcpy(dst, src, len);
+
+	/* Flush data cache */
+	DCFlushRange(dst, len);
+
+	/* Restore permissions */
+	Perms_Write(perms);
+}
+
+
 s32 Swi_Handler(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 {
 	u8 cmd;
@@ -46,10 +70,10 @@ s32 Swi_Handler(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 	cmd = SwiAddr[0];
 
 	/* Check command */
-	if(SwiAddr[0] != 0xcc) {
+	if (cmd != 0xcc) {
 		if (SwiTable[cmd])
 			return SwiTable[cmd](arg0, arg1, arg2, arg3);
-		else
+
 			return arg0;
 	}
 
@@ -63,23 +87,7 @@ s32 Swi_Handler(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 	
 	/** Memcpy (cached to cached) **/
 	case 2: {
-		void *src = (void *)arg2;
-		void *dst = (void *)arg1;
-		u32   len = arg3;
-
-		u32 perms;
-
-		/* Apply permissions */
-		perms = Perms_Read();
-		Perms_Write(0xFFFFFFFF);
-
-		/* Copy data */
-		memcpy(dst, src, len);
-		DCFlushRange(dst, len);
-
-		/* Restore permissions */
-		Perms_Write(perms);
-
+		__MemCopy(0, (void *)arg1, (void *)arg2, arg3);
 		break;
 	}
 	
@@ -104,24 +112,7 @@ s32 Swi_Handler(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 
 	/** Memcpy (uncached to cached) **/
 	case 9: {
-		void *src = (void *)arg2;
-		void *dst = (void *)arg1;
-		u32   len = arg3;
-
-		u32 perms;
-
-		/* Apply permissions */
-		perms = Perms_Read();
-		Perms_Write(0xFFFFFFFF);
-
-		/* Copy data */
-		DCInvalidateRange(src, len);
-		memcpy(dst, src, len);
-		DCFlushRange(dst, len);
-
-		/* Restore permissions */
-		Perms_Write(perms);
-
+		__MemCopy(1, (void *)arg1, (void *)arg2, arg3);
 		break;
 	}
 

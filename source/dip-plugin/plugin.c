@@ -126,27 +126,22 @@ s32 __DI_ReadDiscId(u32 *outbuf, u32 len)
 void __DI_CheckDisc(void)
 {
 	void *buffer;
-	s32   ret, cnt;
-	u32   offset[3] = {0x50000000, 0x60000000, 0x70000000};
+	s32   ret;
 
 	/* Allocate buffer */
 	buffer = DI_Alloc(SECTOR_SIZE, 32);
 	if (!buffer)
 		return;
 
-	// FIX d2x v5beta1
-	// This is a workaround to properly detect DL games like Sakura Wars.
-	// Offset 0x50000000 fails for that game, even though it works 
-	// for games having bigger size. Surprisingly higher offsets succeed.
-	// Not sure, but this can be related to PTP/OTP.
-	// See http://gbatemp.net/t277659-ciosx-rev21d2x-yet-another-hot-fix?view=findpost&p=3667487
-	for (cnt=0, ret=1; cnt<3 && ret; cnt++) {
-		/* Read second layer */
-		ret = __DI_ReadUnencrypted(buffer, SECTOR_SIZE, offset[cnt]);
-	}
+	// FIX d2x v7beta1
+	// This fix properly detects DL games like Sakura Wars.
+	// The old offset 0x50000000 fails for that game, even though it works 
+	// for games having bigger size.
+	/* Read second layer */
+	ret = __DI_ReadUnencrypted(buffer, SECTOR_SIZE, 0x47000000);
 
 	/* Set disc type */
-	config.type = (!ret) ? DISC_DVD9 : DISC_DVD5;
+	config.type = (ret) ? DISC_DVD5 : DISC_DVD9;
 
 	/* Free buffer */
 	DI_Free(buffer);

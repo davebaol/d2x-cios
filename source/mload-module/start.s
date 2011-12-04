@@ -4,6 +4,7 @@
 	Copyright (C) 2008 neimod.
 	Copyright (C) 2010 Hermes.
 	Copyright (C) 2010 Waninkoko.
+	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -38,6 +39,12 @@ _start:
 	ldr	r3, =main
 	bx	r3
 
+// CAUTION!!!!
+// Don't change the code above because the installer patches  
+// the jump table for IRQ9 in order to point here throught 
+// the absolute address 0x136D0010 + 1.
+// So the value of the label IRQ9 must be 0x136D0010,
+// i.e. offset 16 from the start address of the module.  
 
 	.code 16
 	.thumb_func

@@ -7,6 +7,20 @@
 
 - Refactored all modules and plugins in order to achieve code reuse through
   a new common library.
+- Updated ciosmaps.xml to include the IRQ4 patch required by the new
+  experimental EHCI module (not released yet).  
+- Used a more proper offset to detect DL games like Sakura Wars.
+- Disabled nand emulation before returning to system menu or channel.
+- Improved error 002 fix after ios reload block. Now Wii Fit Plus channel
+  installation works properly.
+- Fixed missing identification and patch for base IOS60-v6174 in ES plugin.
+- Added auto detection of the first FAT partition on the device when nand
+  emulation is activated without specifying any partition.
+- FAT Module moved a bit forward in memory in order to create the space
+  required by the new experimental EHCI module (not released yet).
+- Fixed a bug when closing FAT module.
+- Fixed an alignement issue on file renaming in FFS plugin.
+- Removed support for base IOSs with old version like IOS38 v3610.
 
 
 [ d2x v6 ]
