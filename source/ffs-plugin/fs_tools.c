@@ -47,16 +47,19 @@ char *__FS_SyscallOpen(char *path, s32 mode)
 			}
 		}
 
-		/* Check path */
-		ret = FS_CheckRealPath(path);
+		/* Direct FAT mode */
+		if (!(config.mode & MODE_REV17)) {
+			/* Check path */
+			ret = FS_CheckRealPath(path);
 
-		/* Emulate path */
-		if (!ret) {
-			/* Generate path */
-			FS_GeneratePathWithPrefix(path, newpath);
+			/* Emulate path */
+			if (!ret) {
+				/* Generate path */
+				FS_GeneratePathWithPrefix(path, newpath);
 
-			/* Return path */
-			return newpath;
+				/* Return path */
+				return newpath;
+			}
 		}
 	}
 

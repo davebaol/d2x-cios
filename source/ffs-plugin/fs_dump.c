@@ -18,10 +18,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "fs_dump.h"
-
-#ifdef DUMP
-
 #include "fs_calls.h"
 #include "ioctl.h"
 #include "ipc.h"
@@ -32,8 +28,10 @@
 
 void FS_Dump_Ioctl(ipcmessage *message, s32 ret)
 {
-	u32 *inbuf = message->ioctl.buffer_in;
+//	u32 *inbuf = message->ioctl.buffer_in;
+#ifdef DEBUG
 	u32 *iobuf = message->ioctl.buffer_io;
+#endif
 //	u32  inlen = message->ioctl.length_in;
 //	u32  iolen = message->ioctl.length_io;
 	u32  cmd   = message->ioctl.command;
@@ -66,28 +64,31 @@ void FS_Dump_Ioctl(ipcmessage *message, s32 ret)
 
 	/** Get device stats **/
 	case IOCTL_ISFS_GETSTATS: {
-		FS_printf("FS_GetStats: %ret = d\n", ret);
+		FS_printf("FS_GetStats: %ret = %d\n", ret);
 		break;
 	}
 
 	/** Get file stats **/
 	case IOCTL_ISFS_GETFILESTATS: {
+#ifdef DEBUG
 		fsfilestats *filestats = (fsfilestats *)iobuf;
 		FS_printf("FS_GetFileStats: ret = %d, len = %d, pos = %d\n", ret, filestats->length, filestats->pos);
+#endif
 		break;
 	}
 
 	/** Get attributes **/
 	case IOCTL_ISFS_GETATTR: {
+#ifdef DEBUG
 		fsattr *attr = (fsattr *)iobuf;
-		FS_printf("FS_GetAttr: %d, %08X, %04X, %02X, %02X, %02X, %02X)\n", ret, attr->owner_id, attr->group_id, attr->ownerperm, attr->groupperm, attr->otherperm, attr->attributes);		
+		FS_printf("FS_GetAttr: ret = %d, attr = {%08X, %04X, %02X, %02X, %02X, %02X}\n", ret, attr->owner_id, attr->group_id, attr->ownerperm, attr->groupperm, attr->otherperm, attr->attributes);		
+#endif
 		break;
 	}
 
 	/** Set attributes **/
 	case IOCTL_ISFS_SETATTR: {
-		fsattr *attr = (fsattr *)inbuf;
-		FS_printf("FS_SetAttr: %d, %08X, %04X, %02X, %02X, %02X, %02X)\n", ret, attr->owner_id, attr->group_id, attr->ownerperm, attr->groupperm, attr->otherperm, attr->attributes);		
+		FS_printf("FS_SetAttr: ret = %d\n", ret);		
 		break;
 	}
 
@@ -105,7 +106,9 @@ void FS_Dump_Ioctl(ipcmessage *message, s32 ret)
 
 void FS_Dump_Ioctlv(ipcmessage *message, s32 ret)
 {
+#ifdef DEBUG
 	ioctlv *vector = message->ioctlv.vector;
+#endif
 //	u32     inlen  = message->ioctlv.num_in;
 //	u32     iolen  = message->ioctlv.num_io;
 	u32     cmd    = message->ioctlv.command;
@@ -114,16 +117,20 @@ void FS_Dump_Ioctlv(ipcmessage *message, s32 ret)
 	switch (cmd) {
 	/** Read directory **/
 	case IOCTL_ISFS_READDIR: {
+#ifdef DEBUG
 		u32 entries = *(u32 *)vector[1].data;
 		FS_printf("FS_ReadDir: ret = %d, entries = %d\n", ret, entries);
+#endif
 		break;
 	}
 
 	/** Get device usage **/
 	case IOCTL_ISFS_GETUSAGE: {
+#ifdef DEBUG
 		u32 blocks = *(u32 *)vector[1].data;
 		u32 inodes = *(u32 *)vector[2].data;
 		FS_printf("FS_GetUsage: ret = %d, inodes = %d, blocks = %d\n", ret, inodes, blocks);
+#endif
 		break;
 	}
 
@@ -172,5 +179,3 @@ void  FS_os_message_queue_ack(struct ipcmessage *message, s32 result)
 	/* Acknowledge message */
 	os_message_queue_ack(message, result);
 }
-
-#endif

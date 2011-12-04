@@ -235,7 +235,7 @@ s32 __ES_Ioctlv(ipcmessage *message)
 	u32     inlen  = message->ioctlv.num_in;
 	//u32     iolen  = message->ioctlv.num_io;
 	u32     cmd    = message->ioctlv.command;
-	
+
 	/* Parse command */
 	switch (cmd) {
 	case IOCTL_ES_LAUNCH: {
@@ -303,11 +303,11 @@ s32 __ES_Ioctlv(ipcmessage *message)
 
 	case IOCTL_ES_DIVERIFY: {
 		/* Check whether the cios has been reloaded by a disc-based game */
-		if (config.fakelaunch==2 && config.title_id!=0) {
+		if (config.fakelaunch == 2 && config.title_id != 0) {
 			/* Get TitleMetaData */
 			if (vector[3].data != NULL && vector[3].len >= sizeof(sig_rsa2048) + sizeof(tmd)) {
 				tmd* titleMetaData = (tmd*)(vector[3].data + sizeof(sig_rsa2048));
-
+ 
 				/* Not matched title ID */
 				if(titleMetaData->title_id != config.title_id) {
 

@@ -30,6 +30,9 @@
   values taken from FAT for disc-based Wii games. This workaround has proven 
   to improve nand emulation compatibility. 
 - Added a thread to make the drive led blink when writing to FAT.
+- Fixed an issue preventing save creation for games like No More Heroes 2
+  in nand emulation mode (tnx to Sneek source).
+- Added nand emulation mode rev17-like (experimental).
 - Minor changes and code clean up.
 
 
