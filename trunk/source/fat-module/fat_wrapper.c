@@ -234,9 +234,14 @@ s32 FAT_Open(const char *path, u32 mode)
 	/* Open file */
 	ret = f_open(fil, path, mode);
 
-	/* Few games like No More Heroes 2 require this fix to create the save */
-	if (ret == FR_NO_FILE && (mode & FA_WRITE))
-		ret = f_open(fil, path, mode | FA_CREATE_ALWAYS); 
+	/* This fix is required by No More Heroes 2 to create the save */
+	if (ret == FR_NO_FILE && (mode & FA_WRITE)) {
+		// Most games don't seem to mind this fix
+		// but it breaks Monster Hunter Tri so we need a hack.
+		u32 isNMH2 = ((*(vu32*)0 >> 8) == 0x525559);
+		if (isNMH2)
+			ret = f_open(fil, path, mode | FA_CREATE_ALWAYS); 
+	}
 
 	/* Error */
 	if (ret) {

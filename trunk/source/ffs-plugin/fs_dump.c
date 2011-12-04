@@ -18,6 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
+
 #include "fs_calls.h"
 #include "ioctl.h"
 #include "ipc.h"
@@ -144,7 +146,13 @@ void  FS_os_message_queue_ack(struct ipcmessage *message, s32 result)
 {
 	switch (message->command) {
 	case IOS_OPEN:
-		FS_printf("FS_Open: ret = %d\n", result);
+
+#ifdef DEBUG
+#ifdef FILTER_OPENING_REQUESTS
+		if (strncmp("/dev", message->open.device, 4) || !strncmp("/dev/fs", message->open.device, 7))
+#endif
+			FS_printf("FS_Open: ret = %d\n", result);
+#endif
 		break;
 
 	case IOS_CLOSE:

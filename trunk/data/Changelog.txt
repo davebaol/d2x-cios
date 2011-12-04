@@ -30,9 +30,14 @@
   values taken from FAT for disc-based Wii games. This workaround has proven 
   to improve nand emulation compatibility. 
 - Added a thread to make the drive led blink when writing to FAT.
-- Fixed an issue preventing save creation for games like No More Heroes 2
-  in nand emulation mode (tnx to Sneek source).
 - Added nand emulation mode rev17-like (experimental).
+- Fixed COD MW3 online update on full nand emulation. More generally this fix
+  should improve compatibility with DLC installation on emulated nand also for
+  games like COD Black Ops, Rock Band 3 and Guitar Hero 5.
+- Now the tree /import is emulated in partial mode too. This way COD MW3 online
+  update and DLC installation work properly in partial emulation.
+- Added a hack that allows No More Heroes 2 to create the save file in nand
+  emulation mode (tnx to Sneek source).
 - Minor changes and code clean up.
 
 
