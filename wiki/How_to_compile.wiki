@@ -8,15 +8,15 @@ This is a guide which helps you to compile d2x-cios correctly.
 = Details =
 
 *REQUIREMENTS*:
-* DevkitPro environment, get it with the [http://www.sourceforge.net/projects/devkitpro/files/latest/download devkitpro installer].
+  * DevkitPro environment, get it with the [http://www.sourceforge.net/projects/devkitpro/files/latest/download devkitpro installer].
 
-[http://sourceforge.net/projects/devkitpro/files/devkitARM/previous/devkitARM_r32-win32.exe/download devkitARM r32].
+  * [http://sourceforge.net/projects/devkitpro/files/devkitARM/previous/devkitARM_r32-win32.exe/download devkitARM r32].
 
-* A Subversion Client like [http://www.sliksvn.com/en/download SlikSVN].
+  * A Subversion Client like [http://www.sliksvn.com/en/download SlikSVN].
 
-* Stripios from [http://usbloader-gui.googlecode.com/svn/branches/ehcmodule_rodries/stripios/stripios.exe here].
+  * Stripios from [http://usbloader-gui.googlecode.com/svn/branches/ehcmodule_rodries/stripios/stripios.exe here].
 
-* Gawk from [http://gnuwin32.sourceforge.net/packages/gawk.htm here].
+  * Gawk from [http://gnuwin32.sourceforge.net/packages/gawk.htm here].
 
 *PREPARATION*:
 At first use the devkitpro installer to install devkitARM and devkitPPC. After installing devkitPro, you will need to install the older devkitARM r32, move the devkitARM_r32-win32.exe to "C:\devkitpro" delete the devkitARM folder, start the devkitARM_r32-win32.exe and extract. Then install the subversion client, after installing open a command prompt and type "svn checkout http://d2x-cios.googlecode.com/svn/trunk/ d2x-cios-read-only".
