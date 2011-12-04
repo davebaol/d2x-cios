@@ -18,44 +18,57 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define _FS_CALLS_S_
-#include "fs_calls.h"
+
+/*
+ * Constants
+ */
+#define FS_CMD_OPEN   1
+#define FS_CMD_CLOSE  2
+#define FS_CMD_READ   3
+#define FS_CMD_WRITE  4
+#define FS_CMD_SEEK   5
+#define FS_CMD_IOCTL  6
+#define FS_CMD_IOCTLV 7
 
 /*
  * Macros
  */
-.macro call addr
-	stmfd	sp!, {r7, lr}
-	ldr	r7, =\addr
-	ldr	r7, [r7]
-	blx	r7
-	ldmfd	sp!, {r7, lr}
-	bx	lr
+.macro fs_begin
+	add	r0, r4, #0
+	push	{r1-r7}
 .endm
 
-.macro jumpx addr, idx
-	ldr	r0, =\addr
+.macro fs_end cmd
+	cmp	r0, #0
+	bge	fs_exit
+
+	// jump to the original fs command
+	ldr	r0, =addrTable
 	ldr	r3, [r0]
-	ldr	r0, [r3, #\idx]
+	ldr	r0, [r3, #((\cmd) * 4)]
 	pop	{r1-r7}
 	mov	pc, r0
 .endm
 
+.macro fs_call func cmd
+	fs_begin
+	bl	\func
+	fs_end	\cmd
+.endm
+
+.macro fs_call_ext func cmd
+	fs_begin
+	push	{r0}
+	mov	r1, sp
+	bl	\func
+	pop	{r3}
+	cmp	r3, #0
+	bne	fs_exit	
+	fs_end	\cmd
+.endm
+
 
 	.text
-
-/*
- * FFS functions
- */
-
-#ifdef DEBUG
-	.align 4
-	.code 32
-
-	.global FS_printf
-FS_printf:
-	call addrPrintf
-#endif
 
 
 /*
@@ -77,90 +90,31 @@ fs_unk:
 
 	.global fs_open
 fs_open:
-	add	r0, r4, #0
-	push	{r1-r7}
-	bl	FS_Open
-	cmp	r0, #0
-	bge	fs_exit
-
-	// jump to the original FFS open
-	jumpx addrTable, 4
+	fs_call FS_Open, FS_CMD_OPEN
 
 	.global fs_close
 fs_close:
-	add	r0, r4, #0
-	push	{r1-r7}
-	bl	FS_Close
-	cmp	r0, #0
-	bge	fs_exit
-
-	// jump to the original FFS close
-	jumpx addrTable, 8
+	fs_call FS_Close, FS_CMD_CLOSE
 
 	.global fs_read
 fs_read:
-	add	r0, r4, #0
-	push	{r1-r7}
-	bl	FS_Read
-	cmp	r0, #0
-	bge	fs_exit
-
-	// jump to the original FFS read
-	jumpx addrTable, 12
+	fs_call FS_Read, FS_CMD_READ
 
 	.global fs_write
 fs_write:
-	add	r0, r4, #0
-	push	{r1-r7}
-	bl	FS_Write	
-	cmp	r0, #0
-	bge	fs_exit
-
-	// jump to the original FFS write
-	jumpx addrTable, 16
+	fs_call FS_Write, FS_CMD_WRITE
 
 	.global fs_seek
 fs_seek:
-	add	r0, r4, #0
-	push	{r1-r7}
-	bl	FS_Seek
-	cmp	r0, #0
-	bge	fs_exit
-
-	// jump to the original FFS seek
-	jumpx addrTable, 20
+	fs_call FS_Seek, FS_CMD_SEEK
 
 	.global fs_ioctl
 fs_ioctl:
-	add	r0, r4, #0
-	push	{r1-r7}
-	push	{r0}
-	mov	r1, sp
-	bl	FS_Ioctl
-	pop	{r3}
-	cmp	r3, #0
-	bne	fs_exit	
-	cmp	r0, #0
-	bge	fs_exit
-
-	// jump to the original FFS ioctl
-	jumpx addrTable, 24
+	fs_call_ext FS_Ioctl, FS_CMD_IOCTL
 
 	.global fs_ioctlv
 fs_ioctlv:
-	add	r0, r4, #0
-	push	{r1-r7}
-	push	{r0}
-	mov	r1, sp
-	bl	FS_Ioctlv
-	pop	{r3}
-	cmp	r3, #0
-	bne	fs_exit	
-	cmp	r0, #0
-	bge	fs_exit
-
-	// jump to the original FFS ioctlv
-	jumpx addrTable, 28
+	fs_call_ext FS_Ioctlv, FS_CMD_IOCTLV
 
 fs_exit:
 #ifdef DEBUG

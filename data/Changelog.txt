@@ -26,9 +26,11 @@
   and completely useless now thanks to fraglist capability added in v6).
 - Fixed a memory alignement issue that could break ios reload block.
 - Added bidirectional escape for invalid FAT characters in nand emulation.
-- Implemented FAT_GetUsage to take real values from FAT instead of returning
-  fake values. Now disc-based games like SSBB and MPT can successfully
-  create their save file in nand emulation mode.
+- Now FAT_GetUsage returns fake values for WiiWare/VirtualConsole and real 
+  values taken from FAT for disc-based Wii games. This workaround has proven 
+  to improve nand emulation compatibility. 
+- Added a thread to make the drive led blink when writing to FAT.
+- Minor changes and code clean up.
 
 
 [ d2x v6 ]

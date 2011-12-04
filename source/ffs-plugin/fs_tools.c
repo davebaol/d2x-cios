@@ -138,7 +138,7 @@ u32 FS_CheckRealPath(const char *path)
 		if (!strncmp(path, "/title/00010005",  15)) return 0;
 		if (!strncmp(path, "/tmp", 4))              return 0;
 		if (!strcmp(path, "/sys/disc.sys"))         return 0;
-		if (!strcmp(path, "/sys/uid.sys"))          return 0;
+//		if (!strcmp(path, "/sys/uid.sys"))          return 0;
 	}
 
 	/* All unmatched paths are on real nand */

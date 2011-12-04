@@ -26,6 +26,7 @@
 #include "ehci.h"
 #include "fat_wrapper.h"
 #include "ipc.h"
+#include "led.h"
 #include "mem.h"
 #include "module.h"
 #include "sdio.h"
@@ -90,8 +91,14 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 
 		dbg_printf("FAT: IOCTL_FAT_MKDIR: fd = %d, dirpath = %s\n", fd, dirpath);
 
+		/* Sart blinking */
+		Led_BlinkOn();
+
 		/* Create directory */
 		ret = FAT_CreateDir(dirpath);
+
+		/* Stop blinking */
+		Led_BlinkOff();
 
 		dbg_printf("FAT: IOCTL_FAT_MKDIR: ret = %d\n", ret);
 
@@ -104,8 +111,14 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 
 		dbg_printf("FAT: IOCTL_FAT_MKFILE: fd = %d, filepath = %s\n", fd, filepath);
 
+		/* Sart blinking */
+		Led_BlinkOn();
+
 		/* Create file */
 		ret = FAT_CreateFile(filepath);
+
+		/* Stop blinking */
+		Led_BlinkOff();
 
 		dbg_printf("FAT: IOCTL_FAT_MKFILE: ret = %d\n", ret);
 
@@ -150,8 +163,15 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 
  		dbg_printf("FAT: IOCTL_FAT_DELETE: fd = %d, path = %s\n", fd, path);
 
+		/* Sart blinking */
+		Led_BlinkOn();
+
 		/* Delete file/directory */
 		ret = FAT_Delete(path);
+
+		/* Stop blinking */
+		Led_BlinkOff();
+
  		dbg_printf("FAT: IOCTL_FAT_DELETE: ret = %d\n", ret);
 
 		break;
@@ -162,8 +182,15 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 		char *dirpath = (char *)vector[0].data;
  		dbg_printf("FAT: IOCTL_FAT_DELETEDIR: fd = %d, path = %s\n", fd, dirpath);
 
+		/* Sart blinking */
+		Led_BlinkOn();
+
 		/* Delete directory */
 		ret = FAT_DeleteDir(dirpath);
+
+		/* Stop blinking */
+		Led_BlinkOff();
+
  		dbg_printf("FAT: IOCTL_FAT_DELETEDIR: ret = %d\n", ret);
 
 		break;
@@ -175,8 +202,15 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 		char *newname = (char *)vector[1].data;
  		dbg_printf("FAT: IOCTL_FAT_RENAME: fd = %d, from = %s, to = %s\n", fd, oldname, newname);
 
+		/* Sart blinking */
+		Led_BlinkOn();
+
 		/* Rename object */
 		ret = FAT_Rename(oldname, newname);
+
+		/* Stop blinking */
+		Led_BlinkOff();
+
  		dbg_printf("FAT: IOCTL_FAT_RENAME: ret = %d\n", ret);
 
 		break;
@@ -343,6 +377,9 @@ int main(void)
 	/* Print info */
 	svc_write("$IOSVersion: FAT: " __DATE__ " " __TIME__ " 64M$\n");
 
+	/* Create blinker thread */
+	Led_CreateBlinkThread();
+
 	/* Initialize module */
 	ret = __FAT_Initialize(&queuehandle);
 	if (ret < 0)
@@ -353,7 +390,9 @@ int main(void)
 		ipcmessage *message = NULL;
 
 		/* Wait for message */
-		os_message_queue_receive(queuehandle, (void *)&message, 0);
+		ret = os_message_queue_receive(queuehandle, (void *)&message, 0);
+		if (ret)
+			continue;
 
 		switch (message->command) {
 		case IOS_OPEN: {
@@ -435,10 +474,16 @@ int main(void)
 			/* Invalidate cache */
 			os_sync_before_read(buffer, len);
 
+			/* Sart blinking */
+			Led_BlinkOn();
+
 			/* Write file */
 			ret = FAT_Write(message->fd, buffer, len);
 
 			dbg_printf("FAT: IOS_WRITE: ret = %d\n", ret);
+
+			/* Stop blinking */
+			Led_BlinkOff();
 
 			break;
 		}

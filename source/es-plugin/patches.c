@@ -24,10 +24,12 @@
 
 
 /* Addresses */
-u32 addrIoctlv      = 0;
-u32 addrLaunchTitle = 0;
-u32 addrPrintf      = 0;
-u32 addrSnprintf    = 0;
+u32 addrIoctlv = 0;
+
+/* Function pointers */
+s32 (*ES_printf)(const char * fmt, ...)                          = 0;
+s32 (*ES_snprintf)(char *str, u32 size, const char *fmt, ...)    = 0;
+s32 (*ES_LaunchTitle)(u32 tidh, u32 tidl, void *view, u32 reset) = 0;
 
 
 void __Patch_EsModule(u32 aIoctlv, u32 aLaunchTitle, u32 aPrintf, u32 aSnprintf)
@@ -37,10 +39,12 @@ void __Patch_EsModule(u32 aIoctlv, u32 aLaunchTitle, u32 aPrintf, u32 aSnprintf)
 		DCWrite32(aIoctlv + 4, (u32)ES_EmulateCmd);
 
 		/* Set addresses */
-		addrIoctlv      = aIoctlv + 8  + 1;
-		addrLaunchTitle = aLaunchTitle + 1;
-		addrPrintf      = aPrintf      + 1;
-		addrSnprintf    = aSnprintf    + 1;
+		addrIoctlv      = aIoctlv + 8 + 1;
+
+		/* Set function pointers */
+		ES_LaunchTitle = (void *)aLaunchTitle + 1;
+		ES_printf      = (void *)aPrintf      + 1;
+		ES_snprintf    = (void *)aSnprintf    + 1;
 }
 
 void Patch_EsModule(u32 version)

@@ -103,13 +103,51 @@ s32 __FS_SetMode(u32 mode, char *path)
 	return 0;
 }
 
+typedef struct {
+	const char *dir;
+	u32 blocks;
+	u32 inodes;
+} fakeusage;
+
+#define FAKE_USAGE_LEN 6
+
+s32 __FS_FakeUsage(const char *dir, u32 *blocks, u32 *inodes)
+{
+	static fakeusage fake_usage[FAKE_USAGE_LEN] = {
+//		{"/meta",              3,   8},
+//		{"/ticket",           77,  83},
+//		{"/title/00010000", 5527, 683},
+//		{"/title/00010001",   23,  42},
+//		{"/title/00010004", 1970,  37},
+//		{"/title/00010005",   23,  42}
+		{"/meta",              3,   8},
+		{"/ticket",           71,  77},
+		{"/title/00010000",   75,  55},
+		{"/title/00010001", 1505,  74},
+		{"/title/00010004",  185,   9},
+		{"/title/00010005",   23,  42}
+	};
+
+	s32 cnt;
+
+	for (cnt = 0; cnt < FAKE_USAGE_LEN; cnt++) {
+		if (!strcmp(fake_usage[cnt].dir, dir)) {
+			*blocks = fake_usage[cnt].blocks;
+			*inodes = fake_usage[cnt].inodes;
+			return 1;			
+		}
+	}
+
+	return 0;			
+}
+
 s32 FS_Open(ipcmessage *message)
 {
 #ifdef DEBUG
 	char *path = message->open.device;
 	u32 mode = message->open.mode;
 
-	FS_printf("FS_Open(): (path: %s, mode: %d)\n", path, mode);
+	FS_printf("FS_Open(\"%s\", %d)\n", path, mode);
 #endif
 
 	return -6;
@@ -120,7 +158,7 @@ s32 FS_Close(ipcmessage *message)
 #ifdef DEBUG
 	s32 fd = message->fd;
 
-	FS_printf("FS_Close(): %d\n", fd);
+	FS_printf("FS_Close(%d)\n", fd);
 #endif
 
 	return -6;
@@ -133,7 +171,7 @@ s32 FS_Read(ipcmessage *message)
 	u32   len    = message->read.length;
 	s32   fd     = message->fd;
 
-	FS_printf("FS_Read(): %d (buffer: 0x%08x, len: %d\n", fd, (u32)buffer, len);
+	FS_printf("FS_Read(%d, 0x%08x, %d)\n", fd, (u32)buffer, len);
 #endif
 
 	return -6;
@@ -146,7 +184,7 @@ s32 FS_Write(ipcmessage *message)
 	u32   len    = message->write.length;
 	s32   fd     = message->fd;
 
-	FS_printf("FS_Write(): %d (buffer: 0x%08x, len: %d)\n", fd, (u32)buffer, len);
+	FS_printf("FS_Write(%d, 0x%08x, %d)\n", fd, (u32)buffer, len);
 #endif
 
 	return -6;
@@ -159,7 +197,7 @@ s32 FS_Seek(ipcmessage *message)
 	s32 where  = message->seek.offset;
 	s32 whence = message->seek.origin;
 
-	FS_printf("FS_Seek(): %d (where: %d, whence: %d)\n", fd, where, whence);
+	FS_printf("FS_Seek(%d, %d, %d)\n", fd, where, whence);
 #endif
 	
 	return -6;
@@ -189,7 +227,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 	case IOCTL_ISFS_CREATEDIR: {
 		fsattr *attr = (fsattr *)inbuf;
 
-		FS_printf("FS_CreateDir(): %s\n", attr->filepath);
+		FS_printf("FS_CreateDir(\"%s\", %02X, %02X, %02X, %02X)\n", attr->filepath, attr->ownerperm, attr->groupperm, attr->otherperm, attr->attributes);
 
 		/* Check path */
 		ret = FS_CheckRealPath(attr->filepath);
@@ -201,6 +239,8 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 		/* FAT mode */
 		if (config.mode) {
 			char fatpath[FAT_MAXPATH];
+
+			FS_printf("FS_CreateDir: Emulating...\n");
 
 			/* Generate path */
 			FS_GeneratePath(attr->filepath, fatpath);
@@ -216,7 +256,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 	case IOCTL_ISFS_CREATEFILE: {
 		fsattr *attr = (fsattr *)inbuf;
 
-		FS_printf("FS_CreateFile(): %s\n", attr->filepath);
+		FS_printf("FS_CreateFile(\"%s\", %02X, %02X, %02X, %02X)\n", attr->filepath, attr->ownerperm, attr->groupperm, attr->otherperm, attr->attributes);
 
 		/* Check path */
 		ret = FS_CheckRealPath(attr->filepath);
@@ -228,6 +268,8 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 		/* FAT mode */
 		if (config.mode) {
 			char fatpath[FAT_MAXPATH];
+
+			FS_printf("FS_CreateFile: Emulating...\n");
 
 			/* Generate path */
 			FS_GeneratePath(attr->filepath, fatpath);
@@ -243,7 +285,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 	case IOCTL_ISFS_DELETE: {
 		char *filepath = (char *)inbuf;
 
-		FS_printf("FS_Delete(): %s\n", filepath);
+		FS_printf("FS_Delete(\"%s\")\n", filepath);
 
 		/* Check path */
 		ret = FS_CheckRealPath(filepath);
@@ -255,6 +297,8 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 		/* FAT mode */
 		if (config.mode) {
 			char fatpath[FAT_MAXPATH];
+
+			FS_printf("FS_Delete: Emulating...\n");
 
 			/* Generate path */
 			FS_GeneratePath(filepath, fatpath);
@@ -270,7 +314,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 	case IOCTL_ISFS_RENAME: {
 		fsrename *rename = (fsrename *)inbuf;
 
-		FS_printf("FS_Rename(): %s -> %s\n", rename->filepathOld, rename->filepathNew);
+		FS_printf("FS_Rename(\"%s\", \"%s\")\n", rename->filepathOld, rename->filepathNew);
 
 		/* Check paths */
 		ret  = FS_CheckRealPath(rename->filepathOld);
@@ -287,6 +331,8 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 			char newpath[FAT_MAXPATH];
 
 //			struct stats stats;
+
+			FS_printf("FS_Rename: Emulating...\n");
 
 			/* Generate paths */
 			FS_GeneratePath(rename->filepathOld, oldpath);
@@ -320,11 +366,13 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 	/** Get device stats **/
 	case IOCTL_ISFS_GETSTATS: {
-		FS_printf("FS_GetStats():\n");
+		FS_printf("FS_GetStats()\n");
 
 		/* FAT mode */
 		if (config.mode) {
 			fsstats *stats = (fsstats *)iobuf;
+
+			FS_printf("FS_GetStats: Emulating...\n");
 
 			/* Check buffer length */
 			if (iolen < 0x1C)
@@ -353,7 +401,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 	/** Get file stats **/
 	case IOCTL_ISFS_GETFILESTATS: {
-		FS_printf("FS_GetFileStats(): %d\n", message->fd);
+		FS_printf("FS_GetFileStats(%d)\n", message->fd);
 
 		/* Disable flag */
 		*performed = 0;
@@ -365,7 +413,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 	case IOCTL_ISFS_GETATTR: {
 		char *path = (char *)inbuf;
 		
-		FS_printf("FS_GetAttributes(): %s\n", path);
+		FS_printf("FS_GetAttributes(\"%s\")\n", path);
 
 		/* Check path */
 		ret = FS_CheckRealPath(path);
@@ -378,6 +426,8 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 		if (config.mode) {
 			fsattr *attr = (fsattr *)iobuf;
 			char    fatpath[FAT_MAXPATH];
+
+			FS_printf("FS_GetAttributes: Emulating...\n");
 
 			/* Generate path */
 			FS_GeneratePath(path, fatpath);
@@ -411,7 +461,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 	case IOCTL_ISFS_SETATTR: {
 		fsattr *attr = (fsattr *)inbuf;
 
-		FS_printf("FS_SetAttributes(): %s\n", attr->filepath);
+		FS_printf("FS_SetAttributes(\"%s\", %08X, %04X, %02X, %02X, %02X, %02X)\n", attr->filepath, attr->owner_id, attr->group_id, attr->ownerperm, attr->groupperm, attr->otherperm, attr->attributes);
 
 		/* Check path */
 		ret = FS_CheckRealPath(attr->filepath);
@@ -423,6 +473,8 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 		/* FAT mode */
 		if (config.mode) {
 			char fatpath[FAT_MAXPATH];
+
+			FS_printf("FS_SetAttributes: Emulating...\n");
 
 			/* Generate path */
 			FS_GeneratePath(attr->filepath, fatpath);
@@ -436,7 +488,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 	/** Format **/
 	case IOCTL_ISFS_FORMAT: {
-		FS_printf("FS_Format():\n");
+		FS_printf("FS_Format()\n");
 
 		/* FAT mode */
 		if (config.mode) {
@@ -451,7 +503,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 	case IOCTL_ISFS_SETMODE: {
 		u32 mode = inbuf[0];
 
-		FS_printf("FS_SetMode(): (mode: %d, path: /)\n", mode);
+		FS_printf("FS_SetMode(%d, \"/\")\n", mode);
 
 		/* Set flag */
 		*performed = 1;
@@ -490,7 +542,7 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 	case IOCTL_ISFS_READDIR: {
 		char *dirpath = (char *)vector[0].data;
 
-		FS_printf("FS_Readdir(): (path: %s, iolen: %d)\n", dirpath, iolen);
+		FS_printf("FS_Readdir(\"%s\", %d)\n", dirpath, iolen);
 
 		/* Check path */
 		ret = FS_CheckRealPath(dirpath);
@@ -507,6 +559,8 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 			
 			char fatpath[FAT_MAXPATH];
 			u32  entries;
+
+			FS_printf("FS_Readdir: Emulating...\n");
 
 			/* Set pointers/values */
 			if (iolen > 1) {
@@ -541,7 +595,7 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 	case IOCTL_ISFS_GETUSAGE: {
 		char *dirpath = (char *)vector[0].data;
 
-		FS_printf("FS_GetUsage(): %s\n", dirpath);
+		FS_printf("FS_GetUsage(\"%s\")\n", dirpath);
 
 		/* Check path */
 		ret = FS_CheckRealPath(dirpath);
@@ -552,40 +606,44 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 
 		/* FAT mode */
 		if (config.mode) {
-			char fatpath[FAT_MAXPATH];
-			char *fakepath = NULL;
-
 			u32 *blocks = (u32 *)vector[1].data;
 			u32 *inodes = (u32 *)vector[2].data;
+			u8  syscode = *(u8*)0x0;
 
-			ret     = 0;
-			*blocks = 0;
-			*inodes = 1;        // empty folders return a file count of 1
+			// This is just an ugly workaround.
+			// WiiWare and VirtualConsole seem to work
+			// better with fake values, while disc-based 
+			// Wii games (for example SSBB and MPT) seem
+			// to work better with values taken from FAT.
+			if (syscode != 'R' && syscode != 'S') {
+				/* Set fake values */
+				*blocks = 1;
+				*inodes = 1;
 
-			/* Set fake path to speed up access for huge emulated nand */
-//			if (!FS_MatchPath(dirpath, "/title/0001000#/########", 0) && !FS_MatchPath(dirpath, "/ticket/0001000#", 0))
-//				fakepath = "/ticket";
-			if (!strcmp(dirpath, "/") || !strcmp(dirpath, "/title") || FS_MatchPath(dirpath, "/title/0001000#", 1))
-				fakepath = "/ticket";
+				ret = 0;
+			}
+			else {
+				char fatpath[FAT_MAXPATH];
+				s32 fake;
+
+				FS_printf("FS_GetUsage: Emulating...\n");
+
+				*blocks = 0;
+				*inodes = 1;        // empty folders return a file count of 1
+
+				fake = __FS_FakeUsage(dirpath, blocks, inodes);
 			
-			/* Generate path */
-			FS_GeneratePath(dirpath, fatpath);
+				/* Generate path */
+				FS_GeneratePath(dirpath, fatpath);
 
-			if (fakepath) {
-				/* Check path */
-				ret = FAT_GetStats(fatpath, NULL);
-				if (ret >= 0) {
-
-					FS_printf("FS_GetUsage(): Fake path = %s\n", fakepath);
-
-					/* Generate fake path */
-					FS_GeneratePath(fakepath, fatpath);
+				if (fake) {
+					/* Check path */
+					ret = FAT_GetStats(fatpath, NULL);
 				}  
-			}  
-
-			if (ret >= 0) {
-				/* Get usage */
-				ret = FAT_GetUsage(fatpath, blocks, inodes);
+				else {
+					/* Get usage */
+					ret = FAT_GetUsage(fatpath, blocks, inodes);
+				}  
 			}  
 
 			/* Flush cache */
@@ -607,7 +665,7 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 		if (inlen > 1)
 			path = (char *)vector[1].data;
 
-		FS_printf("FS_SetMode(): (mode: %d, path: %s)\n", mode, path);
+		FS_printf("FS_SetMode(%d, \"%s\")\n", mode, path);
 
 		/* Set flag */
 		*performed = 1;
@@ -622,7 +680,7 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 		char *path     = (char *)vector[1].data;
 		u32   path_len = (u32)   vector[1].len;
 
-		FS_printf("FS_GetMode():\n");
+		FS_printf("FS_GetMode()\n");
 
 		/* Copy config */
 		*mode = config.mode;

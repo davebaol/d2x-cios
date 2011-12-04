@@ -176,8 +176,7 @@ s32 __ES_GetTicketView(u32 tidh, u32 tidl, u8 *view)
 	s32  fd, ret;
 
 	/* Generate path */
-	ES_snprintf(path, sizeof(path), "/ticket/%08x/", tidh);
-	ES_snprintf(path + strlen(path), sizeof(path), "%08x.tik", tidl);
+	ES_snprintf(path, sizeof(path), "/ticket/%08x/%08x.tik", tidh, tidl);
 
 	/* Open ticket */
 	fd = os_open(path, 1);

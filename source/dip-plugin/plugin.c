@@ -652,7 +652,7 @@ s32 DI_EmulateIoctl(ioctl *buffer, s32 fd)
 	return ret;
 }
 
-void __DI_InitEmulation(void)
+void __DI_InitDriveEmulation(void)
 {
 	s32 ret;
 
@@ -711,16 +711,16 @@ void __DI_InitEmulation(void)
  * to support ios reload block through USB/SD
  *  
  * NOTE:
- * This function is redirected from DI_InitStage2 included inside 
- * the original Nintendo DI module and it is invoked only once 
+ * This function is redirected from DI_InitDriveStage2 included
+ * in the original Nintendo DI module and it is invoked only once 
  * as soon as the dvd driver receives the first ipc message of type 
  * open, ioctl or ioctlv.  
  */
-void DI_EmulateInitStage2(void)
+void DI_EmulateInitDrive(void)
 {
 	/* Init DVD driver */
-	DI_InitStage2();
+	DI_HandleInitDrive();
 
 	/* Init DIP and FFS after the cIOS has been reloaded */
-	__DI_InitEmulation();
+	__DI_InitDriveEmulation();
 }

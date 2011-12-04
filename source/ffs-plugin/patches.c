@@ -19,6 +19,7 @@
  */
 
 #include "fs_calls.h"
+#include "fs_dump.h"
 #include "syscalls.h"
 #include "tools.h"
 
@@ -38,19 +39,69 @@ static u32 fsTable[8] =
 
 /* Addresses */
 u32 addrSysOpen = 0;
-u32 addrPrintf  = 0;
 u32 addrReentry = 0;
 u32 addrTable   = 0;
+
+/* Function pointers */
+s32 (*FS_printf)(const char * fmt, ...) = 0;
+
+#ifdef DEBUG
+
+u32 __geThumbLongBranchWithLinkDestAddr(u32 addr)
+{
+	s32 offsetHigh = ((s32)((*(u16 *)addr)       & 0x07FF)) << 12;
+	s32 offsetLow  = ((s32)((*(u16 *)(addr + 2)) & 0x07FF)) << 1;
+	s32 offset     = ((offsetHigh + offsetLow) << 8) >> 8;
+	return addr + offset + 4;
+}
+
+u32 __geArmBranchDestAddr(u32 addr)
+{
+	s32 offset = ((*(s32*)addr) << 8) >> 8;
+	return addr + (offset * 4) + 8;
+}
+
+#define __geArmBranchDestOffset(srcAddr, dstAddr)   ((((dstAddr)-(srcAddr))/4-2) & 0xFFFFFF)
+
+#endif
 
 void __Patch_FfsModule(u32 aTable, u32 aReentry, u32 aPrintf)
 {
 	/* Set addresses */
 	addrTable   = *(u32 *)aTable;
 	addrReentry = aReentry;
-	addrPrintf  = aPrintf + 1;
+
+	/* Set function pointers */
+	FS_printf = (void *)aPrintf + 1;
 
 	/* Patch command handler */
 	DCWrite32(aTable, (u32)fsTable);
+
+#ifdef DEBUG
+#ifdef DUMP
+/*
+	// IOS: 56v5661, 57v5918, 58v6175, 60v6174, 61v5661, 70v6687, 80v6943
+	// aMsgAck1 = 0x20007138
+	// aMsgAck2 = 0x20006CC4
+*/
+
+	// Calculate address from long branch with link (thumb mode)
+	u32 aMsgAck1 = __geThumbLongBranchWithLinkDestAddr(aReentry + 2) + 4;
+
+	// Calculate address from branch (ARM mode)
+	u32 aMsgAck2 = __geArmBranchDestAddr(aMsgAck1) + 8;
+ 
+	/* Patch syscall os_message_queue_ack */
+	if (*((u32 *) aMsgAck2) == 0xE6000570) {
+		/* Patch an unused syscall to store the new FS_os_message_queue_ack entry */
+		DCWrite32(aMsgAck2,     0xE51FF004);
+		DCWrite32(aMsgAck2 + 4, ((u32) FS_os_message_queue_ack) | 1);
+
+		/* Patch the jump */
+		DCWrite32(aMsgAck1, 0xEA000000 | __geArmBranchDestOffset(aMsgAck1, aMsgAck2));
+	}
+#endif
+#endif
 }
 
 void Patch_FfsModule(u32 version)

@@ -21,6 +21,7 @@
 #ifndef _PLUGIN_H_
 #define _PLUGIN_H_
 
+#include "fat.h"
 #include "types.h"
 
 /* Mode codes */
