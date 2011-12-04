@@ -18,6 +18,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _DIP_CALLS_S_
+#include "dip_calls.h"
+
 
 	.align 4
 
@@ -54,6 +57,7 @@ DI_Free:
 	ldmfd	sp!, {r7, lr}
 	bx	lr
 
+#ifdef DEBUG
 	.code 32
 	.global DI_Printf
 DI_Printf:
@@ -63,6 +67,7 @@ DI_Printf:
 	bl	_call_di
 	ldmfd	sp!, {r7, lr}
 	bx	lr
+#endif
 
 	.code 32
 _call_di:

@@ -69,7 +69,7 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 {
 	s32 ret = IPC_EINVAL;
 
-	/* Invalidate ache */
+	/* Invalidate cache */
 	InvalidateVector(vector, inlen, iolen);
 
 	/* Parse command */
@@ -260,14 +260,22 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 
 s32 __FAT_Initialize(u32 *queuehandle)
 {
+	/* Heap space */
+	//static u32 heapspace[0x8000] ATTRIBUTE_ALIGN(32);
+	static u32 heapspace[0x7000] ATTRIBUTE_ALIGN(32);
+
 	void *buffer = NULL;
 	s32   ret;
 
 	/* Initialize memory heap */
-	Mem_Init();
+	ret = Mem_Init(heapspace, sizeof(heapspace));
+	if (ret < 0)
+		return ret;
 
 	/* Initialize timer subsystem */
-	Timer_Init();
+	ret = Timer_Init();
+	if (ret < 0)
+		return ret;
 
 	/* Allocate queue buffer */
 	buffer = Mem_Alloc(0x80);
@@ -295,7 +303,7 @@ int main(void)
 	s32 ret;
 
 	/* Print info */
-	write("$IOSVersion: FAT: " __DATE__ " " __TIME__ " 64M$\n");
+	svc_write("$IOSVersion: FAT: " __DATE__ " " __TIME__ " 64M$\n");
 
 	/* Initialize module */
 	ret = __FAT_Initialize(&queuehandle);

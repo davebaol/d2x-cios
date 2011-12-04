@@ -7,37 +7,29 @@ PREFIX	=	$(DEVKITARM)/bin/arm-eabi-
 # Executables
 CC	=	$(PREFIX)gcc
 LD	=	$(PREFIX)gcc
-STRIP	=	./stripios
+STRIP	=	../stripios
 
 # Flags
 ARCH	=	-mcpu=arm926ej-s -mthumb -mthumb-interwork -mbig-endian
-CFLAGS	=	$(ARCH) -I. -fomit-frame-pointer -Os -Wall -Wstrict-prototypes -ffunction-sections
+CFLAGS	=	$(ARCH) -I. -I../cios-lib -fomit-frame-pointer -Os -Wall -Wstrict-prototypes -ffunction-sections
 LDFLAGS	=	$(ARCH) -nostartfiles -Wl,-T,link.ld,-Map,$(TARGET).map -Wl,--gc-sections -Wl,-static
 
 # Libraries
-LIBS	=
+LIBS	=	../cios-lib/cios-lib.a
 
 # Target
 TARGET	=	usb-module
 
 # Objects
-OBJS	=	es.o			\
-		ipc.o			\
-		main.o			\
-		mem.o			\
-		start.o			\
-		syscalls.o		\
-		timer.o			\
-		usb2.o			\
-		usbglue.o		\
-		usbstorage.o		\
-		wbfs.o			\
-		libwbfs/libwbfs.o	\
-		libwbfs/rijndael.o	\
-		libwbfs/wiidisc.o
+OBJS	= main.o				\
+		start.o				\
+		usb2.o				\
+		usbglue.o			\
+		usbstorage.o			\
+		wbfs.o
 
 
-$(TARGET).elf: $(OBJS)
+$(TARGET).elf: $(OBJS) $(LIBS)
 	@echo -e " LD\t$@"
 	@$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $@.orig
 	@$(STRIP) $@.orig $@

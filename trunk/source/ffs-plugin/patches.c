@@ -22,18 +22,6 @@
 #include "syscalls.h"
 #include "tools.h"
 
-/* Macros */
-#define Write8(addr, val)	\
-	*(u8 *)(addr) = (val);	\
-	DCFlushRange((void *)(addr), sizeof(u8));
-
-#define Write16(addr, val)	\
-	*(u16 *)(addr) = (val);	\
-	DCFlushRange((void *)(addr), sizeof(u16));
-
-#define Write32(addr, val)	\
-	*(u32 *)(addr) = (val);	\
-	DCFlushRange((void *)(addr), sizeof(u32));
 
 #define __Patch_FfsModule(at, ap, ar)       \
 {                                           \
@@ -43,7 +31,7 @@
 	addrReentry = (ar);                 \
 	                                    \
 	/* Patch command handler */         \
-	Write32((at), (u32)fsTable);        \
+	DCWrite32((at), (u32)fsTable);        \
 }
 
 #define __Patch_IopModule(aso, ap)             \
@@ -54,9 +42,9 @@
 	/* Patch syscall open like that */     \
 	/*      bx  pc                  */     \
 	/*      ldr pc, =syscall_open   */     \
-	Write32((ap),     0x477846C0);         \
-	Write32((ap) + 4, 0xE51FF004);         \
-	Write32((ap) + 8, (u32)syscall_open);  \
+	DCWrite32((ap),     0x477846C0);         \
+	DCWrite32((ap) + 4, 0xE51FF004);         \
+	DCWrite32((ap) + 8, (u32)syscall_open);  \
 }
 
 /* FFS jump table */
@@ -97,7 +85,7 @@ void Patch_FfsModule(u32 version)
 		break;
 
 	default:
-		write("FFSP: Error -> Can't patch FFS module (unknown version)\n");
+		svc_write("FFSP: Error -> Can't patch FFS module (unknown version)\n");
 		break;
 	}
 }
@@ -130,7 +118,7 @@ void Patch_IopModule(u32 version)
 		break;
 
 	default:
-		write("FFSP: Error -> Can't patch IOP module (unknown version)\n");
+		svc_write("FFSP: Error -> Can't patch IOP module (unknown version)\n");
 		break;
 	}
 }

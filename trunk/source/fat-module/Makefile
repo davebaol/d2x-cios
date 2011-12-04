@@ -7,15 +7,15 @@ PREFIX	=	$(DEVKITARM)/bin/arm-eabi-
 # Executables
 CC	=	$(PREFIX)gcc
 LD	=	$(PREFIX)gcc
-STRIP	=	./stripios
+STRIP	=	../stripios
 
 # Flags
 ARCH	=	-mcpu=arm926ej-s -mthumb -mthumb-interwork -mbig-endian
-CFLAGS	=	$(ARCH) -I. -fomit-frame-pointer -Os -Wall -ffunction-sections
+CFLAGS	=	$(ARCH) -I. -I../cios-lib -fomit-frame-pointer -Os -Wall -ffunction-sections
 LDFLAGS	=	$(ARCH) -nostartfiles -Wl,-T,link.ld,-Map,$(TARGET).map -Wl,--gc-sections -Wl,-static
 
 # Libraries
-LIBS	=
+LIBS	=	../cios-lib/cios-lib.a
 
 # Target
 TARGET	=	fat-module
@@ -26,16 +26,12 @@ OBJS	=	ccsbcs.o		\
 		ehci.o			\
 		fat_wrapper.o		\
 		ff.o			\
-		ipc.o			\
 		main.o			\
-		mem.o			\
 		sdio.o			\
 		start.o			\
-		syscall.o		\
-		syscalls.o		\
-		timer.o
+		syscall.o
 
-$(TARGET).elf: $(OBJS)
+$(TARGET).elf: $(OBJS) $(LIBS)
 	@echo -e " LD\t$@"
 	@$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $@.orig
 	@$(STRIP) $@.orig $@

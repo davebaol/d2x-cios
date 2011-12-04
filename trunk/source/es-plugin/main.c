@@ -20,7 +20,7 @@
 
 #include "config.h"
 #include "ipc.h"
-#include "main.h"
+#include "iosinfo.h"
 #include "patches.h"
 #include "plugin.h"
 #include "swi_mload.h"
@@ -29,7 +29,7 @@
 #include "types.h"
 
 /* IOS information */
-iosInfo ios = { 0 };
+iosInfo ios = { 0, 0, 0, 0, 0 };
 
 
 s32 __ES_System(u32 arg1, u32 arg2)
@@ -55,7 +55,7 @@ s32 __ES_System(u32 arg1, u32 arg2)
 int main(void)
 {
 	/* Print info */
-	write("$IOSVersion: ESP: " __DATE__ " " __TIME__ " 64M$\n");
+	svc_write("$IOSVersion: ESP: " __DATE__ " " __TIME__ " 64M$\n");
 
 	/* Load config */
 	Config_Load(&config, sizeof(config));

@@ -74,52 +74,62 @@ s32 FS_SetMode(u32 mode, char *path)
 
 s32 FS_Open(ipcmessage *message)
 {
+#ifdef DEBUG
 	char *path = message->open.device;
 	u32 mode = message->open.mode;
 
 	FS_printf("FS_Open(): (path: %s, mode: %d)\n", path, mode);
+#endif
 
 	return -6;
 }
 
 s32 FS_Close(ipcmessage *message)
 {
+#ifdef DEBUG
 	s32 fd = message->fd;
 
 	FS_printf("FS_Close(): %d\n", fd);
+#endif
 
 	return -6;
 }
 
 s32 FS_Read(ipcmessage *message)
 {
+#ifdef DEBUG
 	char *buffer = message->read.data;
 	u32   len    = message->read.length;
 	s32   fd     = message->fd;
 
 	FS_printf("FS_Read(): %d (buffer: 0x%08x, len: %d\n", fd, (u32)buffer, len);
+#endif
 
 	return -6;
 }
 
 s32 FS_Write(ipcmessage *message)
 {
+#ifdef DEBUG
 	char *buffer = message->write.data;
 	u32   len    = message->write.length;
 	s32   fd     = message->fd;
 
 	FS_printf("FS_Write(): %d (buffer: 0x%08x, len: %d)\n", fd, (u32)buffer, len);
+#endif
 
 	return -6;
 }
 
 s32 FS_Seek(ipcmessage *message)
 {
+#ifdef DEBUG
 	s32 fd     = message->fd;
 	s32 where  = message->seek.offset;
 	s32 whence = message->seek.origin;
 
 	FS_printf("FS_Seek(): %d (where: %d, whence: %d)\n", fd, where, whence);
+#endif
 	
 	return -6;
 }
@@ -302,9 +312,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *flag)
 
 	/** Get file stats **/
 	case IOCTL_ISFS_GETFILESTATS: {
-		s32 fd = message->fd;
-
-		FS_printf("FS_GetFileStats(): %d\n", fd);
+		FS_printf("FS_GetFileStats(): %d\n", message->fd);
 
 		/* Disable flag */
 		*flag = 0;

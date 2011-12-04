@@ -2,6 +2,7 @@
  * DIP plugin for Custom IOS.
  *
  * Copyright (C) 2008-2010 Waninkoko, WiiGator.
+ * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,13 +21,21 @@
 #ifndef _DIP_CALLS_H_
 #define _DIP_CALLS_H_
 
+//#define DEBUG
+
+#ifndef _DIP_CALLS_S_ 
+
 #include "types.h"
 
 /* Prototypes */
+#ifdef DEBUG
+void  DI_Printf(const char *fmt, ...);
+#else
+#define DI_Printf(fmt, ...)
+#endif
 s32   DI_ReadHash(void); 
 void *DI_Alloc(u32 size, u32 align);
 void  DI_Free(void *ptr);
-void  DI_Printf(const char *fmt, ...);
 
 /* DIP handlers */
 s32 DI_HandleIoctl(void *buffer, u32 fd);
@@ -34,4 +43,5 @@ s32 DI_HandleCmd(void *inbuf, const void *outbuf, u32 size);
 
 s32 DI_InitStage2(void); 
 
+#endif
 #endif

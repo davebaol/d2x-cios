@@ -179,14 +179,21 @@ s32 __USB_Callback(u32 message)
 
 s32 __USB_Initialize(void)
 {
+	/* Heap space */
+	static u32 heapspace[0x2000] ATTRIBUTE_ALIGN(32);
+
 	void *buffer = NULL;
 	s32   ret;
 
 	/* Initialize memory heap */
-	Mem_Init();
+	ret = Mem_Init(heapspace, sizeof(heapspace));
+	if (ret < 0)
+		return ret;
 
 	/* Initialize timer subsystem */
-	Timer_Init();
+	ret = Timer_Init();
+	if (ret < 0)
+		return ret;
 
 	/* Allocate queue buffer */
 	buffer = Mem_Alloc(0x80);
@@ -213,7 +220,7 @@ int main(void)
 	s32 ret;
 
 	/* Print info */
-	write("$IOSVersion: USBS: " __DATE__ " " __TIME__ " 64M$\n");
+	svc_write("$IOSVersion: USBS: " __DATE__ " " __TIME__ " 64M$\n");
 
 	/* Initialize module */
 	ret = __USB_Initialize();
@@ -241,7 +248,7 @@ int main(void)
 
 			/* Check title ID */
 			if (ret >= 0) {
-				write("USBS: Title identified. Blocking opening request.\n");
+				svc_write("USBS: Title identified. Blocking opening request.\n");
 
 				ret = IPC_ENOENT;
 				break;

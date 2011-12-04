@@ -21,9 +21,11 @@
 #ifndef _FS_CALLS_H_
 #define _FS_CALLS_H_
 
-#include "types.h"
-
 //#define DEBUG
+
+#ifndef _FS_CALLS_S_
+
+#include "types.h"
 
 /* Debug */
 #ifdef DEBUG
@@ -45,4 +47,5 @@ s32 fs_ioctlv(void *data);
 /* Syscall open hook */
 s32 syscall_open(char *path, s32 mode);
 
+#endif
 #endif

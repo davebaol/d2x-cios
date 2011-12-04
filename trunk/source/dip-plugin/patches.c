@@ -22,19 +22,6 @@
 #include "syscalls.h"
 #include "tools.h"
 
-/* Macros */
-#define Write8(addr, val)	\
-	*(u8 *)(addr) = (val);	\
-	DCFlushRange((void *)(addr), sizeof(u8));
-
-#define Write16(addr, val)	\
-	*(u16 *)(addr) = (val);	\
-	DCFlushRange((void *)(addr), sizeof(u16));
-
-#define Write32(addr, val)	\
-	*(u32 *)(addr) = (val);	\
-	DCFlushRange((void *)(addr), sizeof(u32));
- 
 
 /* Addresses */
 u32 addr_initStage2  = 0;
@@ -53,16 +40,16 @@ void Patch_DipModule(u32 version)
 	/** 07/11/08 14:34:26 **/
 	case 0x48776F72:        // IOS: 53v5662, 55v5662
 		/* Patch DVD driver init stage 2 */
-		Write32(0x20200074, 0x4B004718);
-		Write32(0x20200078, (u32)DI_EmulateInitStage2);
+		DCWrite32(0x20200074, 0x4B004718);
+		DCWrite32(0x20200078, (u32)DI_EmulateInitStage2);
 
 		/* Patch IOCTL handler */
-		Write32(0x20200400, 0x4B004718);
-		Write32(0x20200404, (u32)DI_EmulateIoctl);
+		DCWrite32(0x20200400, 0x4B004718);
+		DCWrite32(0x20200404, (u32)DI_EmulateIoctl);
 		
 		/* Patch command handler */
-		Write32(0x20200EF8, 0x4B004718);
-		Write32(0x20200EFC, (u32)DI_EmulateCmd);
+		DCWrite32(0x20200EF8, 0x4B004718);
+		DCWrite32(0x20200EFC, (u32)DI_EmulateCmd);
 
 		/* Set addresses */
 		addr_initStage2  = 0x2020007C + 1;
@@ -79,16 +66,16 @@ void Patch_DipModule(u32 version)
 	/** 07/24/08 20:08:44 **/
 	case 0x4888E14C:        // IOS: 36v3607, 38v4123
 		/* Patch DVD driver init stage 2 */
-		Write32(0x20200068, 0x4B004718);
-		Write32(0x2020006C, (u32)DI_EmulateInitStage2);
+		DCWrite32(0x20200068, 0x4B004718);
+		DCWrite32(0x2020006C, (u32)DI_EmulateInitStage2);
 
 		/* Patch IOCTL handler */
-		Write32(0x202003B8, 0x4B004718);
-		Write32(0x202003BC, (u32)DI_EmulateIoctl);
+		DCWrite32(0x202003B8, 0x4B004718);
+		DCWrite32(0x202003BC, (u32)DI_EmulateIoctl);
 		
 		/* Patch command handler */
-		Write32(0x20200D2C, 0x4B004718);
-		Write32(0x20200D30, (u32)DI_EmulateCmd);
+		DCWrite32(0x20200D2C, 0x4B004718);
+		DCWrite32(0x20200D30, (u32)DI_EmulateCmd);
 
 		/* Set addresses */
 		addr_initStage2  = 0x20200070 + 1;
@@ -107,16 +94,16 @@ void Patch_DipModule(u32 version)
 	case 0x492ACA9D:
 	case 0x4A262AF5:        // IOS: 37v5662, 56v5661, 57v5918, 58v6175, 60v6174, 61v5661, 70v6687, 80v6943
 		/* Patch DVD driver init stage 2 */
-		Write32(0x20200074, 0x4B004718);
-		Write32(0x20200078, (u32)DI_EmulateInitStage2);
+		DCWrite32(0x20200074, 0x4B004718);
+		DCWrite32(0x20200078, (u32)DI_EmulateInitStage2);
 
 		/* Patch IOCTL handler */
-		Write32(0x20200400, 0x4B004718);
-		Write32(0x20200404, (u32)DI_EmulateIoctl);
+		DCWrite32(0x20200400, 0x4B004718);
+		DCWrite32(0x20200404, (u32)DI_EmulateIoctl);
 		
 		/* Patch command handler */
-		Write32(0x20200EF8, 0x4B004718);
-		Write32(0x20200EFC, (u32)DI_EmulateCmd);
+		DCWrite32(0x20200EF8, 0x4B004718);
+		DCWrite32(0x20200EFC, (u32)DI_EmulateCmd);
 
 		/* Set addresses */
 		addr_initStage2  = 0x2020007C + 1;
@@ -131,7 +118,7 @@ void Patch_DipModule(u32 version)
 		break;
 
 	default:
-		write("DIPP: Error -> Can't patch DI module (unknown version)\n");
+		svc_write("DIPP: Error -> Can't patch DI module (unknown version)\n");
 
 		break;
 	}

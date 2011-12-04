@@ -4,6 +4,7 @@
 	Copyright (C) 2008 neimod.
 	Copyright (C) 2009 WiiGator.
 	Copyright (C) 2009 Waninkoko.
+	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -118,14 +119,21 @@ s32 __SDHC_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 
 s32 __SDHC_Initialize(u32 *queuehandle)
 {
+	/* Heap space */
+	static u32 heapspace[0x2000] ATTRIBUTE_ALIGN(32);
+
 	void *buffer = NULL;
 	s32   ret;
 
 	/* Initialize memory heap */
-	Mem_Init();
+	ret = Mem_Init(heapspace, sizeof(heapspace));
+	if (ret < 0)
+		return ret;
 
 	/* Initialize timer subsystem */
-	Timer_Init();
+	ret = Timer_Init();
+	if (ret < 0)
+		return ret;
 
 	/* Allocate queue buffer */
 	buffer = Mem_Alloc(0x80);
@@ -153,7 +161,7 @@ int main(void)
 	s32 ret;
 
 	/* Print info */
-	write("$IOSVersion: SDHC: " __DATE__ " " __TIME__ " 64M$\n");
+	svc_write("$IOSVersion: SDHC: " __DATE__ " " __TIME__ " 64M$\n");
 
 	/* Initialize module */
 	ret = __SDHC_Initialize(&queuehandle);
@@ -176,7 +184,7 @@ int main(void)
 
 			/* Check title ID */
 			if (ret >= 0) {
-				write("SDHC: Title identified. Blocking opening request.\n");
+				svc_write("SDHC: Title identified. Blocking opening request.\n");
 
 				ret = IPC_ENOENT;
 				break;

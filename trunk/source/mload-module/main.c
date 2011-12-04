@@ -4,6 +4,7 @@
 	Copyright (C) 2008 neimod.
 	Copyright (C) 2010 Hermes.
 	Copyright (C) 2010 Waninkoko.
+	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -37,8 +38,13 @@
 #include "tools.h"
 #include "types.h"
 
+#define DEBUG_MODE DEBUG_NONE
+//#define DEBUG_MODE DEBUG_BUFFER
+//#define DEBUG_MODE DEBUG_GECKO
+
+
 /* IOS information */
-iosInfo ios = { 0 };
+iosInfo ios = { 0, 0, 0, 0, 0 };
 
 /* Variables */
 s32 offset = 0;
@@ -327,14 +333,21 @@ s32 __MLoad_System(void)
 
 s32 __MLoad_Initialize(u32 *queuehandle)
 {
+	/* Heap space */
+	static u32 heapspace[0x1000] ATTRIBUTE_ALIGN(32);
+
 	void *buffer = NULL;
 	s32   ret;
 
 	/* Initialize memory heap */
-	Mem_Init();
+	ret = Mem_Init(heapspace, sizeof(heapspace));
+	if (ret < 0)
+		return ret;
 
 	/* Initialize timer subsystem */
-	Timer_Init();
+	ret = Timer_Init();
+	if (ret < 0)
+		return ret;
 
 	/* Allocate queue buffer */
 	buffer = Mem_Alloc(0x20);
@@ -347,7 +360,7 @@ s32 __MLoad_Initialize(u32 *queuehandle)
 		return ret;
 
 	/* Enable PPC HW access */
-	os_ppc_access(1);
+	os_set_ahbprot(1);
 
 	/* Software interrupt */
 	os_software_IRQ(9);
@@ -371,14 +384,15 @@ int main(void)
 	exe_mem[0] = 0;
 
 	/* Print info */
-	write("$IOSVersion: MLOAD: " __DATE__ " " __TIME__ " 64M$\n");
+	svc_write("$IOSVersion: MLOAD: " __DATE__ " " __TIME__ " 64M$\n");
 
 	/* Initialize module */
 	ret = __MLoad_Initialize(&queuehandle);
 	if (ret < 0)
 		return ret;
 
-// 	Debug_SetMode(2);
+	/* Set debug mode */
+ 	Debug_SetMode(DEBUG_MODE);
 
 	/* Initialize stuff */
 	Epic_Init(queuehandle);
@@ -405,7 +419,7 @@ int main(void)
 
 			/* Check title ID */
 			if (ret >= 0) {
-				write("MLOAD: Title identified. Blocking opening request.\n");
+				svc_write("MLOAD: Title identified. Blocking opening request.\n");
 
 				ret = IPC_ENOENT;
 				break;

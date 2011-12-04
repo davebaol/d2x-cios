@@ -7,15 +7,15 @@ PREFIX	=	$(DEVKITARM)/bin/arm-eabi-
 # Executables
 CC	=	$(PREFIX)gcc
 LD	=	$(PREFIX)gcc
-STRIP	=	./stripios
+STRIP	=	../stripios
 
 # Flags
 ARCH	=	-mcpu=arm926ej-s -mthumb -mthumb-interwork -mbig-endian
-CFLAGS	=	$(ARCH) -I. -fomit-frame-pointer -Os -Wall
+CFLAGS	=	$(ARCH) -I. -I../cios-lib -fomit-frame-pointer -Os -Wall
 LDFLAGS	=	$(ARCH) -nostartfiles -Wl,-T,link.ld,-Map,$(TARGET).map -Wl,--gc-sections -Wl,-static
 
 # Libraries
-LIBS	=
+LIBS	=	../cios-lib/cios-lib.a
 
 # Target
 TARGET	=	dip-plugin
@@ -27,21 +27,16 @@ OBJS	=	config.o		\
 		dma.o			\
 		file.o			\
 		frag.o			\
-		ipc.o			\
-		isfs.o			\
 		main.o			\
 		patches.o		\
 		plugin.o		\
 		sdhc.o			\
 		start.o			\
-		swi_mload.o		\
-		syscalls.o		\
-		tools.o			\
 		usbstorage.o		\
 		wbfs.o
 
 
-$(TARGET).elf: $(OBJS)
+$(TARGET).elf: $(OBJS) $(LIBS)
 	@echo -e " LD\t$@"
 	@$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $@.orig
 	@$(STRIP) $@.orig $@

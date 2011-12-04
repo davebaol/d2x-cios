@@ -54,7 +54,8 @@ if exist "%~dp0\build" rd /s /q "%~dp0\build"
 if exist "%~dp0\dist"  rd /s /q "%~dp0\dist"  
 
 :make_modules
-:: Build or clean plugins and modules
+:: Build or clean library, plugins and modules
+call :make cios-lib     ""                %clean% 
 call :make dip-plugin   %d2x_build%\DIPP  %clean% 
 call :make ehci-module  %d2x_build%\EHCI  %clean% 
 call :make es-plugin    %d2x_build%\ES    %clean% 
@@ -145,7 +146,9 @@ if errorlevel 0 goto :make_ok
 echo Build failed!!!
 goto :exit
 :make_ok
-if not "%3"=="clean" copy "%1.elf" "..\..\build\%2.app" > NUL
+if "%3"=="clean" goto :make_end
+if not "%2"=="" copy "%1.elf" "..\..\build\%2.app" > NUL
+:make_end
 cd /D "%~dp0"  
 goto :EOF
 

@@ -17,12 +17,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _ES_CALLS_S_
+#include "es_calls.h"
 
 	.align 4
 
 /*
  * ES functions
  */
+#ifdef DEBUG
 	.code 32
 	.global ES_printf
 ES_printf:
@@ -32,6 +35,7 @@ ES_printf:
 	blx	r7
 	ldmfd	sp!, {r7, lr}
 	bx	lr
+#endif
 	
 	.code 32
 	.global ES_snprintf
