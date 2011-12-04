@@ -26,7 +26,6 @@ svn checkout http://d2x-cios.googlecode.com/svn/trunk/ d2x-cios-read-only
 After this you should have a "d2x-cios-read-only" in the directory where you started the command prompt. Then move the "stripios.exe" and the "awk.exe" from "gawk-3.1.6-1-bin.zip\bin" to the "d2x-cios-read-only" folder. 
 
 *COMPILE*:
-Open a command prompt in "d2x-cios-read-only" and type maked2x major_version minor_version.
-If the source version is for example v6 final type:
-maked2x 6 final
+Open a command prompt in "d2x-cios-read-only" and type "maked2x -h" to see the help.
+If the source version is for example v6 final type "maked2x 6 final".
 Then it should compile d2x v6 final. The compiled files can be found in the "build" folder.
