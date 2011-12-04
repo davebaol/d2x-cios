@@ -7,15 +7,15 @@ PREFIX	=	$(DEVKITARM)/bin/arm-eabi-
 # Executables
 CC	=	$(PREFIX)gcc
 LD	=	$(PREFIX)gcc
-STRIP	=	./stripios
+STRIP	=	../stripios
 
 # Flags
 ARCH	=	-mcpu=arm926ej-s -mthumb -mthumb-interwork -mbig-endian
-CFLAGS	=	$(ARCH) -I. -fomit-frame-pointer -Os -Wall
+CFLAGS	=	$(ARCH) -I. -I../cios-lib -fomit-frame-pointer -Os -Wall
 LDFLAGS	=	$(ARCH) -nostartfiles -Wl,-T,link.ld,-Map,$(TARGET).map -Wl,--gc-sections -Wl,-static
 
 # Libraries
-LIBS	=
+LIBS	=	../cios-lib/cios-lib.a
 
 # Target
 TARGET	=	ffs-plugin
@@ -24,17 +24,13 @@ TARGET	=	ffs-plugin
 OBJS	=	fat.o			\
 		fs_calls.o		\
 		fs_tools.o		\
-		ipc.o			\
 		main.o			\
 		patches.o		\
 		plugin.o		\
-		start.o			\
-		swi_mload.o		\
-		syscalls.o		\
-		tools.o
+		start.o
 
 
-$(TARGET).elf: $(OBJS)
+$(TARGET).elf: $(OBJS) $(LIBS)
 	@echo -e " LD\t$@"
 	@$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $@.orig
 	@$(STRIP) $@.orig $@

@@ -7,18 +7,18 @@ PREFIX	=	$(DEVKITARM)/bin/arm-eabi-
 # Executables
 CC	=	$(PREFIX)gcc
 LD	=	$(PREFIX)gcc
-STRIP	=	./stripios
+STRIP	=	../stripios
 
 # Strip address
 SADDR	=	0x13700000
 
 # Flags
 ARCH	=	-mcpu=arm926ej-s -mthumb -mthumb-interwork -mbig-endian
-CFLAGS	=	$(ARCH) -I. -fomit-frame-pointer -Os -Wall
+CFLAGS	=	$(ARCH) -I. -I../cios-lib -fomit-frame-pointer -Os -Wall
 LDFLAGS	=	$(ARCH) -nostartfiles -Wl,-T,link.ld,-Map,$(TARGET).map -Wl,--gc-sections -Wl,-static
 
 # Libraries
-LIBS	=
+LIBS	=	../cios-lib/cios-lib.a
 
 # Target
 TARGET	=	mload-module
@@ -28,23 +28,16 @@ OBJS	=	debug.o			\
 		di.o			\
 		elf.o			\
 		epic.o			\
-		es.o			\
 		gpio.o			\
-		ipc.o			\
 		main.o			\
-		mem.o			\
 		patches.o		\
 		start.o			\
 		swi.o			\
 		swi_asm.o		\
-		swi_mload.o		\
-		syscalls.o		\
-		timer.o			\
-		tools.o			\
 		usb.o
 
 
-$(TARGET).elf: $(OBJS)
+$(TARGET).elf: $(OBJS) $(LIBS)
 	@echo -e " LD\t$@"
 	@$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $@.orig
 	@$(STRIP) $@.orig $@ strip $(SADDR)

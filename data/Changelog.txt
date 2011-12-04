@@ -3,6 +3,12 @@
 +-----------+
 
 
+[ d2x v7 ]
+
+- Refactored all modules and plugins in order to achieve code reuse through
+  a new common library.
+
+
 [ d2x v6 ]
 
 - Added fraglist to support potentially any file system (tnx oggzee).

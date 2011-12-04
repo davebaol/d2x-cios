@@ -1,5 +1,5 @@
 /*
- * DIP plugin for Custom IOS (FRAG mode)
+ * DIP plugin for Custom IOS
  *
  * Copyright (C) 2010-2011 Waninkoko, WiiGator, oggzee, davebaol.
  *
@@ -16,8 +16,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
-// frag list by oggzee
 
 #include <string.h>
 
@@ -62,9 +60,9 @@ u32 numBits(u32 value)
 
 // NOTE 1: 
 // All local variables are declared static
-// because stack size is rather limited.
+// because thread stack size is rather limited.
 // Note that this code is actually running 
-// in Nintendo's DI stack.
+// in Nintendo's DI thread.
 
 // NOTE 2: 
 // Hmm, memcpy and char array writing seems
@@ -202,8 +200,6 @@ int frag_read_sect(u32 offset, u8 *data, u32 len)
     static int ret;
 
     while (len) {
-        //int frag_get(FragList *ff, u32 offset, u32 count,
-        //        u32 *poffset, u32 *psector, u32 *pcount)
         ret = frag_get(frag_list, offset, len,
                 &off_ret, &sector, &count);
         if (ret) return ret; // err
@@ -216,11 +212,6 @@ int frag_read_sect(u32 offset, u8 *data, u32 len)
             len    -= delta;
         }
         if (count) {
-            //int read_sector(void *ign, u32 lba, u32 count, void*buf)
-            //ret = read_sector(0, sector, count, data);
-            //if (ret) return ret;
-			//bool usbstorage_ReadSectors(u32 sector, u32 numSectors, void *buffer)
-            //ret = usbstorage_ReadSectors(sector, count, data);
             if (frag_dev == DEV_USB) {
                 ret = __usbstorage_Read(sector, count, data);
             } else {

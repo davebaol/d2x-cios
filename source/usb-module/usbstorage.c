@@ -31,7 +31,6 @@ distribution.
 #include "ipc.h"
 #include "mem.h"
 #include "timer.h"
-#include "tools.h"
 #include "usb2.h"
 #include "usbstorage.h"
 
@@ -70,6 +69,13 @@ distribution.
 #define USBSTORAGE_CYCLE_RETRIES	3
 
 #define MAX_TRANSFER_SIZE			4096
+
+
+static inline s32 Swap32(s32 val)
+{
+	return ((val & 0x000000FF) << 24) | ((val & 0x0000FF00) << 8) |
+	       ((val & 0xFF000000) >> 24) | ((val & 0x00FF0000) >> 8);
+}
 
 
 static s32 __usbstorage_reset(usbstorage_handle *dev);

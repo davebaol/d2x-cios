@@ -381,7 +381,7 @@ s32 EHCI_Loop(void)
 
 			/* Check title ID */
 			if (ret >= 0) {
-				write("EHCI: Title identified. Blocking opening request.\n");
+				svc_write("EHCI: Title identified. Blocking opening request.\n");
 
 				ret = IPC_ENOENT;
 				break;

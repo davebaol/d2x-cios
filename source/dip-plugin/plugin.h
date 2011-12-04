@@ -44,6 +44,11 @@
 #define DI_DelMode(bit)		BIT_DEL(config.mode, (bit))
 #define DI_ChkMode(bit)		BIT_CHK(config.mode, (bit))
 
+/* Macros */
+#define BIT_SET(x, y)	(x |=  y)
+#define BIT_DEL(x, y)	(x &= ~y)
+#define BIT_CHK(x, y)	(x & y)
+
 /* Disc types */
 enum {
 	DISC_UNKNOWN = 0,
@@ -95,6 +100,16 @@ struct dipConfigState {
 
 	};
 };
+
+/* IOCTL structure */
+typedef struct {
+	u32 command;
+
+	u32 *inbuf;
+	u32  inlen;
+	u32 *iobuf;
+	u32  iolen;
+} ioctl;
 
 /* Prototypes */
 s32 DI_EmulateIoctl(ioctl *buffer, s32 fd);

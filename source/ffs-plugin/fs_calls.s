@@ -18,6 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _FS_CALLS_S_
+#include "fs_calls.h"
 
 	.text
 
@@ -173,7 +175,9 @@ fs_ioctlv:
 	mov	pc, r0
 
 fs_exit:
+#ifdef DEBUG
 	bl	FS_Exit
+#endif
 	pop	{r1-r7}
 	add	r1, r0, #0
 	ldr	r0, =addrReentry

@@ -1,9 +1,11 @@
 #ifndef _ES_CALLS_H_
 #define _ES_CALLS_H_
 
-#include "types.h"
-
 //#define DEBUG
+
+#ifndef _ES_CALLS_S_ 
+
+#include "types.h"
 
 /* Prototypes */
 #ifdef DEBUG
@@ -18,4 +20,5 @@ s32 ES_LaunchTitle(u32 tidh, u32 tidl, void *view, u32 reset);
 /* ES handlers */
 s32 ES_HandleIoctlv(void *data);
 
+#endif
 #endif

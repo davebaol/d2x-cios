@@ -22,19 +22,6 @@
 #include "syscalls.h"
 #include "tools.h"
 
-/* Macros */
-#define Write8(addr, val)	\
-	*(u8 *)(addr) = (val);	\
-	DCFlushRange((void *)(addr), sizeof(u8));
-
-#define Write16(addr, val)	\
-	*(u16 *)(addr) = (val);	\
-	DCFlushRange((void *)(addr), sizeof(u16));
-
-#define Write32(addr, val)	\
-	*(u32 *)(addr) = (val);	\
-	DCFlushRange((void *)(addr), sizeof(u32));
- 
 
 /* Addresses */
 u32 addrIoctlv      = 0;
@@ -49,8 +36,8 @@ void Patch_EsModule(u32 version)
 	/** 06/03/09 07:46:02 **/
 	case 0x4A262A3A:
 		/* Patch IOCTLV handler */
-		Write32(0x201000CC, 0x4B004718);
-		Write32(0x201000D0, (u32)ES_EmulateCmd);
+		DCWrite32(0x201000CC, 0x4B004718);
+		DCWrite32(0x201000D0, (u32)ES_EmulateCmd);
 
 		/* Set addresses */
 		addrIoctlv      = 0x201000D4 + 1;
@@ -63,8 +50,8 @@ void Patch_EsModule(u32 version)
 	/** 03/03/10 10:40:14 **/
 	case 0x4B8E90EE:
 		/* Patch IOCTLV handler */
-		Write32(0x201000CC, 0x4B004718);
-		Write32(0x201000D0, (u32)ES_EmulateCmd);
+		DCWrite32(0x201000CC, 0x4B004718);
+		DCWrite32(0x201000D0, (u32)ES_EmulateCmd);
 
 		/* Set addresses */
 		addrIoctlv      = 0x201000D4 + 1;
@@ -82,8 +69,8 @@ void Patch_EsModule(u32 version)
 	/** 03/01/10 03:28:58 **/
 	case 0x4B8B88DA:
 		/* Patch IOCTLV handler */
-		Write32(0x201000CC, 0x4B004718);
-		Write32(0x201000D0, (u32)ES_EmulateCmd);
+		DCWrite32(0x201000CC, 0x4B004718);
+		DCWrite32(0x201000D0, (u32)ES_EmulateCmd);
 
 		/* Set addresses */
 		addrIoctlv      = 0x201000D4 + 1;
@@ -96,8 +83,8 @@ void Patch_EsModule(u32 version)
 	/** 03/01/10 03:18:58 **/
 	case 0x4B8B8682:
 		/* Patch IOCTLV handler */
-		Write32(0x201000CC, 0x4B004718);
-		Write32(0x201000D0, (u32)ES_EmulateCmd);
+		DCWrite32(0x201000CC, 0x4B004718);
+		DCWrite32(0x201000D0, (u32)ES_EmulateCmd);
 
 		/* Set addresses */
 		addrIoctlv      = 0x201000D4 + 1;
@@ -108,7 +95,7 @@ void Patch_EsModule(u32 version)
 		break;
 
 	default:
-		write("ESP: Error -> Can't patch ES module (unknown version)\n");
+		svc_write("ESP: Error -> Can't patch ES module (unknown version)\n");
 
 		break;
 	}

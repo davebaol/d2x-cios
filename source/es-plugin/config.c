@@ -21,6 +21,7 @@
 #include "isfs.h"
 #include "syscalls.h"
 #include "types.h"
+#include "es_calls.h"
 
 /* Constants */
 #define FILENAME	"/sys/esp.cfg"
@@ -63,19 +64,22 @@ s32 __Config_Delete(void)
 }
 
 // NOTE:
-// This function is called by the main that is 
-// out of the patched es life cycle. 
-// So for debugging purpose don't use ES_printf here,
-// use write instead.
+// This function is called by the main before patching Nintendo's ES module. 
+// Since this code is not running in ES thread don't use ES_printf for 
+// debugging purpose. Use svc_write instead.
 s32 Config_Load(void *cfg, u32 size)
 {
 	s32 fd, ret;
 
-	//write("ESP: Loading config file "FILENAME"\n");
+#ifdef DEBUG
+	svc_write("ESP: Config_Load(): Loading config file "FILENAME"\n");
+#endif
 
 	/* Open config file */
 	fd = os_open(FILENAME, ISFS_OPEN_READ);
-	//write("ESP: Config file ");write(fd<0? "found\n": "NOT found\n");
+#ifdef DEBUG
+	svc_write("ESP: Config_Load(): Config file ");svc_write(fd<0? "found\n": "NOT found\n");
+#endif
 	if (fd < 0)
 		return fd;
 
