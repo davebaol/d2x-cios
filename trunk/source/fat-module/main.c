@@ -178,21 +178,10 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 
 	/** Mount SD card **/
 	case IOCTL_FAT_MOUNT_SD: {
-		u32 partition = 0;
-
-		/* Initialize SDIO */
-		ret = sdio_Startup();
-		if (!ret) {
-			ret = IPC_EINVAL;
-			break;
-		}
-
-		/* Set partition */
-		if(inlen > 0)
-			partition = *(u32 *)vector[0].data;
+		s32 partition = inlen > 0 ? *(s32 *)vector[0].data : -1;
 
 		/* Mount SD card */
-		ret = FAT_Mount(0, (u8)partition);
+		ret = FAT_Mount(0, partition);
 
 		break;
 	}
@@ -214,21 +203,10 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 
 	/** Mount USB device **/
 	case IOCTL_FAT_MOUNT_USB: {
-		u32 partition = 0;
-	
-		/* Initialize EHCI */
-		ret = ehci_Init();
-		if (!ret) {
-			ret = IPC_EINVAL;
-			break;
-		}
-
-		/* Set partition */
-		if(inlen > 0)
-			partition = *(u32 *)vector[0].data;
+		s32 partition = inlen > 0 ? *(s32 *)vector[0].data : -1;
 
 		/* Mount USB device */
-		ret = FAT_Mount(1, (u8)partition);
+		ret = FAT_Mount(1, partition);
 
 		break;
 	}
@@ -346,8 +324,17 @@ int main(void)
 		}
 
 		case IOS_CLOSE: {
-			/* Close file */
-			ret = FAT_Close(message->fd);
+			ret = 0;
+
+			// FIX d2x v7 beta1
+			// Check added because the fd might represent the module,
+			// see IOS_OPEN.
+			// Tipically a fd representing a module is far lower than 32, 
+			// while a fd representing a file is an address 32 byte aligned.
+			if(message->fd != 0 && (message->fd % 32) == 0) {
+				/* Close file */
+				ret = FAT_Close(message->fd);
+			}
 
 			break;
 		}

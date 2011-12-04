@@ -91,6 +91,7 @@ s32  ISFS_Open(void);
 void ISFS_Close(void);
 s32  ISFS_CreateFile(const char *filename);
 s32  ISFS_Delete(const char *filename);
+s32  ISFS_DisableEmulation(void);
 
 #endif
 

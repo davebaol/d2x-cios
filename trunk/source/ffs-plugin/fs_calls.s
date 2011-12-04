@@ -21,6 +21,27 @@
 #define _FS_CALLS_S_
 #include "fs_calls.h"
 
+/*
+ * Macros
+ */
+.macro call addr
+	stmfd	sp!, {r7, lr}
+	ldr	r7, =\addr
+	ldr	r7, [r7]
+	blx	r7
+	ldmfd	sp!, {r7, lr}
+	bx	lr
+.endm
+
+.macro jumpx addr, idx
+	ldr	r0, =\addr
+	ldr	r3, [r0]
+	ldr	r0, [r3, #\idx]
+	pop	{r1-r7}
+	mov	pc, r0
+.endm
+
+
 	.text
 
 /*
@@ -29,16 +50,11 @@
 
 #ifdef DEBUG
 	.align 4
-        .code 32
+	.code 32
 
-        .global FS_printf
+	.global FS_printf
 FS_printf:
-        stmfd   sp!, {r7, lr}
-        ldr     r7, =addrPrintf
-        ldr     r7, [r7]
-        blx     r7
-        ldmfd   sp!, {r7, lr}
-        bx      lr
+	call addrPrintf
 #endif
 
 
@@ -68,11 +84,7 @@ fs_open:
 	bge	fs_exit
 
 	// jump to the original FFS open
-	ldr	r0, =addrTable
-	ldr	r3, [r0]
-	ldr	r0, [r3, #4]
-	pop	{r1-r7}
-	mov	pc, r0
+	jumpx addrTable, 4
 
 	.global fs_close
 fs_close:
@@ -83,11 +95,7 @@ fs_close:
 	bge	fs_exit
 
 	// jump to the original FFS close
-	ldr	r0, =addrTable
-	ldr	r3, [r0]
-	ldr	r0, [r3, #8]
-	pop	{r1-r7}
-	mov	pc, r0
+	jumpx addrTable, 8
 
 	.global fs_read
 fs_read:
@@ -98,11 +106,7 @@ fs_read:
 	bge	fs_exit
 
 	// jump to the original FFS read
-	ldr	r0, =addrTable
-	ldr	r3, [r0]
-	ldr	r0, [r3, #12]
-	pop	{r1-r7}
-	mov	pc, r0
+	jumpx addrTable, 12
 
 	.global fs_write
 fs_write:
@@ -113,11 +117,7 @@ fs_write:
 	bge	fs_exit
 
 	// jump to the original FFS write
-	ldr	r0, =addrTable
-	ldr	r3, [r0]
-	ldr	r0, [r3, #16]
-	pop	{r1-r7}
-	mov	pc, r0
+	jumpx addrTable, 16
 
 	.global fs_seek
 fs_seek:
@@ -128,11 +128,7 @@ fs_seek:
 	bge	fs_exit
 
 	// jump to the original FFS seek
-	ldr	r0, =addrTable
-	ldr	r3, [r0]
-	ldr	r0, [r3, #20]
-	pop	{r1-r7}
-	mov	pc, r0
+	jumpx addrTable, 20
 
 	.global fs_ioctl
 fs_ioctl:
@@ -148,11 +144,7 @@ fs_ioctl:
 	bge	fs_exit
 
 	// jump to the original FFS ioctl
-	ldr	r0, =addrTable
-	ldr	r3, [r0]
-	ldr	r0, [r3, #24]
-	pop	{r1-r7}
-	mov	pc, r0
+	jumpx addrTable, 24
 
 	.global fs_ioctlv
 fs_ioctlv:
@@ -168,11 +160,7 @@ fs_ioctlv:
 	bge	fs_exit
 
 	// jump to the original FFS ioctlv
-	ldr	r0, =addrTable
-	ldr	r3, [r0]
-	ldr	r0, [r3, #28]
-	pop	{r1-r7}
-	mov	pc, r0
+	jumpx addrTable, 28
 
 fs_exit:
 #ifdef DEBUG

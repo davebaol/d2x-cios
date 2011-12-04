@@ -25,6 +25,7 @@
 #include "di.h"
 #include "es_calls.h"
 #include "ioctl.h"
+#include "isfs.h"
 #include "ipc.h"
 #include "plugin.h"
 #include "syscalls.h"
@@ -235,10 +236,14 @@ s32 __ES_Ioctlv(ipcmessage *message)
 		if (tidh == 1) {
 
 			/* System menu launch */
-			if (tidl == 2 && config.sm_title_id != 0) {
+			if (tidl == 2) {
+
+				/* Disable NAND emulation */
+				ISFS_DisableEmulation();
 
 				/* Launch title (fake ID) */
-				return __ES_CustomLaunch((u32) (config.sm_title_id>>32), (u32) config.sm_title_id);
+				if (config.sm_title_id != 0)
+					return __ES_CustomLaunch((u32) (config.sm_title_id>>32), (u32) config.sm_title_id);
 			}
 
 			/* IOS launch */
@@ -251,6 +256,7 @@ s32 __ES_Ioctlv(ipcmessage *message)
 					return 0;
 
 				case 2:
+					/* Reload the cIOS in place of the requested IOS */
 					if (config.title_id==0) {
 						s32 ret;
 
@@ -290,6 +296,7 @@ s32 __ES_Ioctlv(ipcmessage *message)
 				/* Get title ID from TitleMetaData */
 				u64 title_id = *(u64 *)(tmd+0x18C);
  
+				/* Check title ID */
 				if(title_id != config.title_id) {
 
 					/* Disable ios reload block */
@@ -297,8 +304,19 @@ s32 __ES_Ioctlv(ipcmessage *message)
 				}
 				else {
 
+					/* Get the required ios from TitleMetaData */
+					u64 required_ios = *(u64 *)(tmd+0x184);
+
+					// Fix d2x v7 beta1
+					// This line 
+					// *(u32 *)0x00003140 = (*((u32 *)0x00003188)) | 0xFFFF;
+					// has been made more general by taking the required IOS
+					// from TMD rather than from MEM1. This way all those
+					// games that reload different IOSs are now supported.
+					// For example in Wii Fit Plus IOS53 is required for the game 
+					// while IOS33 is required for the channel installation.
 					/* Remove error 002 */
-					*(u32 *)0x00003140 = (*((u32 *)0x00003188)) | 0xFFFF;
+					*(u32 *)0x00003140 = (((u32)required_ios)<<16) | 0xFFFF;
 				}
 			}
 
@@ -336,7 +354,7 @@ s32 __ES_Ioctlv(ipcmessage *message)
 	}
 
 	case IOCTL_ES_LEET: {
-		/* Title launch */
+		/* Launch MIOS */
 		return __ES_CustomLaunch(1, 257);
 	}
 

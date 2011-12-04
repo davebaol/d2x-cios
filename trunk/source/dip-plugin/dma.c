@@ -48,7 +48,8 @@ s32 DMA_CheckRange(void *outbuf, u32 size, u32 alignment)
 
 		if (dmalen >= alignment)
 			ret  = (dmalen < size) ? dmalen : size;
-			ret -= (ret & (alignment - 1));
+
+		ret -= (ret & (alignment - 1));
 	}
 
 	return ret;

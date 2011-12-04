@@ -46,7 +46,7 @@ char *__FS_SyscallOpen(char *path, s32 mode)
 		}
 
 		/* Check path */
-		ret = FS_CheckPath(path);
+		ret = FS_CheckRealPath(path);
 
 		/* Emulate path */
 		if (!ret) {
@@ -61,7 +61,7 @@ char *__FS_SyscallOpen(char *path, s32 mode)
 		}
 	}
 
-	/* Return path */
+	/* Return original path */
 	return path;
 }
 
@@ -113,7 +113,7 @@ u16 FS_GetGID(void)
 	return *tid;
 }
 
-u32 FS_CheckPath(const char *path)
+u32 FS_CheckRealPath(const char *path)
 {
 	/* Ignore 'launch.sys' */
 	if (!strncmp(path, "/tmp/launch.sys", 15)) return 1;

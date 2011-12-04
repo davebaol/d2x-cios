@@ -196,85 +196,109 @@ void __MLoad_Detect(void)
 
 	/* Set DIP version */
 	switch (dipAddr) {
-	case 0x20207F40:	/* DIP: 07/11/08 14:34:26 */
+
+	case 0x20207F40:		// IOS: 37v5662, 53v5662, 55v5662
+		/* DIP: 07/11/08 14:34:26 */
 		ios.dipVersion = 0x48776F72;
 		break;
 
-	case 0x20207C2C:	/* DIP: 07/24/08 20:08:44 */
+	case 0x20207C2C:		// IOS: 36v3607, 38v4123
+		/* DIP: 07/24/08 20:08:44 */
 		ios.dipVersion = 0x4888E14C;
 		break;
 
-	case 0x20207EA8:	/* DIP: 06/03/09 07:49:09 */
+	case 0x20207EA8:		// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 70v6687, 80v6943
+		/* DIP: 06/03/09 07:49:09 */
 		ios.dipVersion = 0x4A262AF5;
 		break;
 
-	case 0x20207DB8:	/* DIP: 11/24/08 15:39:09 */
+	case 0x20207DB8:		// IOS: 60v6174
+		/* DIP: 11/24/08 15:39:09 */
 		ios.dipVersion = 0x492ACA9D;
 		break;
 	}
 
 	/* Set ES version */
 	switch (esAddr) {
-	case 0x2010147D:	/* ES: 06/03/09 03:45:06 */
-		ios.esVersion = 0x4A25F1C2;
-		break;
+//	case 0x2010147D:		// IOS: ??????  --> NO MORE SUPPORTED
+//		/* ES: 06/03/09 03:45:06 */
+//		ios.esVersion = 0x4A25F1C2;
+//		break;
 
-	case 0x201013F5:	/* ES: 06/03/09 03:36:55 */
-		ios.esVersion = 0x4A25EFD7;
-		break;
+//	case 0x201013F5:		// IOS: 36v3090, 38v3610  --> NO MORE SUPPORTED
+//		/* ES: 06/03/09 03:36:55 */
+//		ios.esVersion = 0x4A25EFD7;
+//		break;
 
-	case 0x201015A5:	/* ES: 06/03/09 07:46:02 */
+	case 0x201015A5:		// IOS: 70v6687
+		/* ES: 06/03/09 07:46:02 */
 		ios.esVersion = 0x4A262A3A;
 		break;
 
-	case 0x201014D5:	/* ES: 11/24/08 15:36:08 */
+	case 0x201014D5:		// IOS: 60v6174
+		/* ES: 11/24/08 15:36:08 */
 		ios.esVersion = 0x492AC9E8;
 		break;
 
-	case 0x201015E9:	/* ES: 03/03/10 10:40:14 */
+	case 0x201015E9:		// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
+		/* ES: 03/03/10 10:40:14 */
 		ios.esVersion = 0x4B8E90EE;
 		break;
 
-	case 0x2010142D:	/* ES: 03/01/10 03:26:03 */
+	case 0x2010142D:		// IOS: 37v5662, 53v5662, 55v5662		
+		/* ES: 03/01/10 03:26:03 */
 		ios.esVersion = 0x4B8B882B;
 		break;
 
-	case 0x2010139D:	/* ES: 03/01/10 03:18:58 */
+	case 0x2010139D:		// IOS: 36v3607, 38v4123
+		/* ES: 03/01/10 03:18:58 */
 		ios.esVersion = 0x4B8B8682;
 		break;
 	}
 
 	/* Set FFS version */
 	switch (ffsAddr) {
-	case 0x20005D89:	/* FFS: 12/24/08 13:48:17 */
+	case 0x20005D89:		// IOS: 37v5662, 53v5662, 55v5662	
+		/* FFS: 12/24/08 13:48:17 */
 		ios.ffsVersion = 0x49523DA1;
 		break;
 
-	case 0x2000200D:	/* FFS: 12/23/08 17:26:21 */
+	case 0x2000200D:		// IOS: 36v3607, 38v4123
+		/* FFS: 12/23/08 17:26:21 */
 		ios.ffsVersion = 0x49511F3D;
 		break;
 
-	case 0x20006009:	/* FFS: 11/24/08 15:36:10 */
+	case 0x20006009:		// IOS: 56v5661, 57v5918, 58v6175, 60v6174, 61v5661, 70v6687, 80v6943 	
+		/* FFS: 11/24/08 15:36:10 */
 		ios.ffsVersion = 0x492AC9EA;
 		break;
 	}
 
 	/* Set IOP version */
 	switch (iopAddr) {
-	case 0xFFFF1D60:	/* IOSP: 07/11/08 14:34:29 */
+
+	case 0xFFFF1D60:		// IOS: 37v5662, 53v5662, 55v5662	
+		/* IOSP: 07/11/08 14:34:29 */
 				/* IOSP: 03/01/10 03:28:58 */
 		ios.iopVersion = 0x48776F75;
 		ios.syscall    = 0xFFFF91B0;
 
 		break;
 
-	case 0xFFFF1CA0:	/* IOSP: 12/23/08 17:28:32 */
-		ios.iopVersion = 0x49511FC0;
-		ios.syscall    = 0xFFFF8AA0;
+	/*
+	 * NOTE:  
+	 * IOS38 v3610 is not supported anymore 
+	 * since has been replaced by IOS38 v4123 (see below)  
+	 */ 
+//	case 0xFFFF1CA0:        // IOS: 38v3610 
+//		/* IOSP: 12/23/08 17:28:32 */
+//		ios.iopVersion = 0x49511FC0;
+//		ios.syscall    = 0xFFFF8AA0;
+//
+//		break;
 
-		break;
-
-	case 0xFFFF1D10:	/* IOSP: 03/01/10 03:13:17 */
+	case 0xFFFF1D10:		// IOS: 36v3607, 38v4123
+		/* IOSP: 03/01/10 03:13:17 */
 		ios.iopVersion = 0x4B8B30CD;
 		ios.syscall    = 0xFFFF9100;
 
@@ -284,14 +308,16 @@ void __MLoad_Detect(void)
 		iopAddr = *(vu32 *)0xFFFF2418;
 
 		switch (iopAddr) {
-		case 0xFFFF9390:	/* IOSP: 11/24/08 15:39:12 */
+		case 0xFFFF9390:		// IOS: 60v6174, 70v6687	
+			/* IOSP: 11/24/08 15:39:12 */
 					/* IOSP: 06/03/09 07:49:12 */
 			ios.iopVersion = 0x492ACAA0;
 			ios.syscall    = 0xFFFF9390;
 
 			break;
 
-		case 0xFFFF93D0:	/* IOSP: 03/03/10 10:43:18 */
+		case 0xFFFF93D0:		// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943	
+			/* IOSP: 03/03/10 10:43:18 */
 			ios.iopVersion = 0x4B8E3D46;
 			ios.syscall    = 0xFFFF93D0;
 

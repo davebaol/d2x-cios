@@ -31,12 +31,14 @@
 #include "ipc.h"
 #include "mem.h"
 #include "types.h"
+#include "ehci.h"
+#include "sdio.h"
 
 /* Variables */
 static FATFS fatFs[_VOLUMES] ATTRIBUTE_ALIGN(32);
 
 PARTITION VolToPart[_VOLUMES]  ATTRIBUTE_ALIGN(32) = {
-{0,0}, {1,0}
+{0,4}, {1,4}
 };
 
 /* Buffer */
@@ -91,7 +93,7 @@ s32 __FAT_ReadDir(DIR *dir, FILINFO *fno)
 }
 
 
-s32 FAT_Mount(u8 device, u8 partition)
+s32 __FAT_MountPartition(u8 device, u8 partition)
 {
 	s32 ret;
 
@@ -99,11 +101,64 @@ s32 FAT_Mount(u8 device, u8 partition)
 	VolToPart[device].pt = partition;
 
 	/* Mount device */
-	ret = f_mount(device, fatFs);
-	if (ret)
-		return FS_EFATAL;
+	ret = f_mount(device, &fatFs[device]);
+	if (!ret) {
+		DIR d;
+		char *root = (device == 0) ? "0:/" : "1:/";
 
-	return FS_SUCCESS;
+		/* Open root directory */
+		if (f_opendir(&d, root) == FR_OK)
+			return FS_SUCCESS;
+
+		/* Unmount device */
+		f_mount(device, NULL);
+	}
+
+	/* Reset partition */
+	VolToPart[device].pt = 4;
+
+	return FS_EFATAL;
+}
+
+
+s32 FAT_Mount(u8 device, s32 partition)
+{
+	s32 ret, i;
+
+	/* Initialize device */
+	switch (device) {
+	case 0:
+		/* Initialize SDIO */
+		ret = sdio_Startup();
+		break;
+
+	case 1:
+		/* Initialize EHCI */
+		ret = ehci_Init();
+		break;
+
+	default:
+		/* Unknown device */
+		ret = 0;
+		break;
+  }
+
+	/* Device not found */
+	if (!ret)
+		return IPC_EINVAL;
+
+	/* Mount required partition */
+	if (partition >= 0 && partition < 4)
+		return __FAT_MountPartition(device, partition);
+
+	/* Find partition */
+	for (i = 0; i < 4; i++) {
+		ret = __FAT_MountPartition(device, i);
+		if (!ret)
+			return FS_SUCCESS;
+	}
+
+	return FS_EFATAL;
 }
 
 s32 FAT_Unmount(u8 device)
@@ -114,6 +169,9 @@ s32 FAT_Unmount(u8 device)
 	ret = f_mount(device, NULL);
 	if (ret)
 		return FS_EFATAL;
+
+	/* Reset partition */
+	VolToPart[device].pt = 4;
 
 	return FS_SUCCESS;
 }
