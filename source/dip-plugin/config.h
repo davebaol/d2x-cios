@@ -5,8 +5,10 @@
 #include "plugin.h"
 
 /* Prototypes */
-s32 Config_Load(struct dipConfigState *cfg, u32 size);
-s32 Config_Save(struct dipConfigState *cfg, u32 size);
+s32 DI_Config_Load(struct dipConfigState *cfg);
+s32 DI_Config_Save(struct dipConfigState *cfg);
+s32 FFS_Config_Load(struct ffsConfigState *cfg);
+s32 FFS_Config_Save(struct ffsConfigState *cfg);
 
 #endif
 

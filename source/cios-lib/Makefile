@@ -28,7 +28,8 @@ OBJS	=	es.o			\
 		swi_mload.o		\
 		syscalls.o		\
 		timer.o			\
-		tools.o
+		tools.o			\
+		vsprintf.o
 
 OBJS2	=	libwbfs/libwbfs.o	\
 		libwbfs/rijndael.o	\

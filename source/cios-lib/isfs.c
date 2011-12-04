@@ -44,10 +44,10 @@
 
 /* IOCTL custom commands */
 #define IOCTL_ISFS_SETMODE		100
+#define IOCTL_ISFS_GETMODE		101
 
-/* Buffers */
+/* Buffer */
 static struct isfs isfsBuf ATTRIBUTE_ALIGN(32);
-static u32 inbuf[8] ATTRIBUTE_ALIGN(32);
 
 /* Variables */
 static s32 fd = -1;
@@ -110,7 +110,7 @@ s32 ISFS_Delete(const char *filename)
 	return os_ioctl(fd, IOCTL_ISFS_DELETE, &isfsBuf.fsdelete, sizeof(isfsBuf.fsdelete), NULL, 0);
 }
 
-s32 ISFS_DisableEmulation(void)
+s32 ISFS_SetMode(u32 mode, char *path)
 {
 	s32 ret;
 
@@ -119,11 +119,22 @@ s32 ISFS_DisableEmulation(void)
 	if (ret < 0)
 		return ret;
 
-	/* Setup buffer */
-	inbuf[0] = 0;
+	/* Set mode */
+	isfsBuf.fsconfig.mode = mode;
 
-	/* Disable NAND emulator */
-	ret = os_ioctl(fd, IOCTL_ISFS_SETMODE, inbuf, sizeof(inbuf), NULL, 0);
+	/* Set path */
+	strcpy(isfsBuf.fsconfig.path, path);
+
+	/* Setup vector */
+	isfsBuf.fsconfig.vector[0].data = &isfsBuf.fsconfig.mode; 
+	isfsBuf.fsconfig.vector[0].len = sizeof(u32); 
+	isfsBuf.fsconfig.vector[1].data = isfsBuf.fsconfig.path; 
+	isfsBuf.fsconfig.vector[1].len = sizeof(isfsBuf.fsconfig.path); 
+
+	/* Flush cache */
+	os_sync_after_write(&isfsBuf, sizeof(isfsBuf)); 
+
+	ret = os_ioctlv(fd, IOCTL_ISFS_SETMODE, 2, 0, isfsBuf.fsconfig.vector);
 
 	/* Close resource */
 	ISFS_Close();
@@ -131,3 +142,38 @@ s32 ISFS_DisableEmulation(void)
 	return ret;
 }
 
+s32 ISFS_GetMode(u32 *mode, char *path)
+{
+	s32 ret;
+
+	/* Open resource */
+	ret = ISFS_Open();
+	if (ret < 0)
+		return ret;
+
+	/* Setup vector */
+	isfsBuf.fsconfig.vector[0].data = &isfsBuf.fsconfig.mode;
+	isfsBuf.fsconfig.vector[0].len = sizeof(u32);
+	isfsBuf.fsconfig.vector[1].data = isfsBuf.fsconfig.path;
+	isfsBuf.fsconfig.vector[1].len = sizeof(isfsBuf.fsconfig.path);
+
+	/* Flush cache */
+	os_sync_after_write(&isfsBuf, sizeof(isfsBuf)); 
+                       
+	ret = os_ioctlv(fd, IOCTL_ISFS_GETMODE, 0, 2, isfsBuf.fsconfig.vector);
+
+	if(ret >= 0) {
+
+		/* Invalidate cache */
+		os_sync_before_read(&isfsBuf, sizeof(isfsBuf)); 
+
+		/* Set output values */
+		*mode = isfsBuf.fsconfig.mode;
+		strcpy(path, isfsBuf.fsconfig.path);
+	}
+
+	/* Close resource */
+	ISFS_Close();
+
+	return ret;
+}

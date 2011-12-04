@@ -3,6 +3,8 @@
 
 #include "types.h"
 
+#define MAX_FILE    20
+
 /* Stats structure */
 struct stats {
 	/* Size */
@@ -14,6 +16,9 @@ struct stats {
 
 	/* Attributes */
 	u8 attrib;
+
+	/* Padding */
+	u8 pad[3];
 };
 
 /* File stats structure */
@@ -34,12 +39,13 @@ s32 FAT_Write(s32 fd, void *buffer, u32 len);
 s32 FAT_Seek(s32 fd, s32 where, s32 whence);
 s32 FAT_CreateDir(const char *dirpath);
 s32 FAT_CreateFile(const char *filepath);
-s32 FAT_ReadDir(const char *dirpath, char *outbuf, u32 buflen, u32 *outlen, u32 entries, u8 lfn);
+s32 FAT_ReadDir(const char *dirpath, char *outbuf, u32 buflen, u32 *outlen, u32 entries, u8 forFS);
 s32 FAT_Delete(const char *path);
 s32 FAT_DeleteDir(const char *dirpath);
 s32 FAT_Rename(const char *oldname, const char *newname);
 s32 FAT_GetStats(const char *path, struct stats *stats);
 s32 FAT_GetFileStats(s32 fd, struct fstats *stats);
-s32 FAT_GetUsage(const char *dirpath, u64 *size, u32 *files);
+s32 FAT_GetUsage(const char *dirpath, u64 *size, u32 *files, u32 *dirs, u8 forFS);
+s32 FAT_GetPartition(u8 device, u32 *partition);
 
 #endif

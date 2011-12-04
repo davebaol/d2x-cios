@@ -23,7 +23,7 @@
 #include "dip.h"
 #include "dip_calls.h"
 #include "errno.h"
-#include "file.h"
+#include "fat.h"
 #include "ioctl.h"
 #include "plugin.h"
 #include "syscalls.h"
@@ -32,8 +32,9 @@
 #include "string.h"
 
 /* Global config */
-struct dipConfig config = { 0 };
-struct dipConfigState cfgState = { 0 };
+static struct dipConfig config = { 0 };
+static struct dipConfigState dipCfgState = { 0 };
+static struct ffsConfigState ffsCfgState = { 0 };
 
 s32 __DI_CheckOffset(u32 offset)
 {
@@ -82,10 +83,6 @@ s32 __DI_ReadUnencrypted(void *outbuf, u32 len, u32 offset)
 	/* Frag read */
 	if (DI_ChkMode(MODE_FRAG))
 		return Frag_Read(outbuf, len, offset);
-
-	/* File read */
-	if (DI_ChkMode(MODE_FILE))
-		return File_Read(outbuf, len, offset);
 
 	/* WBFS read */
 	if (DI_ChkMode(MODE_WBFS))
@@ -425,8 +422,9 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 				DI_SetMode(MODE_WBFS);
 
 				/* Set wbfs state for ios reload */
-				cfgState.mode = config.mode;
-				cfgState.wbfs_device = device;
+				dipCfgState.mode      = config.mode;
+				dipCfgState.device    = device;
+				dipCfgState.frag_size = 0;
 			}
 		}
 
@@ -437,45 +435,6 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 	case IOCTL_DI_WBFS_GET: {
 		/* Check WBFS bit */
 		*outbuf = DI_ChkMode(MODE_WBFS);
-
-		break;
-	}
-
-	/** Set file mode **/
-	case IOCTL_DI_FILE_SET: {
-		char *filename = (char *)inbuf[1];
-
-		/* Close file */
-		File_Close();
-
-		/* Disable mode */
-		DI_DelMode(MODE_FILE);
-
-		/* Check flag */
-		if (filename) {
-			/* Convert address */
-			filename = VirtToPhys(filename);
-
-			/* Open file */
-			ret = File_Open(filename);
-
-			/* Enable mode */
-			if (!ret) {
-				DI_SetMode(MODE_FILE);
-
-				/* Set file state for ios reload */
-				cfgState.mode = config.mode;
-				strncpy((char*) &cfgState.fat_filename, filename, FILENAME_MAX_LEN);
-			}
-		}
-
-		break;
-	}
-
-	/** Get file mode **/
-	case IOCTL_DI_FILE_GET: {
-		/* Check file bit */
-		*outbuf = DI_ChkMode(MODE_FILE);
 
 		break;
 	}
@@ -506,9 +465,9 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 				DI_SetMode(MODE_FRAG);
 
 				/* Set frag state for ios reload */
-				cfgState.mode = config.mode;
-				cfgState.frag.device = device;
-				cfgState.frag.size   = size;
+				dipCfgState.mode      = config.mode;
+				dipCfgState.device    = device;
+				dipCfgState.frag_size = size;
 			}
 
 			ret = 0;
@@ -525,22 +484,53 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 
 	/** Save config **/
 	case IOCTL_DI_SAVE_CONFIG: {
-		/* Check modes */
-		if (DI_ChkMode(MODE_WBFS)) {
-			/* Save WBFS config */
-			ret = Config_Save(&cfgState, sizeof(cfgState.mode)+sizeof(cfgState.wbfs_device));
-		}
-		else if (DI_ChkMode(MODE_FILE)) {
-			/* Save FAT config */
-			ret = Config_Save(&cfgState, sizeof(cfgState.mode)+sizeof(cfgState.fat_filename));
-		}
-		else if (DI_ChkMode(MODE_FRAG)) {
-			/* Save FRAG config */
-			ret = Config_Save(&cfgState, sizeof(cfgState.mode)+sizeof(cfgState.frag));
+
+		DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Getting nand emulation config from FFS...\n");
+
+		/* Get nand emulation config */
+		ret = ISFS_GetMode(&ffsCfgState.mode, ffsCfgState.path);
+		if (ret < 0)
+			break;
+
+		DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Nand emulation is currently %senabled.\n", ffsCfgState.mode ? "": "NOT ");
+
+		if (ffsCfgState.mode) {
+			u32 device = (ffsCfgState.mode & ISFS_MODE_SDHC) ? 0 : 1;
+
+			DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Getting partition currently mounted on %s...\n", device ? "USB device" : "SD card");
+
+			/* Get FAT partition */
+			FAT_GetPartition(device, &ffsCfgState.partition);
+
+			DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Current partition is %d\n", ffsCfgState.partition);
+			DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Disabling nand emulation\n");
+
+			/* Disable nand emulation */
+			ISFS_SetMode(0, "");
+
+			DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Saving FFS config state..\n");
+
+			/* Save FFS config */
+			ret = FFS_Config_Save(&ffsCfgState);
+			if (ret < 0)
+				break;
+
+			DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: FFS config state saved\n");
 		}
 
-		if (ret>0)
-			ret = 0;
+		/* Check DIP modes */
+		if (DI_ChkMode(MODE_EMUL)) {
+			DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Saving DIP config state..\n");
+
+			/* Save DIP config */
+			ret = DI_Config_Save(&dipCfgState);
+			if (ret < 0)
+				break;
+
+			DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: DIP config state saved\n");
+		}
+
+		ret = 0;
 
 		break;
 	}
@@ -662,31 +652,57 @@ s32 DI_EmulateIoctl(ioctl *buffer, s32 fd)
 	return ret;
 }
 
-void __DI_InitEmulationDevice(void)
+void __DI_InitEmulation(void)
 {
-	/* Load config state */
-	u32 ret = Config_Load(&cfgState, sizeof(cfgState)) ;
+	s32 ret;
 
-	/* Config state found */
-	if (ret>sizeof(cfgState.mode)) {
+	DI_Printf("DIP: DI_InitEmulation: Loading DIP config state...\n");
 
-		ret -= sizeof(cfgState.mode);
-		
+	/* Load DIP config state */
+	ret = DI_Config_Load(&dipCfgState);
+
+	DI_Printf("DIP: DI_InitEmulation: DIP config state %sfound. ret = %d\n", ret>0 ? "" : "NOT ", ret);
+
+	/* DIP Config state found */
+	if (ret > 0) {
+
+		DI_Printf("DIP: DI_InitEmulation: Setting DIP mode to %d\n", dipCfgState.mode);
+
 		/* Set mode */
-		config.mode = cfgState.mode;
+		config.mode = dipCfgState.mode;
 
-		if (DI_ChkMode(MODE_WBFS) && ret==sizeof(cfgState.wbfs_device)) {
+		if (DI_ChkMode(MODE_WBFS)) {
 			/* Open wbfs device */
-			WBFS_Open(cfgState.wbfs_device-1, (u8 *)0x00000000);
+			WBFS_Open(dipCfgState.device-1, (u8 *)0x00000000);
 		}
-		else if (DI_ChkMode(MODE_FILE) && ret==sizeof(cfgState.fat_filename)) {
-			/* Open file */
-			File_Open((char*) &cfgState.fat_filename);
-		}
-		else if (DI_ChkMode(MODE_FRAG) && ret==sizeof(cfgState.frag)) {
+		else if (DI_ChkMode(MODE_FRAG)) {
 			/* Open fraglist */
-			Frag_Init(cfgState.frag.device, &fraglist_data, cfgState.frag.size);
+			Frag_Init(dipCfgState.device, &fraglist_data, dipCfgState.frag_size);
 		}
+	}
+
+	DI_Printf("DIP: DI_InitEmulation: Loading FFS config state...\n");
+
+	/* Load FFS config state */
+	ret = FFS_Config_Load(&ffsCfgState);
+
+	DI_Printf("DIP: DI_InitEmulation: FFS config state %sfound. ret = %d\n", ret>0 ? "" : "NOT ", ret);
+
+	/* FFS Config state found */
+	if (ret > 0 && ffsCfgState.mode) {
+		u32 device = (ffsCfgState.mode & ISFS_MODE_SDHC) ? 0 : 1;
+
+		DI_Printf("DIP: DI_InitEmulation: Mounting FAT partition %d on %s...\n", ffsCfgState.partition, device ? "USB device" : "SD card");
+
+		/* Mount FAT device */
+		FAT_Mount(device, ffsCfgState.partition);
+
+		DI_Printf("DIP: DI_InitEmulation: Enabling nand emulation: mode = %d, path = &s%d\n", ffsCfgState.mode, ffsCfgState.path);
+
+		/* Enable nand emulation */
+		ISFS_SetMode(ffsCfgState.mode, ffsCfgState.path);
+
+		DI_Printf("DIP: DI_InitEmulation: Nand emulation enabled\n");
 	}
 }
 
@@ -705,6 +721,6 @@ void DI_EmulateInitStage2(void)
 	/* Init DVD driver */
 	DI_InitStage2();
 
-	/* Init USB/SD after the cIOS has been reloaded */
-	__DI_InitEmulationDevice();
+	/* Init DIP and FFS after the cIOS has been reloaded */
+	__DI_InitEmulation();
 }

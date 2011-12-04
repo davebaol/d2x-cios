@@ -38,6 +38,7 @@
 
 /* Custom commands */
 #define IOCTL_ISFS_SETMODE		100
+#define IOCTL_ISFS_GETMODE		101
 
 #endif
 

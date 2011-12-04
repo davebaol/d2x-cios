@@ -33,6 +33,14 @@
 #include "timer.h"
 #include "types.h"
 
+//#define DEBUG
+
+#ifdef DEBUG
+#include "vsprintf.h"
+#define dbg_printf(fmt, ...) svc_printf(fmt, ## __VA_ARGS__)
+#else
+#define dbg_printf(fmt, ...)
+#endif
 
 s32 __FAT_Ioctl(s32 fd, u32 cmd, void *inbuf, u32 inlen, void *iobuf, u32 iolen)
 {
@@ -47,9 +55,11 @@ s32 __FAT_Ioctl(s32 fd, u32 cmd, void *inbuf, u32 inlen, void *iobuf, u32 iolen)
 	/** Get file stats **/
 	case IOCTL_FAT_FILESTATS: {
 		void *stats = iobuf;
+		dbg_printf("FAT: IOCTL_FAT_FILESTATS: fd = %d\n", fd);
 
 		/* Get file stats */
 		ret = FAT_GetFileStats(fd, stats);
+		dbg_printf("FAT: IOCTL_FAT_FILESTATS: ret = %d, length = %d, pos = %d\n", ret, ((struct fstats *)stats)->length, ((struct fstats *)stats)->pos);
 
 		break;
 	}
@@ -78,8 +88,12 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 	case IOCTL_FAT_MKDIR: {
 		char *dirpath = (char *)vector[0].data;
 
+		dbg_printf("FAT: IOCTL_FAT_MKDIR: fd = %d, dirpath = %s\n", fd, dirpath);
+
 		/* Create directory */
 		ret = FAT_CreateDir(dirpath);
+
+		dbg_printf("FAT: IOCTL_FAT_MKDIR: ret = %d\n", ret);
 
 		break;
 	}
@@ -88,8 +102,12 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 	case IOCTL_FAT_MKFILE: {
 		char *filepath = (char *)vector[0].data;
 
+		dbg_printf("FAT: IOCTL_FAT_MKFILE: fd = %d, filepath = %s\n", fd, filepath);
+
 		/* Create file */
 		ret = FAT_CreateFile(filepath);
+
+		dbg_printf("FAT: IOCTL_FAT_MKFILE: ret = %d\n", ret);
 
 		break;
 	}
@@ -102,7 +120,12 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 		u32  *outlen  = NULL;
 
 		u32 buflen  = 0;
-		u32 entries = 0, lfn;
+		u32 entries = 0, forFS;
+
+		/* Set FS flag */
+		forFS = (cmd == IOCTL_FAT_READDIR_FS);
+
+		dbg_printf("FAT: IOCTL_FAT_READDIR%s: fd = %d, dirpath = %s\n", forFS? "_FS" : "", fd, dirpath);
 
 		/* Input values */
 		if (iolen > 1) {
@@ -113,11 +136,10 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 		} else
 			outlen =  (u32 *)vector[1].data;
 
-		/* Set LFN flag */
-		lfn = (cmd == IOCTL_FAT_READDIR);
-
 		/* Read directory */
-		ret = FAT_ReadDir(dirpath, outbuf, buflen, outlen, entries, lfn);
+		ret = FAT_ReadDir(dirpath, outbuf, buflen, outlen, entries, forFS);
+
+		dbg_printf("FAT: IOCTL_FAT_READDIR%s: ret = %d\n", forFS? "_FS" : "", ret);
 
 		break;
 	}
@@ -126,8 +148,11 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 	case IOCTL_FAT_DELETE: {
 		char *path = (char *)vector[0].data;
 
+ 		dbg_printf("FAT: IOCTL_FAT_DELETE: fd = %d, path = %s\n", fd, path);
+
 		/* Delete file/directory */
 		ret = FAT_Delete(path);
+ 		dbg_printf("FAT: IOCTL_FAT_DELETE: ret = %d\n", ret);
 
 		break;
 	}
@@ -135,9 +160,11 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 	/** Delete directory **/
 	case IOCTL_FAT_DELETEDIR: {
 		char *dirpath = (char *)vector[0].data;
+ 		dbg_printf("FAT: IOCTL_FAT_DELETEDIR: fd = %d, path = %s\n", fd, dirpath);
 
 		/* Delete directory */
 		ret = FAT_DeleteDir(dirpath);
+ 		dbg_printf("FAT: IOCTL_FAT_DELETEDIR: ret = %d\n", ret);
 
 		break;
 	}
@@ -146,9 +173,11 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 	case IOCTL_FAT_RENAME: {
 		char *oldname = (char *)vector[0].data;
 		char *newname = (char *)vector[1].data;
+ 		dbg_printf("FAT: IOCTL_FAT_RENAME: fd = %d, from = %s, to = %s\n", fd, oldname, newname);
 
 		/* Rename object */
 		ret = FAT_Rename(oldname, newname);
+ 		dbg_printf("FAT: IOCTL_FAT_RENAME: ret = %d\n", ret);
 
 		break;
 	}
@@ -157,21 +186,42 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 	case IOCTL_FAT_STATS: {
 		char *path  = (char *)vector[0].data;
 		void *stats = (void *)vector[1].data;
+ 		dbg_printf("FAT: IOCTL_FAT_STATS: fd = %d, path = %s\n", fd, path);
 
 		/* Get stats */
 		ret = FAT_GetStats(path, stats);
+ 		dbg_printf("FAT: IOCTL_FAT_STATS: ret = %d, size = %d\n", ret, ((struct stats *)stats)->size);
 
 		break;
 	}
 
 	/** Get usage **/
+	case IOCTL_FAT_GETUSAGE_FS:
 	case IOCTL_FAT_GETUSAGE: {
 		char *path  = (char *)vector[0].data;
 		u64  *size  =  (u64 *)vector[1].data;
 		u32  *files =  (u32 *)vector[2].data;
+		u32  *dirs  =  (u32 *)vector[3].data;
+		u32  fakedirs, fakefiles, forFS;
+
+		/* Set default pointers */
+		if (iolen < 2)
+			files = &fakefiles;
+		if (iolen < 3)
+			dirs = &fakedirs;
+
+		/* Set initial values */
+		*size  = 0;
+		*files = 0;
+		*dirs  = 0;
+			
+		/* Set FS flag */
+		forFS = (cmd == IOCTL_FAT_GETUSAGE_FS);
+ 		dbg_printf("FAT: IOCTL_FAT_GETUSAGE%s: fd = %d, path = %s\n", forFS?"_FS":"", fd, path);
 
 		/* Get usage */
-		ret = FAT_GetUsage(path, size, files);
+		ret = FAT_GetUsage(path, size, files, dirs, forFS);
+ 		dbg_printf("FAT: IOCTL_FAT_GETUSAGE: ret = %d, size = %dl, files = %d, dirs = %d\n", ret, *size, *files, *dirs);
 
 		break;
 	}
@@ -226,6 +276,17 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 		break;
 	}
 
+	/** Get mounted partition of the given device **/
+	case IOCTL_FAT_GETPARTITION: {
+		u32 device = *(u32 *)vector[0].data;
+		u32 *partition = (u32 *)vector[1].data;
+
+		/* Get partition */
+		ret = FAT_GetPartition(device, partition);
+
+		break;
+	}
+
 	default:
 		break;
 	}
@@ -274,7 +335,6 @@ s32 __FAT_Initialize(u32 *queuehandle)
 	return 0;
 }
 
-
 int main(void)
 {
 	u32 queuehandle;
@@ -304,21 +364,23 @@ int main(void)
 			/* Prefix length */
 			len = strlen(DEVICE_FAT);
 
-			/* Open module */
 			if (!strcmp(devpath, DEVICE_FAT)) {
+				/* Open module */
+				dbg_printf("FAT: IOS_OPEN: Opening FAT module\n");
 				ret = 0;
-				break;
+				dbg_printf("FAT: IOS_OPEN: ret = %d\n", ret);
 			}
-
-			/* Open file */
-			if (!strncmp(devpath, DEVICE_FAT, len)) {
+			else if (!strncmp(devpath, DEVICE_FAT, len)) {
+				dbg_printf("FAT: IOS_OPEN: Opening file %s\n", devpath + len);
 				/* Open file */
 				ret = FAT_Open(devpath + len, mode);
-				break;
+				dbg_printf("FAT: IOS_OPEN: ret = %d\n", ret);
 			}
-
-			/* Error */
-			ret = IPC_EINVAL;
+			else {
+				dbg_printf("FAT: IOS_OPEN: Unknown device path %s\n", devpath);
+				/* Error */
+				ret = IPC_EINVAL;
+			}
 
 			break;
 		}
@@ -332,9 +394,17 @@ int main(void)
 			// Tipically a fd representing a module is far lower than 32, 
 			// while a fd representing a file is an address 32 byte aligned.
 			if(message->fd != 0 && (message->fd % 32) == 0) {
+				dbg_printf("FAT: IOS_CLOSE: Closing file... fd = %d\n", message->fd);
 				/* Close file */
 				ret = FAT_Close(message->fd);
 			}
+#ifdef DEBUG
+			else {
+				dbg_printf("FAT: IOS_CLOSE: Closing FAT module...\n");
+			}
+#endif
+
+			dbg_printf("FAT: IOS_CLOSE: ret = %d\n", ret);
 
 			break;
 		}
@@ -343,11 +413,15 @@ int main(void)
 			void *buffer = message->read.data;
 			u32   len    = message->read.length;
 
+			dbg_printf("FAT: IOS_READ: fd = %d, buffer = %x, len = %d\n", message->fd, buffer, len);
+
 			/* Read file */
 			ret = FAT_Read(message->fd, buffer, len);
 
 			/* Flush cache */
 			os_sync_after_write(buffer, len);
+
+			dbg_printf("FAT: IOS_READ: ret = %d\n", ret);
 
 			break;
 		}
@@ -356,11 +430,15 @@ int main(void)
 			void *buffer = message->write.data;
 			u32   len    = message->write.length;
 
+			dbg_printf("FAT: IOS_WRITE: fd = %d, buffer = %x, len = %d\n", message->fd, buffer, len);
+
 			/* Invalidate cache */
 			os_sync_before_read(buffer, len);
 
 			/* Write file */
 			ret = FAT_Write(message->fd, buffer, len);
+
+			dbg_printf("FAT: IOS_WRITE: ret = %d\n", ret);
 
 			break;
 		}
@@ -369,8 +447,12 @@ int main(void)
 			s32 where  = message->seek.offset;
 			s32 whence = message->seek.origin;
 
+			dbg_printf("FAT: IOS_SEEK: fd = %d, where = %d, whence = %d\n", message->fd, where, whence);
+      
 			/* Seek file */
 			ret = FAT_Seek(message->fd, where, whence);
+
+			dbg_printf("FAT: IOS_SEEK: ret = %d\n", ret);
 
 			break;
 		}

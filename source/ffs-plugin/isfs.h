@@ -70,5 +70,11 @@ typedef struct {
 	u32 unk5;
 } fsstats;
 
+typedef struct {
+	/* Length and position */
+	u32 length;
+	u32 pos;
+} fsfilestats;
+
 #endif
 

@@ -34,6 +34,9 @@ struct stats {
 
 	/* Attributes */
 	u8 attrib;
+
+	/* Padding */
+	u8 pad[3];
 };
 
 /* File stats structure */
@@ -67,5 +70,6 @@ s32 FAT_DeleteDir(const char *dirpath);
 s32 FAT_Rename(const char *oldpath, const char *newpath);
 s32 FAT_GetStats(const char *path, struct stats *stats);
 s32 FAT_GetUsage(const char *path, u32 *blocks, u32 *inodes);
+s32 FAT_GetFileStats(s32 fd, struct fstats *stats);
 
 #endif

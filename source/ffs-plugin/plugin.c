@@ -31,42 +31,73 @@
 #include "types.h"
 
 /* Global config */
-struct fsConfig config = { 0 , ""};
+struct fsConfig config = { 0, {'\0'}, 0 };
+
+
+void __FS_PrepareFolders(void)
+{
+	static const char dirs[10][17] = {
+		"/tmp",
+		"/sys",
+		"/ticket",
+		"/ticket/00010001",
+		"/ticket/00010005",
+		"/title",
+		"/title/00010000",
+		"/title/00010001",
+		"/title/00010004",
+		"/title/00010005"
+	};
+
+	char fatpath[FAT_MAXPATH];
+	s32 cnt;
+
+	/* Create directories */
+	for (cnt = 0; cnt < 10; cnt++) {
+		/* Generate path */
+		FS_GeneratePath(&dirs[cnt][0], fatpath);
+
+		/* Delete "/tmp" */
+		if (cnt == 0)
+			FAT_DeleteDir(fatpath);
+
+		/* Create directory */
+		FAT_CreateDir(fatpath);
+	}
+}
 
 s32 __FS_SetMode(u32 mode, char *path)
 {
 	/* FAT mode enabled */
-	if (mode) {
+	if (mode & (MODE_SDHC | MODE_USB)) {
 		u32 ret;
-		char fatpath[FAT_MAXPATH];
 
 		/* Initialize FAT */
 		ret = FAT_Init();
 		if (ret < 0)
 			return ret;
 
-		// FIX
-		// Force FS mode now because FS_GeneratePath needs it. 
-		// Without forcing FS mode the generated path will be wrong
-		// and the temp dir will not be deleted
-		/* Set FS mode */
-		config.mode = mode;
-
-		/* Set path */
-		strcpy(config.path, path);
-
-		/* Generate path */
-		FS_GeneratePath("/tmp", fatpath);
-
-		/* Delete "/tmp" */
-		FAT_DeleteDir(fatpath);
-	}
-	else {
 		/* Set FS mode */
 		config.mode = mode;
 
 		/* Set nand path */
+		strcpy(config.path, path);
+
+		/* Set nand path length */
+		config.pathlen = strlen(path);
+
+		/* Prepare folders */
+		__FS_PrepareFolders();
+	}
+	else {
+		/* Set FS mode */
+		config.mode = 0;
+
+		/* Set nand path */
 		config.path[0] = '\0';
+
+		/* Set nand path length */
+		config.pathlen = 0;
 	}
 
 	return 0;
@@ -420,7 +451,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 	case IOCTL_ISFS_SETMODE: {
 		u32 mode = inbuf[0];
 
-		FS_printf("FS_SetMode(): (mode: %d, path: /,  logfile: )\n", mode);
+		FS_printf("FS_SetMode(): (mode: %d, path: /)\n", mode);
 
 		/* Set flag */
 		*performed = 1;
@@ -429,6 +460,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 	}
 
 	default:
+		FS_printf("FS_Ioctl(): default case reached cmd = %x\n", cmd);
 		break;
 	}
 
@@ -520,38 +552,47 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 
 		/* FAT mode */
 		if (config.mode) {
-			//char fatpath[FAT_MAXPATH];
+			char fatpath[FAT_MAXPATH];
+			char *fakepath = NULL;
 
 			u32 *blocks = (u32 *)vector[1].data;
 			u32 *inodes = (u32 *)vector[2].data;
 
-			// BUG
-			// The following lines have been commented 
-			// because they were causing the save file issue 
-			// in a few WiiWare like Tetris Party and Brain Challenge
+			ret     = 0;
+			*blocks = 0;
+			*inodes = 1;        // empty folders return a file count of 1
+
+			/* Set fake path to speed up access for huge emulated nand */
+//			if (!FS_MatchPath(dirpath, "/title/0001000#/########", 0) && !FS_MatchPath(dirpath, "/ticket/0001000#", 0))
+//				fakepath = "/ticket";
+			if (!strcmp(dirpath, "/") || !strcmp(dirpath, "/title") || FS_MatchPath(dirpath, "/title/0001000#", 1))
+				fakepath = "/ticket";
 			
 			/* Generate path */
-			//FS_GeneratePath(dirpath, fatpath);
+			FS_GeneratePath(dirpath, fatpath);
 
-			/* Get usage */
-			//ret = FAT_GetUsage(fatpath, blocks, inodes);
+			if (fakepath) {
+				/* Check path */
+				ret = FAT_GetStats(fatpath, NULL);
+				if (ret >= 0) {
 
-			// FIX
-			// Just set fake values as it was in rev17
-			/* Set fake values */
-			*blocks = 1;
-			*inodes = 1;
+					FS_printf("FS_GetUsage(): Fake path = %s\n", fakepath);
 
+					/* Generate fake path */
+					FS_GeneratePath(fakepath, fatpath);
+				}  
+			}  
+
+			if (ret >= 0) {
+				/* Get usage */
+				ret = FAT_GetUsage(fatpath, blocks, inodes);
+			}  
 
 			/* Flush cache */
 			os_sync_after_write(blocks, sizeof(u32));
 			os_sync_after_write(inodes, sizeof(u32));
 
-			// BUG
-			//return ret;
-
-			//FIX
-			return 0;
+			return ret;
 		}
 
 		break;
@@ -566,13 +607,39 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 		if (inlen > 1)
 			path = (char *)vector[1].data;
 
+		FS_printf("FS_SetMode(): (mode: %d, path: %s)\n", mode, path);
+
 		/* Set flag */
 		*performed = 1;
 		
 		return __FS_SetMode(mode, path);
 	}
 
+	/** Get FS mode **/
+	case IOCTL_ISFS_GETMODE: {
+		u32  *mode     = (u32 *) vector[0].data;
+		u32   mode_len = (u32)   vector[0].len;
+		char *path     = (char *)vector[1].data;
+		u32   path_len = (u32)   vector[1].len;
+
+		FS_printf("FS_GetMode():\n");
+
+		/* Copy config */
+		*mode = config.mode;
+		memcpy(path, config.path, path_len);
+
+		/* Flush cache */
+		os_sync_after_write(mode, mode_len);
+		os_sync_after_write(path, path_len);
+
+		/* Set flag */
+		*performed = 1;
+		
+		return 0;
+	}
+
 	default:
+		FS_printf("FS_Ioctlv(): default case reached cmd = %x\n", cmd);
 		break;
 	}
 
@@ -580,9 +647,12 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 	return -6;
 }
 
+
+#ifdef DEBUG
 s32 FS_Exit(s32 ret)
 {
 	FS_printf("FS returned: %d\n", ret);
 
 	return ret;
 }
+#endif

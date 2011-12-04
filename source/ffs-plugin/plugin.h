@@ -34,8 +34,11 @@ struct fsConfig {
 	/* Mode */
 	u32 mode;
 
-	/* FS path */
+	/* Nand path */
 	char path[FAT_MAXPATH];
+
+	/* Nand path length */
+	u32 pathlen;
 };
 
 /* Extern */
