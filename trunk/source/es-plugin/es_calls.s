@@ -18,49 +18,18 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define _ES_CALLS_S_
-#include "es_calls.h"
 
 /*
  * Macros
  */
-.macro call addr
-	stmfd	sp!, {r7, lr}
-	ldr	r7, =\addr
-	ldr	r7, [r7]
-	blx	r7
-	ldmfd	sp!, {r7, lr}
-	bx	lr
-.endm
-
 .macro jump addr
-	ldr	r3, =\addr
+	ldr	r3, =(\addr)
 	ldr	r3, [r3]
 	bx	r3
 .endm
 
 
 	.align 4
-
-/*
- * ES functions
- */
-#ifdef DEBUG
-	.code 32
-	.global ES_printf
-ES_printf:
-	call addrPrintf
-#endif
-	
-	.code 32
-	.global ES_snprintf
-ES_snprintf:
-	call addrSnprintf
-
-	.code 32
-	.global ES_LaunchTitle
-ES_LaunchTitle:
-	call addrLaunchTitle
 
 
 /*
@@ -71,9 +40,9 @@ ES_LaunchTitle:
 
 	.global ES_HandleIoctlv
 ES_HandleIoctlv:
-	push	{r4-r6, lr}
-	sub	sp, sp, #0x20
-	ldr	r5, [r0, #8]
-	add	r1, r0, #0
+	push {r4-r6, lr}
+	sub  sp, sp, #0x20
+	ldr  r5, [r0, #8]
+	add  r1, r0, #0
 
 	jump addrIoctlv

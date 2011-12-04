@@ -82,8 +82,8 @@ struct dipConfigState {
 	u32 mode;
 
 	/* DIP device */
-	u32   device;
-	
+	u32 device;
+		
 	/* DIP fraglist size */
 	u32 frag_size;
 };
@@ -113,6 +113,6 @@ typedef struct {
 /* Prototypes */
 s32 DI_EmulateIoctl(ioctl *buffer, s32 fd);
 s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size);
-void DI_EmulateInitStage2(void);
+void DI_EmulateInitDrive(void);
 
 #endif

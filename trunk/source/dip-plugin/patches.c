@@ -24,21 +24,24 @@
 
 
 /* Addresses */
-u32 addr_initStage2  = 0;
-u32 addr_handleIoctl = 0;
-u32 addr_handleCmd   = 0;
-u32 addr_alloc       = 0;
-u32 addr_free        = 0;
-u32 addr_readHash    = 0;
-u32 addr_printf      = 0;
-u8 *dip_readctrl     = 0;
+u32 addr_handleInitDrive = 0;
+u32 addr_handleIoctl     = 0;
+u32 addr_handleCmd       = 0;
+u8 *dip_readctrl         = 0;
+
+/* Function pointers */
+s32   (*DI_Printf)(const char * fmt, ...) = 0;
+s32   (*DI_ReadHash)(void)                = 0; 
+void *(*DI_Alloc)(u32 size, u32 align)    = 0;
+void  (*DI_Free)(void *ptr)               = 0;
+
 
 void __Patch_DipModule(u32 aInit, u32 aIoctl, u32 aCmd, u32 aReadHash,  
 		u32 aAlloc, u32 aFree, u32 aPrintf, u32 aReadCtrl)
 {
 	/* Patch DVD driver init stage 2 */
 	DCWrite32(aInit    , 0x4B004718);
-	DCWrite32(aInit + 4, (u32)DI_EmulateInitStage2);
+	DCWrite32(aInit + 4, (u32)DI_EmulateInitDrive);
 
 	/* Patch IOCTL handler */
 	DCWrite32(aIoctl,     0x4B004718);
@@ -49,14 +52,16 @@ void __Patch_DipModule(u32 aInit, u32 aIoctl, u32 aCmd, u32 aReadHash,
 	DCWrite32(aCmd + 4, (u32)DI_EmulateCmd);
 
 	/* Set addresses */
-	addr_initStage2  = (aInit  +  8) + 1;
-	addr_handleIoctl = (aIoctl + 12) + 1;
-	addr_handleCmd   = (aCmd   + 12) + 1;
-	addr_readHash    = aReadHash     + 1;
-	addr_alloc       = aAlloc        + 1;
-	addr_free        = aFree         + 1;
-	addr_printf      = aPrintf       + 1;
-	dip_readctrl     = (u8 *) aReadCtrl;
+	addr_handleInitDrive = (aInit  +  8) + 1;
+	addr_handleIoctl     = (aIoctl + 12) + 1;
+	addr_handleCmd       = (aCmd   + 12) + 1;
+	dip_readctrl         = (u8 *) aReadCtrl;
+
+	/* Set function pointers */
+	DI_ReadHash = (void *)aReadHash + 1;
+	DI_Alloc    = (void *)aAlloc    + 1;
+	DI_Free     = (void *)aFree     + 1;
+	DI_Printf   = (void *)aPrintf   + 1;
 }
 
 void Patch_DipModule(u32 version)

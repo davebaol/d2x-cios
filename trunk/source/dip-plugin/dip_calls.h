@@ -21,27 +21,23 @@
 #ifndef _DIP_CALLS_H_
 #define _DIP_CALLS_H_
 
-//#define DEBUG
-
-#ifndef _DIP_CALLS_S_ 
-
 #include "types.h"
 
-/* Prototypes */
+//#define DEBUG
+
+/* DIP functions */
 #ifdef DEBUG
-void  DI_Printf(const char *fmt, ...);
+s32 (*DI_Printf)(const char * fmt, ...);
 #else
 #define DI_Printf(fmt, ...)
 #endif
-s32   DI_ReadHash(void); 
-void *DI_Alloc(u32 size, u32 align);
-void  DI_Free(void *ptr);
+s32   (*DI_ReadHash)(void); 
+void *(*DI_Alloc)(u32 size, u32 align);
+void  (*DI_Free)(void *ptr);
 
 /* DIP handlers */
 s32 DI_HandleIoctl(void *buffer, u32 fd);
 s32 DI_HandleCmd(void *inbuf, const void *outbuf, u32 size);
+s32 DI_HandleInitDrive(void); 
 
-s32 DI_InitStage2(void); 
-
-#endif
 #endif

@@ -18,54 +18,18 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define _DIP_CALLS_S_
-#include "dip_calls.h"
 
 /*
  * Macros
  */
-.macro call addr
-	stmfd	sp!, {r7, lr}
-	ldr	r7, =\addr
-	ldr	r7, [r7]
-	blx	r7
-	ldmfd	sp!, {r7, lr}
-	bx	lr
-.endm
-
 .macro jump addr
-	ldr	r3, =\addr
+	ldr	r3, =(\addr)
 	ldr	r3, [r3]
 	bx	r3
 .endm
 
+
 	.align 4
-
-/*
- * DIP functions
- */
-	.code 32
-	.global DI_ReadHash
-DI_ReadHash:
-	call addr_readHash
-
-	.code 32
-	.global DI_Alloc
-DI_Alloc:
-	call addr_alloc
-
-	.code 32
-	.global DI_Free
-DI_Free:
-	call addr_free
-
-#ifdef DEBUG
-	.code 32
-	.global DI_Printf
-DI_Printf:
-	call addr_printf
-#endif
-
 
 /*
  * DIP handlers
@@ -81,8 +45,7 @@ DI_HandleIoctl:
 	push	{r6, r7}
 	ldr	r5, [r0]
 	mov	r10, r1
-
-	jump addr_handleIoctl
+	jump	addr_handleIoctl
 
 	.code 16
 	.thumb_func
@@ -95,18 +58,16 @@ DI_HandleCmd:
 	mov	r5, r9
 	mov	r4, r8
 	push	{r4-r7}
-
-	jump addr_handleCmd
+	jump	addr_handleCmd
 
 
 /*
  * DVD driver initializer (2nd stage)
  */
 	.code 32
-	.global DI_InitStage2
-DI_InitStage2:
-	push {r4, lr}
-	bl   os_check_DI_reset
-	lsls r0, r0, #0x18
-
-	jump addr_initStage2
+	.global DI_HandleInitDrive
+DI_HandleInitDrive:
+	push	{r4, lr}
+	bl	os_check_DI_reset
+	lsls	r0, r0, #0x18
+	jump	addr_handleInitDrive
