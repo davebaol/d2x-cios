@@ -297,14 +297,10 @@ s32 FAT_GetUsage(const char *path, u32 *blocks, u32 *inodes)
 
 	os_sync_before_read(iobuf, sizeof(*iobuf));
 
-	FS_printf("FS_GetUsage(): ret   = %d\n", ret);
+	FS_printf("FS_GetUsage(): ret = %d, size = %lu, files = %u, dirs = %u\n", ret, iobuf->usage.size, iobuf->usage.files, iobuf->usage.dirs);
 
 	/* Copy data */
 	if (ret >= 0) {
-		FS_printf("FS_GetUsage(): size  = %lu\n", iobuf->usage.size);
-		FS_printf("FS_GetUsage(): files = %u\n", iobuf->usage.files);
-		FS_printf("FS_GetUsage(): dirs  = %u\n", iobuf->usage.dirs);
-
 		*blocks = (u32) (iobuf->usage.size / 0x4000);
 		*inodes = iobuf->usage.files + 1;
 
@@ -314,8 +310,8 @@ s32 FAT_GetUsage(const char *path, u32 *blocks, u32 *inodes)
 		 */
 		if (*blocks > 0x2000) 
 			*blocks = 0x1000 + (*blocks & 0xFFF);
-		FS_printf("FS_GetUsage(): blocks  = %x\n", *blocks);
-		FS_printf("FS_GetUsage(): inodes  = %u\n", *inodes);
+			
+		FS_printf("FS_GetUsage(): blocks = %x, inodes = %u\n", *blocks, *inodes);
 	}
 
 	return ret;
@@ -326,9 +322,15 @@ s32 FAT_GetFileStats(s32 fd, struct fstats *stats)
 	s32 ret;
 
 	/* Get filestats */
-	ret = os_ioctl(fd, IOCTL_FAT_FILESTATS, 0,  0, iobuf, sizeof(struct fstats));
-	if (ret >= 0)
+	ret = os_ioctl(fd, IOCTL_FAT_FILESTATS, NULL, 0, iobuf, sizeof(struct fstats));
+
+	/* Copy data */
+	if (ret >= 0) {
 		memcpy(stats, iobuf, sizeof(struct fstats));
+
+		/* Flush cache */
+		os_sync_after_write(stats, sizeof(struct fstats));
+	}
 
 	return ret;
 }

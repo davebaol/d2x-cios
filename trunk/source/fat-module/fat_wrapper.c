@@ -233,6 +233,12 @@ s32 FAT_Open(const char *path, u32 mode)
 
 	/* Open file */
 	ret = f_open(fil, path, mode);
+
+	/* Few games like No More Heroes 2 require this fix to create the save */
+	if (ret == FR_NO_FILE && (mode & FA_WRITE))
+		ret = f_open(fil, path, mode | FA_CREATE_ALWAYS); 
+
+	/* Error */
 	if (ret) {
 		/* Free entry */
 		Mem_Free(fil);

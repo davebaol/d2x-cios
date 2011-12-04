@@ -33,12 +33,15 @@
 /*
  * Macros
  */
-.macro fs_begin
+.macro fs_call func cmd
 	add	r0, r4, #0
 	push	{r1-r7}
-.endm
-
-.macro fs_end cmd
+	push	{r0}
+	mov	r1, sp
+	bl	\func
+	pop	{r3}
+	cmp	r3, #0
+	bne	fs_exit	
 	cmp	r0, #0
 	bge	fs_exit
 
@@ -48,23 +51,6 @@
 	ldr	r0, [r3, #((\cmd) * 4)]
 	pop	{r1-r7}
 	mov	pc, r0
-.endm
-
-.macro fs_call func cmd
-	fs_begin
-	bl	\func
-	fs_end	\cmd
-.endm
-
-.macro fs_call_ext func cmd
-	fs_begin
-	push	{r0}
-	mov	r1, sp
-	bl	\func
-	pop	{r3}
-	cmp	r3, #0
-	bne	fs_exit	
-	fs_end	\cmd
 .endm
 
 
@@ -110,16 +96,13 @@ fs_seek:
 
 	.global fs_ioctl
 fs_ioctl:
-	fs_call_ext FS_Ioctl, FS_CMD_IOCTL
+	fs_call FS_Ioctl, FS_CMD_IOCTL
 
 	.global fs_ioctlv
 fs_ioctlv:
-	fs_call_ext FS_Ioctlv, FS_CMD_IOCTLV
+	fs_call FS_Ioctlv, FS_CMD_IOCTLV
 
 fs_exit:
-#ifdef DEBUG
-	bl	FS_Exit
-#endif
 	pop	{r1-r7}
 	add	r1, r0, #0
 	ldr	r0, =addrReentry

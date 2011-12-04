@@ -27,6 +27,7 @@
 /* Mode codes */
 #define MODE_SDHC		0x01
 #define MODE_USB		0x02
+#define MODE_REV17		0x80
 #define MODE_FULL		0x100
 
 

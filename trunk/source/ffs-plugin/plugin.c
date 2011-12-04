@@ -33,6 +33,46 @@
 /* Global config */
 struct fsConfig config = { 0, {'\0'}, 0 };
 
+//#define FORCE_MODE_REV17
+#define MAX_FAT_FD 20
+
+static s32 fat_fd[MAX_FAT_FD];
+
+s32 __FS_RegisterFile(s32 fd)
+{
+	s32 idx;
+	for (idx=0; idx<MAX_FAT_FD; idx++)
+		if (fat_fd[idx] < 0) {
+			fat_fd[idx] = fd;
+			return idx;
+		}
+
+	return -1;
+}
+
+s32 __FS_GetFileIndex(s32 fd)
+{
+	s32 idx;
+	for (idx=0; idx<MAX_FAT_FD; idx++)
+		if (fat_fd[idx] == fd)
+			return idx;
+
+	return -1;
+}
+
+void __FS_UnregisterFile(s32 idx)
+{
+	if (idx >= 0 && idx < MAX_FAT_FD)
+		fat_fd[idx] = -1;
+}
+
+void __FS_UnregisterAllFiles(void)
+{
+	s32 idx;
+	for (idx=0; idx<MAX_FAT_FD; idx++)
+		fat_fd[idx] = -1;
+}
+
 
 void __FS_PrepareFolders(void)
 {
@@ -77,6 +117,10 @@ s32 __FS_SetMode(u32 mode, char *path)
 		if (ret < 0)
 			return ret;
 
+#ifdef FORCE_MODE_REV17
+		mode |= MODE_REV17;
+#endif
+
 		/* Set FS mode */
 		config.mode = mode;
 
@@ -85,6 +129,9 @@ s32 __FS_SetMode(u32 mode, char *path)
 
 		/* Set nand path length */
 		config.pathlen = strlen(path);
+
+		/* Clear open files */
+		__FS_UnregisterAllFiles();
 
 		/* Prepare folders */
 		__FS_PrepareFolders();
@@ -114,12 +161,6 @@ typedef struct {
 s32 __FS_FakeUsage(const char *dir, u32 *blocks, u32 *inodes)
 {
 	static fakeusage fake_usage[FAKE_USAGE_LEN] = {
-//		{"/meta",              3,   8},
-//		{"/ticket",           77,  83},
-//		{"/title/00010000", 5527, 683},
-//		{"/title/00010001",   23,  42},
-//		{"/title/00010004", 1970,  37},
-//		{"/title/00010005",   23,  42}
 		{"/meta",              3,   8},
 		{"/ticket",           71,  77},
 		{"/title/00010000",   75,  55},
@@ -141,64 +182,168 @@ s32 __FS_FakeUsage(const char *dir, u32 *blocks, u32 *inodes)
 	return 0;			
 }
 
-s32 FS_Open(ipcmessage *message)
+s32 FS_Open(ipcmessage *message, u32 *performed)
 {
-#ifdef DEBUG
 	char *path = message->open.device;
 	u32 mode = message->open.mode;
 
 	FS_printf("FS_Open(\"%s\", %d)\n", path, mode);
-#endif
+
+	/* Clear flag */
+	*performed = 0;
+
+	/* FAT mode rev17-like */
+	if (config.mode & MODE_REV17) {
+		s32 ret;
+
+		/* Check path */
+		ret = FS_CheckRealPath(path);
+		if (!ret) {
+			char fatpath[FAT_MAXPATH];
+
+			FS_printf("FS_Open: Emulating...\n");
+
+			/* Set flag */
+			*performed = 1;
+
+			/* Generate path */ 
+			FS_GeneratePathWithPrefix(path, fatpath);
+
+			/* Open file */
+			ret = os_open(fatpath, mode);
+
+			/* Register file */
+			if (ret >= 0)
+				__FS_RegisterFile(ret);
+
+			return ret;
+		}
+	}
 
 	return -6;
 }
 
-s32 FS_Close(ipcmessage *message)
+s32 FS_Close(ipcmessage *message, u32 *performed)
 {
-#ifdef DEBUG
 	s32 fd = message->fd;
 
 	FS_printf("FS_Close(%d)\n", fd);
-#endif
+  
+	/* Clear flag */
+	*performed = 0;
+
+	/* FAT mode rev17-like */
+	if (config.mode & MODE_REV17) {
+		s32 fileIndex;
+
+		fileIndex = __FS_GetFileIndex(fd);
+
+		if (fileIndex >= 0) {
+			s32 ret;
+			
+			/* Set flag */
+			*performed = 1;
+			
+			/* Close file */
+			ret = os_close(fd);
+
+			/* Unregister file */
+			if (ret >= 0)
+				__FS_UnregisterFile(fileIndex);
+
+			return ret;
+		}
+	}
 
 	return -6;
 }
 
-s32 FS_Read(ipcmessage *message)
+s32 FS_Read(ipcmessage *message, u32 *performed)
 {
-#ifdef DEBUG
 	char *buffer = message->read.data;
 	u32   len    = message->read.length;
 	s32   fd     = message->fd;
 
 	FS_printf("FS_Read(%d, 0x%08x, %d)\n", fd, (u32)buffer, len);
-#endif
+  
+	/* Clear flag */
+	*performed = 0;
+
+	/* FAT mode rev17-like */
+	if (config.mode & MODE_REV17) {
+		s32 fileIndex;
+
+		fileIndex = __FS_GetFileIndex(fd);
+
+		if (fileIndex >= 0) {
+			
+			/* Set flag */
+			*performed = 1;
+			
+			/* Read file */
+			return os_read(fd, buffer, len);
+		}
+	}
 
 	return -6;
 }
 
-s32 FS_Write(ipcmessage *message)
+s32 FS_Write(ipcmessage *message, u32 *performed)
 {
-#ifdef DEBUG
 	char *buffer = message->write.data;
 	u32   len    = message->write.length;
 	s32   fd     = message->fd;
 
 	FS_printf("FS_Write(%d, 0x%08x, %d)\n", fd, (u32)buffer, len);
-#endif
+  
+	/* Clear flag */
+	*performed = 0;
+
+	/* FAT mode rev17-like */
+	if (config.mode & MODE_REV17) {
+		s32 fileIndex;
+
+		fileIndex = __FS_GetFileIndex(fd);
+
+		if (fileIndex >= 0) {
+			
+			/* Set flag */
+			*performed = 1;
+			
+			/* Write file */
+			return os_write(fd, buffer, len);
+		}
+	}
 
 	return -6;
 }
 
-s32 FS_Seek(ipcmessage *message)
+s32 FS_Seek(ipcmessage *message, u32 *performed)
 {
-#ifdef DEBUG
 	s32 fd     = message->fd;
 	s32 where  = message->seek.offset;
 	s32 whence = message->seek.origin;
 
 	FS_printf("FS_Seek(%d, %d, %d)\n", fd, where, whence);
-#endif
+  
+	/* Clear flag */
+	*performed = 0;
+
+	/* FAT mode rev17-like */
+	if (config.mode & MODE_REV17) {
+		s32 fileIndex;
+
+		fileIndex = __FS_GetFileIndex(fd);
+
+		if (fileIndex >= 0) {
+			
+			/* Set flag */
+			*performed = 1;
+			
+			/* Seek file */
+			return os_seek(fd, where, whence);
+		}
+	}
 	
 	return -6;
 }
@@ -401,10 +546,27 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 	/** Get file stats **/
 	case IOCTL_ISFS_GETFILESTATS: {
-		FS_printf("FS_GetFileStats(%d)\n", message->fd);
+		s32 fd = message->fd;
+
+		FS_printf("FS_GetFileStats(%d)\n", fd);
 
 		/* Disable flag */
 		*performed = 0;
+
+		/* FAT mode rev17-like */
+		if (config.mode & MODE_REV17) {
+			s32 fileIndex;
+
+			fileIndex = __FS_GetFileIndex(fd);
+
+			if (fileIndex >= 0) {
+				/* Set flag */
+				*performed = 1;
+
+				/* Get file stats */
+				return FAT_GetFileStats(fd, (void *)iobuf);
+			}
+		}
 
 		break;
 	}
@@ -704,13 +866,3 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 	/* Call handler */
 	return -6;
 }
-
-
-#ifdef DEBUG
-s32 FS_Exit(s32 ret)
-{
-	FS_printf("FS returned: %d\n", ret);
-
-	return ret;
-}
-#endif
