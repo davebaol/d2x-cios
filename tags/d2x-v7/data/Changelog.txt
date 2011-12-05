@@ -1,0 +1,116 @@
++-----------+
+| CHANGELOG |
++-----------+
+
+
+[ d2x v7 ]
+
+- Refactored all modules and plugins in order to achieve code reuse through
+  a new common library.
+- Updated ciosmaps.xml to include the IRQ4 patch required by the new
+  experimental EHCI module (not released yet).  
+- Used a more proper offset to detect DL games like Sakura Wars.
+- Disabled nand emulation before returning to system menu or channel.
+- Improved error 002 fix after ios reload block. Now Wii Fit Plus channel
+  installation works properly.
+- Fixed missing identification and patch for base IOS60-v6174 in ES plugin.
+- Added auto detection of the first FAT partition on the device when nand
+  emulation is activated without specifying any partition.
+- FAT Module moved a bit forward in memory in order to create the space
+  required by the new experimental EHCI module (not released yet).
+- Fixed a bug when closing FAT module.
+- Fixed an alignement issue on file renaming in FFS plugin.
+- Removed support for base IOSs with old version like IOS38 v3610.
+- Added ios reload block capability for nand emulation.
+- Removed FAT ISO loading support from DIP plugin (never used by any loader
+  and completely useless now thanks to fraglist capability added in v6).
+- Fixed a memory alignement issue that could break ios reload block.
+- Added bidirectional escape for invalid FAT characters in nand emulation.
+- Now FAT_GetUsage returns fake values for WiiWare/VirtualConsole and real 
+  values taken from FAT for disc-based Wii games. This workaround has proven 
+  to improve nand emulation compatibility. 
+- Added a thread to make the drive led blink when writing to FAT.
+- Added nand emulation mode rev17-like (experimental).
+- Fixed COD MW3 online update on full nand emulation. More generally this fix
+  should improve compatibility with DLC installation on emulated nand also for
+  games like COD Black Ops, Rock Band 3 and Guitar Hero 5.
+- Now the tree /import is emulated in partial mode too. This way COD MW3 online
+  update and DLC installation work properly in partial emulation.
+- Added a hack that allows No More Heroes 2 to create the save file in nand
+  emulation mode (tnx to Sneek source).
+- Minor changes and code clean up.
+
+
+[ d2x v6 ]
+
+- Added fraglist to support potentially any file system (tnx oggzee).
+- Added support in fraglist for sector size up to 4K (typically required
+  for hard drives greater than 2TB).
+- Fixed a compatibility issue with libfat/libntfs in EHCI module.
+
+
+[ d2x v5 ]
+
+- Added USB/SD support for games affected by ios reload. Currently only WBFS
+  partitions are supported (tnx WiiPower for your help).
+- Fixed dual layer detection for games like Sakura Wars.
+- Fixed GameCube audio streaming command for retail discs (tnx WiiPower).
+- Added missing patches for base ios 53 and 55 in ES module. 
+- Minor changes and code clean up.
+
+
+[ d2x v4 ]
+
+- Fixed error 002 in method 2 for blocking ios reload.
+- Repeated ios reload are now supported by method 2.
+- Added support to reload any ios, not only 249.
+- Added "return to channel" feature compatible with all games out there.
+- Fixed a bug in nand emulation to properly support HDD greater than 1TB.
+- Added support for sector size up to 4KB (typically required for hard drives
+  greater than 2TB).
+- Removed file logging introduced in v3 since has proved harmful to games like
+  LostWinds and LostWinds Winter of the Melodies.
+- Updated FatFs to 0.8b. This allowed us to remove the workaround on file 
+  renaming introduced in d2x v3.
+- Fixed a potential buffer overflow while reading a directory.
+- Fixed the error code returned by FAT_Readdir when the requested folder is
+  an existing file (now all Strong Bad episodes are working properly).
+- Fixed a bug in FAT_GetStats (now games like Max & the Magic Marker,
+  FFCC My Life as a King and FFCC My Life as a Darklord are working properly).
+- Fixed a bug in FAT_Seek to prevent from increasing the file size when seeking
+  out of the file.
+- Fixed the length of the output buffer in FAT_ReadDir.
+- Changed timing logic in FAT module.
+- Minor changes and code clean up.
+
+  NOTE:
+  Currently ios reload block improvements are only relevant to disc loading!!!
+  Blocking ios reload for usb loaders will be investigated in future releases.
+
+
+[ d2x v3 ]
+
+- Fixed a bug in nand usage causing save creation failure in WiiWare games
+  like Tetris Party, FFCC My Life as a King and Brain Challenge.
+- Fixed the deletion of folder /tmp on nand emulation start up.
+- Added a workaround to fix a bug on file renaming causing the failure on 
+  the 2nd save in games like The Will of Dr.Frankenstein.
+- Added multiple partition support for nand emulation (default partition is 0
+  for backward compatibility).
+- Implemented logging system to make debugging easier.
+- Fixed a bug causing the message "corrupted data" in The Tower of Druaga.
+- Fixed a bug causing stall in LIT.
+- Other minor changes and code clean up.
+
+
+[ d2x v2 ]
+
+- Fixed secondary USB port lag.
+
+
+[ d2x v1 ]
+
+- Fixed wiimote lag issue by restoring timing logic from cIOSX rev19.
+- Fixed wiimote synch delay on WiiFlow start up by changing initial period 
+  in timer creation.
+- Fixed os_restart_timer with the correct number of arguments.
