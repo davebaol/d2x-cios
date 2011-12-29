@@ -28,14 +28,16 @@
 #include "isfs.h"
 #include "ipc.h"
 #include "plugin.h"
+#include "stealth.h"
+#include "swi_mload.h"
 #include "syscalls.h"
 #include "types.h"
 
 /* Constants */
 #define ES_SIG_RSA4096		0x10000
 #define ES_SIG_RSA2048		0x10001
-
 #define TIK_SIZE		676
+#define ESP			"ESP"
 
 
 /* RSA (2048 bits) signature structure */
@@ -122,12 +124,17 @@ typedef struct {
 } ATTRIBUTE_PACKED tmd;
 
 
-/* Macros */
+/* Signature Macros */
 #define SIGNATURE_SIZE(x) (\
 	((*(x))==ES_SIG_RSA2048) ? sizeof(sig_rsa2048) : ( \
 	((*(x))==ES_SIG_RSA4096) ? sizeof(sig_rsa4096) : 0 ))
 
 #define SIGNATURE_PAYLOAD(x) ((void *)(((u8*)(x)) + SIGNATURE_SIZE(x)))
+
+#define FAKE_IOS_TICKET_VIEWS 1
+
+/* Disc-based games have title IDs of 00010000xxxxxxxx and 00010004xxxxxxxx */
+#define IS_DISC_BASED_GAME(TID) ((TID) >> 32 == 0x00010000 || (TID) >> 32 == 0x00010004) 
 
 
 /* Global config */
@@ -175,8 +182,8 @@ s32 __ES_GetTicketView(u32 tidh, u32 tidl, u8 *view)
 	char path[ISFS_MAXPATH];
 	s32  fd, ret;
 
-	/* Generate path */
-	ES_snprintf(path, sizeof(path), "/ticket/%08x/%08x.tik", tidh, tidl);
+	/* Generate ticket path forcing real nand access with '#' */
+	ES_snprintf(path, sizeof(path), "#/ticket/%08x/%08x.tik", tidh, tidl);
 
 	/* Open ticket */
 	fd = os_open(path, 1);
@@ -229,7 +236,50 @@ s32 __ES_CustomLaunch(u32 tidh, u32 tidl)
 	return ES_LaunchTitle(tidh, tidl, &view, 0);
 }
 
-s32 __ES_Ioctlv(ipcmessage *message)
+s32 __ES_SetFakeIosLaunch(u32 mode, u32 ios)
+{
+	config.fakelaunch = mode;
+	config.ios        = ios;
+	config.title_id   = 0;
+
+	return 0;
+}
+
+s32 ES_EmulateOpen(ipcmessage *message)
+{
+	static s32 stage2_done = 0;
+
+	/* Initialize ES (stage 2) */
+	if (!stage2_done) {
+		s32 tid, ret;
+
+		/* Enable ios reload block */
+		if (config.title_id == 0) {
+			s32 kver;
+
+			/* Get kernel version */
+			kver = os_kernel_get_version();
+
+			/* Set fake ios launch */
+			__ES_SetFakeIosLaunch(1, (kver >> 16) & 0xFF);
+		}
+
+		/* Get current thread id */
+		tid = os_get_thread_id();
+
+		/* Add thread rights for stealth mode */
+		ret = Swi_AddThreadRights(tid, TID_RIGHTS_FORCE_REAL_NAND);
+
+		/* Mark stage 2 as initilized */
+		stage2_done = 1;
+	}
+
+	/* Call OPEN handler */
+	return ES_HandleOpen(message);
+
+}
+
+s32 ES_EmulateIoctlv(ipcmessage *message)
 {
 	ioctlv *vector = message->ioctlv.vector;
 	u32     inlen  = message->ioctlv.num_in;
@@ -240,76 +290,11 @@ s32 __ES_Ioctlv(ipcmessage *message)
 
 	/* Parse command */
 	switch (cmd) {
-	case IOCTL_ES_LAUNCH: {
-		ES_printf("__ES_Ioctlv: LaunchTitle\n");
-
-		u64 tid = *(u64 *)vector[0].data;
-
-		u32 tidh = (u32)(tid >> 32);
-		u32 tidl = (u32)(tid & 0xFFFFFFFF);
-
-		/* System title launch */
-		if (tidh == 1) {
-
-			/* System menu launch */
-			if (tidl == 2) {
-
-				/* Disable NAND emulation */
-				ISFS_SetMode(ISFS_MODE_NAND, "");
-
-				/* Launch title (fake ID) */
-				if (config.sm_title_id != 0)
-					return __ES_CustomLaunch((u32) (config.sm_title_id>>32), (u32) config.sm_title_id);
-			}
-
-			/* IOS launch */
-			if (tidl >= 3 && tidl <= 255) {
-
-				/* Fake launch */
-				switch (config.fakelaunch) {
-				case 1:
-					/* Skip ios reload and return success */
-					return 0;
-
-				case 2:
-					/* Reload the cIOS in place of the requested IOS */
-					if (config.title_id==0) {
-						s32 ret;
-
-						/* Get title ID */
-						ret = __ES_GetTitleID(&config.title_id);
-						if (ret >= 0) {
-
-							/* Disc-based games have title IDs of 00010000xxxxxxxx and 00010004xxxxxxxx */
-							if (config.title_id >> 32 == 0x00010000 || config.title_id >> 32 == 0x00010004) {
-
-								/* Save DI and FFS config after disabling nand emulation */
-								DI_Config_Save();
-
-								/* Save ES config */
-								Config_Save(&config, sizeof(config));
-
-								/* Launch title (fake ID) */
-								return __ES_CustomLaunch(tidh, config.ios);
-							}
-						}
-
-						/* Reset title ID */
-						config.title_id = 0;
-					}
-				}
-				break;
-			}
-		}
-
-		break;
-	}
-
 	case IOCTL_ES_DIVERIFY: {
-		ES_printf("__ES_Ioctlv: DIVerify\n");
+		ES_printf("__ES_Ioctlv: DIVerify()\n");
 
 		/* Check whether the cios has been reloaded by a disc-based game */
-		if (config.fakelaunch == 2 && config.title_id != 0) {
+		if (config.fakelaunch != 0 && config.title_id != 0) {
 			/* Get TitleMetaData */
 			if (vector[3].data != NULL && vector[3].len >= sizeof(sig_rsa2048) + sizeof(tmd)) {
 				tmd* titleMetaData = (tmd*)(vector[3].data + sizeof(sig_rsa2048));
@@ -329,15 +314,146 @@ s32 __ES_Ioctlv(ipcmessage *message)
 					// from TMD rather than from MEM1. This way all those
 					// games that reload different IOSs are now supported.
 					// For example in Wii Fit Plus IOS53 is required for the game 
-					// while IOS33 is required for the channel installation.
+					// while IOS33 is required for channel installation.
+					// 
+					// Also, since d2x v8 beta1, the syscall os_kernel_set_version
+					// is used instead of assigning address 0x00003140 directly.
 
 					/* Remove error 002 */
-					*(u32 *)0x00003140 = (((u32)titleMetaData->sys_version)<<16) | 0xFFFF;
+					os_kernel_set_version((((u32)titleMetaData->sys_version)<<16) | 0xFFFF);
 				}
 			}
 
 			/* Reset title ID */
 			config.title_id = 0;
+		}
+
+		/* Call IOCTLV handler */
+		ret = ES_HandleIoctlv(message);
+
+		/* Set running title for stealth mode */
+		Swi_SetRunningTitle(!ret);
+
+		ES_printf("__ES_Ioctlv: DIVerify: ret = %d\n", ret);
+
+		return ret;
+	}
+
+	case IOCTL_ES_GETNUMTICKETVIEWS:
+	case IOCTL_ES_GETTICKETVIEWS: {
+		s32 justCounting  = (cmd == IOCTL_ES_GETNUMTICKETVIEWS);
+		s32 expectedRet   = justCounting ? 0 : -1017;
+		s32 expectedCount = justCounting ? 0 : FAKE_IOS_TICKET_VIEWS;
+		u32 *count        = vector[1].data;
+
+		ES_printf("__ES_Ioctlv: Get%sTicketViews()\n", (justCounting ? "Num": ""));
+
+		/* Call IOCTLV handler */
+		ret = ES_HandleIoctlv(message);
+
+		/* Check missing IOS for future fake launch, see bug http://code.google.com/p/d2x-cios/issues/detail?id=2 */
+		if (ret == expectedRet && *count == expectedCount && config.fakelaunch != 0 && config.title_id == 0) {
+			u64 tid  = *(u64 *)vector[0].data;
+			u32 tidh = (u32)(tid >> 32);
+			u32 tidl = (u32) tid;
+
+			/* Check the required title is a IOS */
+			if (tidh == 1 && tidl >= 3 && tidl <= 255) {
+				u64 running_tid;
+				s32 ret2;
+
+				/* Get title ID */
+				ret2 = __ES_GetTitleID(&running_tid);
+				
+				/* Check a disc-based game is running */
+				if (ret2 >= 0 && IS_DISC_BASED_GAME(running_tid)) {
+
+					/* The required title matches the game IOS */
+					if (tidl == ((*(vu32 *)0x00003140) >> 16)) {
+						if (justCounting) {
+							ES_printf("__ES_Ioctlv: GetNumTicketViews: Setting fake count...\n");
+
+							/* Set fake count*/
+							*count = FAKE_IOS_TICKET_VIEWS;
+						}
+						else {
+							tikview *view = (tikview *)vector[2].data;
+							ES_printf("__ES_Ioctlv: GetNumTicketViews: Creating fake ticket view...\n");
+
+							/* Create fake ticket view */
+							ret2 = __ES_GetTicketView(tidh, config.ios, (void *)view);
+							if (ret2 >= 0)
+								ret = 0;
+						}
+					}
+				}
+			}
+		}
+
+		ES_printf("__ES_Ioctlv: Get%sTicketViews: ret = %d\n", (justCounting ? "Num": ""), ret);
+
+		return ret;
+	}
+
+	case IOCTL_ES_LAUNCH: {
+		ES_printf("__ES_Ioctlv: LaunchTitle()\n");
+
+		u64 tid = *(u64 *)vector[0].data;
+
+		u32 tidh = (u32)(tid >> 32);
+		u32 tidl = (u32) tid;
+
+		/* System title launch */
+		if (tidh == 1) {
+
+			/* System menu launch */
+			if (tidl == 2) {
+
+				/* Set ES status for stealth mode */
+				Swi_SetEsRequest(1);
+
+				/* Disable NAND emulation */
+				ISFS_SetMode(ISFS_MODE_NAND, "");
+
+				/* Clear ES status for stealth mode */
+				Swi_SetEsRequest(0);
+
+				/* Launch title (fake ID) */
+				if (config.sm_title_id != 0)
+					return __ES_CustomLaunch((u32) (config.sm_title_id>>32), (u32) config.sm_title_id);
+			}
+
+			/* Fake IOS launch */
+			if (config.fakelaunch != 0 && tidl >= 3 && tidl <= 255) {
+
+				/* Reload the cIOS in place of the requested IOS */
+				if (config.title_id == 0) {
+					s32 ret;
+
+					/* Get title ID */
+					ret = __ES_GetTitleID(&config.title_id);
+					if (ret >= 0 && IS_DISC_BASED_GAME(config.title_id)) {
+
+						/* Set ES status for stealth mode */
+						Swi_SetEsRequest(1);
+
+						/* Save DI and FFS config after disabling nand emulation */
+						DI_Config_Save();
+
+						/* Clear ES status for stealth mode */
+						Swi_SetEsRequest(0);
+
+						/* Save ES config */
+						Config_Save(&config, sizeof(config));
+
+						/* Launch title (fake ID) */
+						return __ES_CustomLaunch(tidh, config.ios);
+					}
+
+					/* Reset title ID */
+					config.title_id = 0;
+				}
+			}
 		}
 
 		break;
@@ -348,21 +464,31 @@ s32 __ES_Ioctlv(ipcmessage *message)
 		return -1017;
 	}
 
-	case IOCTL_ES_FAKE_IOS_LAUNCH: {
+	case IOCTL_ES_SET_FAKE_IOS_LAUNCH: {
+		ES_printf("__ES_Ioctlv: SetFakeIosLaunch()\n");
+
+		/* Block custom command if a title is running */
+		ret = Stealth_CheckRunningTitle(ESP, "IOCTL_ES_SET_FAKE_IOS_LAUNCH");
+		if (ret)
+			return IPC_ENOENT;
+
 		u32 mode = *(u32 *)vector[0].data;
 		u32 ios = inlen>1 ? *(u32 *)vector[1].data : 249;
 
 		/* Set fake ios launch */
-		config.fakelaunch = mode;
-		config.ios        = ios;
-		config.title_id   = 0;
-
-		return 0;
+		return __ES_SetFakeIosLaunch(mode, ios);
 	}
 
-	case IOCTL_ES_FAKE_SM_LAUNCH: {
+	case IOCTL_ES_SET_FAKE_SM_LAUNCH: {
+		ES_printf("__ES_Ioctlv: SetFakeSystemMenuLaunch()\n");
+
+		/* Block custom command if a title is running */
+		ret = Stealth_CheckRunningTitle(ESP, "IOCTL_ES_SET_FAKE_SM_LAUNCH");
+		if (ret)
+			return IPC_ENOENT;
+
 		u64 sm_title_id = *(u64 *)vector[0].data;
-    
+
 		/* Set fake system menu launch */
 		config.sm_title_id = sm_title_id;
 
@@ -370,7 +496,12 @@ s32 __ES_Ioctlv(ipcmessage *message)
 	}
 
 	case IOCTL_ES_LAUNCHMIOS: {
-		ES_printf("__ES_Ioctlv: LanchMIOS\n");
+		ES_printf("__ES_Ioctlv: LanchMIOS()\n");
+
+		/* Block custom command if a title is running */
+		ret = Stealth_CheckRunningTitle(ESP, "IOCTL_ES_LAUNCHMIOS");
+		if (ret)
+			return IPC_ENOENT;
 
 		/* Launch MIOS */
 		return __ES_CustomLaunch(1, 257);
@@ -390,16 +521,3 @@ s32 __ES_Ioctlv(ipcmessage *message)
 	return ret;
 }
 
-
-s32 ES_EmulateCmd(ipcmessage *message)
-{
-	/* Parse IPC command */
-	if (message->command == IOS_IOCTLV) {
-		/* Parse IOCTLV message */
-		return __ES_Ioctlv(message);
-	}
-
-	svc_write("ES_EmulateCmd: Unexpected IPC command!!!\n");
-
-	return IPC_EINVAL;
-}

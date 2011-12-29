@@ -1,7 +1,7 @@
 /*
- * ES plugin for Custom IOS.
+ * FFS plugin for Custom IOS.
  *
- * Copyright (C) 2010 Waninkoko.
+ * Copyright (C) 2009-2010 Waninkoko.
  * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,44 +18,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef _IOP_CALLS_H_
+#define _IOP_CALLS_H_
 
-/*
- * Macros
- */
-.macro jump addr
-	ldr	r3, =(\addr)
-	ldr	r3, [r3]
-	bx	r3
-.endm
+#include "types.h"
 
+/* Prototypes */
+s32 syscall_open(char *path, s32 mode);
 
-	.align 4
-
-
-/*
- * ES handlers
- */
-	.code 16
-	.thumb_func
-
-	.global ES_HandleOpen
-ES_HandleOpen:
-	push {r4-r6, lr}
-	movs r6, r0
-	add  r6, #0xC
-	ldr  r0, [r0, #0xC]
-
-	jump addrOpen
-
-
-	.code 16
-	.thumb_func
-
-	.global ES_HandleIoctlv
-ES_HandleIoctlv:
-	push {r4-r6, lr}
-	sub  sp, sp, #0x20
-	ldr  r5, [r0, #8]
-	add  r1, r0, #0
-
-	jump addrIoctlv
+#endif

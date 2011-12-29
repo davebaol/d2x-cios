@@ -22,10 +22,10 @@
 
 #include <string.h>
 
-#include "es.h"
 #include "ipc.h"
 #include "mem.h"
 #include "module.h"
+#include "stealth.h"
 #include "syscalls.h"
 #include "timer.h"
 #include "types.h"
@@ -241,15 +241,10 @@ int main(void)
 
 		switch (message->command) {
 		case IOS_OPEN: {
-			u64 tid;
 
-			/* Get title ID */
-			ret = ES_GetTitleID(&tid);
-
-			/* Check title ID */
-			if (ret >= 0) {
-				svc_write("USBS: Title identified. Blocking opening request.\n");
-
+			/* Block opening request if a title is running */
+			ret = Stealth_CheckRunningTitle("USBS", NULL);
+			if (ret) {
 				ret = IPC_ENOENT;
 				break;
 			}

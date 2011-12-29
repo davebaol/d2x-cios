@@ -27,7 +27,12 @@
 #include "module.h"
 #include "swi.h"
 #include "tools.h"
+#include "tid.h"
 #include "types.h"
+
+s32 running_title = 0;
+s32 es_request    = 0;
+
 
 /* SWI table */
 SwiFunc SwiTable[256] = { NULL };
@@ -86,10 +91,9 @@ s32 Swi_Handler(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 	}
 	
 	/** Memcpy (cached to cached) **/
-	case 2: {
+	case 2:
 		__MemCopy(0, (void *)arg1, (void *)arg2, arg3);
 		break;
-	}
 	
 	/** Get register **/
 	case 3:
@@ -111,10 +115,9 @@ s32 Swi_Handler(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 		break;
 
 	/** Memcpy (uncached to cached) **/
-	case 9: {
+	case 9:
 		__MemCopy(1, (void *)arg1, (void *)arg2, arg3);
 		break;
-	}
 
 	/** Call function **/
 	case 16: {
@@ -129,7 +132,7 @@ s32 Swi_Handler(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 
 	/** Get syscall base **/
 	case 17:
-		return ios.syscall;
+		return ios.syscallBase;
 
 	/** Get IOS info **/
 	case 18: {
@@ -145,6 +148,32 @@ s32 Swi_Handler(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 	/** Get MLOAD version **/
 	case 19:
 		return (MLOAD_VER << 4) | MLOAD_SUBVER;
+
+	/** Set running title **/
+	case 32:
+		running_title = arg1;
+		break;
+
+	/** Get running title **/
+	case 33:
+		return stealth_mode && running_title;
+
+	/** Set ES request **/
+	case 34:
+		es_request = arg1;
+		break;
+
+	/** Get ES request **/
+	case 35:
+		return !stealth_mode || es_request;
+
+	/** Add thread rights **/
+	case 36:
+		return TID_AddRights(arg1, arg2);
+
+	/** Get thread rights check function **/
+	case 37:
+		return (s32) TID_CheckRights;
 
 	/** Led on **/
 	case 128:

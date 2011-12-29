@@ -21,7 +21,8 @@ struct esConfig {
 };
 
 /* Prototypes */
-s32 ES_EmulateCmd(ipcmessage *message);
+s32 ES_EmulateOpen(ipcmessage *message);
+s32 ES_EmulateIoctlv(ipcmessage *message);
 
 /* Extern */
 extern struct esConfig config;

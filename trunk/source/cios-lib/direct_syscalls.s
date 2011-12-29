@@ -1,7 +1,7 @@
 /*
- * ES plugin for Custom IOS.
+ * FFS plugin for Custom IOS.
  *
- * Copyright (C) 2010 Waninkoko.
+ * Copyright (C) 2009-2010 Waninkoko.
  * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -22,40 +22,37 @@
 /*
  * Macros
  */
-.macro jump addr
-	ldr	r3, =(\addr)
-	ldr	r3, [r3]
-	bx	r3
+.macro direct_syscall num name
+	.global \name
+\name:
+	mov	r11, #(\num)
+	b	invoke_direct_syscall
 .endm
 
 
-	.align 4
+#define syscall_base     ios
 
+
+	.text
 
 /*
- * ES handlers
+ * Direct syscalls 
+ *
+ * NOTE:
+ * Direct syscalls are required when you have to call
+ * a syscall from inside a syscall.
  */
-	.code 16
-	.thumb_func
+	.align 4
+	.code 32
 
-	.global ES_HandleOpen
-ES_HandleOpen:
-	push {r4-r6, lr}
-	movs r6, r0
-	add  r6, #0xC
-	ldr  r0, [r0, #0xC]
-
-	jump addrOpen
-
-
-	.code 16
-	.thumb_func
-
-	.global ES_HandleIoctlv
-ES_HandleIoctlv:
-	push {r4-r6, lr}
-	sub  sp, sp, #0x20
-	ldr  r5, [r0, #8]
-	add  r1, r0, #0
-
-	jump addrIoctlv
+invoke_direct_syscall:
+	ldr	r12, =syscall_base
+	ldr	r12, [r12]
+	nop
+	ldr	r12, [r12, r11, lsl#2]
+	nop
+	bx	r12
+	
+	direct_syscall 0x03, direct_os_get_thread_id
+	direct_syscall 0x3f, direct_os_sync_before_read
+	direct_syscall 0x40, direct_os_sync_after_write

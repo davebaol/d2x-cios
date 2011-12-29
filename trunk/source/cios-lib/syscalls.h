@@ -72,8 +72,8 @@ s32   os_register_event_handler(s32 device, s32 queue, s32 message);
 s32   os_unregister_event_handler(s32 device);
 s32   os_software_IRQ(s32 dev);
 s32   os_ios_boot(const char *path, u32 flag, u32 version);
-s32   os_set_version(u32 version);
-s32   os_get_version(void);
+s32   os_kernel_set_version(u32 version);
+s32   os_kernel_get_version(void);
 void  os_get_key(s32 keyid, void *out);
 void *os_virt_to_phys(void *ptr);
 

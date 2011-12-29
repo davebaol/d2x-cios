@@ -53,27 +53,8 @@ s32 Swi_CallFunc(s32 (*func)(void *in, void *out), void *in, void *out)
 	return Swi_MLoad(16, (u32)func, (u32)in, (u32)out);
 }
 
-u32 Swi_GetSyscallBase(void)
-{
-	return Swi_MLoad(17, 0, 0, 0);
-}
-
 u32 Swi_GetIosInfo(iosInfo *buffer)
 {
 	return Swi_MLoad(18, (u32)buffer, 0, 0);
 }
 
-void Swi_LedOn(void)
-{
-	Swi_MLoad(128, 0, 0, 0);
-}
-
-void Swi_LedOff(void)
-{
-	Swi_MLoad(129, 0, 0, 0);
-}
-
-void Swi_LedBlink(void)
-{
-	Swi_MLoad(130, 0, 0, 0);
-}

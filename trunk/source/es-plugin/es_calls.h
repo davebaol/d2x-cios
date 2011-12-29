@@ -29,12 +29,13 @@
 #ifdef DEBUG
 s32 (*ES_printf)(const char * fmt, ...);
 #else
-#define ES_printf(fmt, ...)
+#define ES_printf(fmt, ...)     do {} while (0)
 #endif
 s32 (*ES_snprintf)(char *str, u32 size, const char *fmt, ...);
 s32 (*ES_LaunchTitle)(u32 tidh, u32 tidl, void *view, u32 reset);
 
 /* ES handlers */
-s32 ES_HandleIoctlv(void *data);
+s32 ES_HandleOpen(void *message);
+s32 ES_HandleIoctlv(void *message);
 
 #endif

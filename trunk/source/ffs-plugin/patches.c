@@ -18,6 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "iop_calls.h"
 #include "fs_calls.h"
 #include "fs_dump.h"
 #include "syscalls.h"
@@ -149,11 +150,6 @@ void Patch_IopModule(u32 version)
 	case 0x48776F75:        // IOS: 37v5662, 53v5662, 55v5662
 		__Patch_IopModule(0xFFFF2E50);
 		break;
-
-	/** 12/23/08 17:28:32 **/
-//	case 0x49511FC0:     // IOS: 38v3610  This is not supported anymore (remove from mload?)
-//		__Patch_IopModule(0xFFFF2D40);
-//		break;
 
 	/** 03/01/10 03:13:17 **/
 	case 0x4B8B30CD:        // IOS: 36v3607, 38v4123

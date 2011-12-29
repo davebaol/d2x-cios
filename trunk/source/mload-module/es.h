@@ -1,10 +1,9 @@
 /*   
-	Custom IOS Library
+	Custom IOS Module (MLOAD)
 
 	Copyright (C) 2008 neimod.
-	Copyright (C) 2009 WiiGator.
-	Copyright (C) 2009 Waninkoko.
 	Copyright (C) 2010 Hermes.
+	Copyright (C) 2010 Waninkoko.
 	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
@@ -29,7 +28,6 @@
 
 
 /* Prototypes */
-s32 ES_GetTitleID(u64 *tid);
-s32 ES_LeetStuff(void);
+s32 ES_LaunchMIOS(void);
 
 #endif

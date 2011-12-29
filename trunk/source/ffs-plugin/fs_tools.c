@@ -28,44 +28,6 @@
 #define FAT_DEVICE       "fat"
 #define FAT_DEVICE_LEN   3
 
-char *__FS_SyscallOpen(char *path, s32 mode)
-{
-	static char newpath[FAT_MAXPATH] ATTRIBUTE_ALIGN(32);
-
-	/* Emulation mode */
-	if (config.mode) {
-		u32 ret;
-
-		/* SDHC mode */
-		if (config.mode & MODE_SDHC) {
-			if (!strcmp(path, "/dev/sdio")) {
-				/* Replace path */
-				strcpy(newpath, "/dev/null");
-
-				/* Return path */
-				return newpath;
-			}
-		}
-
-		/* Direct FAT mode */
-		if (!(config.mode & MODE_REV17)) {
-			/* Check path */
-			ret = FS_CheckRealPath(path);
-
-			/* Emulate path */
-			if (!ret) {
-				/* Generate path */
-				FS_GeneratePathWithPrefix(path, newpath);
-
-				/* Return path */
-				return newpath;
-			}
-		}
-	}
-
-	/* Return original path */
-	return path;
-}
 
 void __FS_CopyPath(char *dst, const char *src)
 {

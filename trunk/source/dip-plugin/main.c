@@ -26,9 +26,6 @@
 #include "types.h"
 #include "wbfs.h"
 
-/* IOS information */
-iosInfo ios = { 0, 0, 0, 0, 0 };
-
 
 s32 __DI_System(u32 arg1, u32 arg2)
 {

@@ -1,7 +1,7 @@
 /*
- * ES plugin for Custom IOS.
+ * FFS plugin for Custom IOS.
  *
- * Copyright (C) 2010 Waninkoko.
+ * Copyright (C) 2009-2010 Waninkoko.
  * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,43 +19,43 @@
  */
 
 
-/*
- * Macros
- */
-.macro jump addr
-	ldr	r3, =(\addr)
-	ldr	r3, [r3]
-	bx	r3
-.endm
+	.text
 
+/*
+ * Syscall open hook
+ *
+ * NOTE:
+ * The original vector works in thumb mode,
+ * but it has been patched with bx pc and ldr pc, =addr 
+ * to jump without modifying any register.
+ * So we need to switch to thumb mode again.
+ */
+	.align 4
+	.code 32
+
+	.arm
+	.global syscall_open
+syscall_open:
+	stmfd	sp!, {r4-r7, lr}
+	stmfd	sp!, {r1-r3}
+	nop
+	ldr	r4, =(_syscall_open_thumb + 1)
+	bx	r4
 
 	.align 4
-
-
-/*
- * ES handlers
- */
 	.code 16
-	.thumb_func
 
-	.global ES_HandleOpen
-ES_HandleOpen:
-	push {r4-r6, lr}
-	movs r6, r0
-	add  r6, #0xC
-	ldr  r0, [r0, #0xC]
+	.thumb
+_syscall_open_thumb:
+	bl	__IOP_SyscallOpen
+	pop	{r1-r3}
+	mov	r7, r11
+	mov	r6, r10
+	mov	r5, r9
+	mov	r4, r8
+	push	{r4-r7}
+	ldr	r4, =addrSysOpen
+	ldr	r4, [r4]
+	nop
+	mov	pc, r4
 
-	jump addrOpen
-
-
-	.code 16
-	.thumb_func
-
-	.global ES_HandleIoctlv
-ES_HandleIoctlv:
-	push {r4-r6, lr}
-	sub  sp, sp, #0x20
-	ldr  r5, [r0, #8]
-	add  r1, r0, #0
-
-	jump addrIoctlv
