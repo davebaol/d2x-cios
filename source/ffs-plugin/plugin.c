@@ -27,14 +27,18 @@
 #include "ipc.h"
 #include "isfs.h"
 #include "plugin.h"
+#include "stealth.h"
+#include "swi_mload.h"
 #include "syscalls.h"
 #include "types.h"
 
 /* Global config */
 struct fsConfig config = { 0, {'\0'}, 0 };
 
+/* Constants */
 //#define FORCE_MODE_REV17
-#define MAX_FAT_FD 20
+#define MAX_FAT_FD	20
+#define FFS		"FFS"
 
 static s32 fat_fd[MAX_FAT_FD];
 
@@ -73,38 +77,64 @@ void __FS_UnregisterAllFiles(void)
 		fat_fd[idx] = -1;
 }
 
+typedef struct {
+	const char *path;
+	u8  delete;
+	u8  make;
+	u32 blocks;
+	u32 inodes;
+} dirinfo;
+
+#define NUM_FOLDERS 12
+
+static dirinfo dirs[NUM_FOLDERS] = {
+	{"/import",          0, 1,   -1,  -1},
+	{"/meta",            0, 0,    3,   8},
+	{"/sys",             0, 1,   -1,  -1},
+	{"/ticket",          0, 1,   71,  77},
+	{"/ticket/00010001", 0, 1,   -1,  -1},
+	{"/ticket/00010005", 0, 1,   -1,  -1},
+	{"/title",           0, 1,   -1,  -1},
+	{"/title/00010000",  0, 1,   75,  55},
+	{"/title/00010001",  0, 1, 1505,  74},
+	{"/title/00010004",  0, 1,  185,   9},
+	{"/title/00010005",  0, 1,   23,  42},
+	{"/tmp",             1, 1,   -1,  -1}
+};
 
 void __FS_PrepareFolders(void)
 {
-	static const char dirs[11][17] = {
-		"/tmp",
-		"/sys",
-		"/import",
-		"/ticket",
-		"/ticket/00010001",
-		"/ticket/00010005",
-		"/title",
-		"/title/00010000",
-		"/title/00010001",
-		"/title/00010004",
-		"/title/00010005"
-	};
-
 	char fatpath[FAT_MAXPATH];
 	s32 cnt;
 
 	/* Create directories */
-	for (cnt = 0; cnt < 11; cnt++) {
+	for (cnt = 0; cnt < NUM_FOLDERS; cnt++) {
 		/* Generate path */
-		FS_GeneratePath(&dirs[cnt][0], fatpath);
+		FS_GeneratePath(dirs[cnt].path, fatpath);
 
-		/* Delete "/tmp" */
-		if (cnt == 0)
+		/* Delete directory */
+		if (dirs[cnt].delete)
 			FAT_DeleteDir(fatpath);
 
 		/* Create directory */
-		FAT_CreateDir(fatpath);
+		if (dirs[cnt].make)
+			FAT_CreateDir(fatpath);
 	}
+}
+
+u32 __FS_FakeUsage(const char *path, u32 *blocks, u32 *inodes)
+{
+	s32 cnt;
+
+	for (cnt = 0; cnt < NUM_FOLDERS; cnt++) {
+		if (!strcmp(dirs[cnt].path, path) && dirs[cnt].blocks >= 0 && dirs[cnt].inodes >= 0) {
+			*blocks = dirs[cnt].blocks;
+			*inodes = dirs[cnt].inodes;
+			return 1;			
+		}
+	}
+
+	return 0;			
 }
 
 s32 __FS_SetMode(u32 mode, char *path)
@@ -112,6 +142,10 @@ s32 __FS_SetMode(u32 mode, char *path)
 	/* FAT mode enabled */
 	if (mode & (MODE_SDHC | MODE_USB)) {
 		u32 ret;
+
+		/* Nand emu can not be enabled when a title is running */
+		if (Stealth_CheckRunningTitle(FFS, "IOCTL_ISFS_SETMODE(ON)"))
+			return IPC_ENOENT;
 
 		/* Initialize FAT */
 		ret = FAT_Init();
@@ -121,6 +155,17 @@ s32 __FS_SetMode(u32 mode, char *path)
 #ifdef FORCE_MODE_REV17
 		mode |= MODE_REV17;
 #endif
+
+		/* FAT mode rev17-like */
+		if (mode & MODE_REV17) {
+			s32 tid;
+
+			/* Get current thread id */
+			tid = os_get_thread_id();
+
+			/* Add thread rights for stealth mode */
+			Swi_AddThreadRights(tid, TID_RIGHTS_OPEN_FAT);
+		}
 
 		/* Set FS mode */
 		config.mode = mode;
@@ -138,6 +183,12 @@ s32 __FS_SetMode(u32 mode, char *path)
 		__FS_PrepareFolders();
 	}
 	else {
+		/* When a title is running nand emu can be disabled through ES only */
+		if (Swi_GetRunningTitle() && !Swi_GetEsRequest()) {
+			Stealth_Log(STEALTH_RUNNING_TITLE | STEALTH_ES_REQUEST, FFS, "IOCTL_ISFS_SETMODE(OFF)");
+			return IPC_ENOENT;
+		}
+
 		/* Set FS mode */
 		config.mode = 0;
 
@@ -151,38 +202,10 @@ s32 __FS_SetMode(u32 mode, char *path)
 	return 0;
 }
 
-typedef struct {
-	const char *dir;
-	u32 blocks;
-	u32 inodes;
-} fakeusage;
-
-#define FAKE_USAGE_LEN 6
-
-s32 __FS_FakeUsage(const char *dir, u32 *blocks, u32 *inodes)
-{
-	static fakeusage fake_usage[FAKE_USAGE_LEN] = {
-		{"/meta",              3,   8},
-		{"/ticket",           71,  77},
-		{"/title/00010000",   75,  55},
-		{"/title/00010001", 1505,  74},
-		{"/title/00010004",  185,   9},
-		{"/title/00010005",   23,  42}
-	};
-
-	s32 cnt;
-
-	for (cnt = 0; cnt < FAKE_USAGE_LEN; cnt++) {
-		if (!strcmp(fake_usage[cnt].dir, dir)) {
-			*blocks = fake_usage[cnt].blocks;
-			*inodes = fake_usage[cnt].inodes;
-			return 1;			
-		}
-	}
-
-	return 0;			
-}
-
+/*
+ * NOTE: 
+ * The 2nd parameter is used to determine if call the original handler or not. 
+ */
 s32 FS_Open(ipcmessage *message, u32 *performed)
 {
 	char *path = message->open.device;
@@ -230,6 +253,10 @@ s32 FS_Open(ipcmessage *message, u32 *performed)
 	return -6;
 }
 
+/*
+ * NOTE: 
+ * The 2nd parameter is used to determine if call the original handler or not. 
+ */
 s32 FS_Close(ipcmessage *message, u32 *performed)
 {
 	s32 fd = message->fd;
@@ -265,6 +292,10 @@ s32 FS_Close(ipcmessage *message, u32 *performed)
 	return -6;
 }
 
+/*
+ * NOTE: 
+ * The 2nd parameter is used to determine if call the original handler or not. 
+ */
 s32 FS_Read(ipcmessage *message, u32 *performed)
 {
 	char *buffer = message->read.data;
@@ -295,6 +326,10 @@ s32 FS_Read(ipcmessage *message, u32 *performed)
 	return -6;
 }
 
+/*
+ * NOTE: 
+ * The 2nd parameter is used to determine if call the original handler or not. 
+ */
 s32 FS_Write(ipcmessage *message, u32 *performed)
 {
 	char *buffer = message->write.data;
@@ -325,6 +360,10 @@ s32 FS_Write(ipcmessage *message, u32 *performed)
 	return -6;
 }
 
+/*
+ * NOTE: 
+ * The 2nd parameter is used to determine if call the original handler or not. 
+ */
 s32 FS_Seek(ipcmessage *message, u32 *performed)
 {
 	s32 fd     = message->fd;
@@ -364,6 +403,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 	static struct stats stats ATTRIBUTE_ALIGN(32);
 
 	u32 *inbuf = message->ioctl.buffer_in;
+	u32  inlen = message->ioctl.length_in;
 	u32 *iobuf = message->ioctl.buffer_io;
 	u32  iolen = message->ioctl.length_io;
 	u32  cmd   = message->ioctl.command;
@@ -697,12 +737,16 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 	/** Set FS mode **/
 	case IOCTL_ISFS_SETMODE: {
+		/* Set flag */
+		*performed = 1;
+
+		/* Check input */
+		if (inbuf == NULL || inlen < 4)
+			return IPC_ENOENT;
+
 		u32 mode = inbuf[0];
 
 		FS_printf("FS_SetMode(%d, \"/\")\n", mode);
-
-		/* Set flag */
-		*performed = 1;
 		
 		return __FS_SetMode(mode, "");
 	}
@@ -854,6 +898,14 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 
 	/** Set FS mode **/
 	case IOCTL_ISFS_SETMODE: {
+
+		/* Set flag */
+		*performed = 1;
+
+		/* Check input */
+		if (vector == NULL || inlen == 0)
+			return IPC_ENOENT;
+
 		u32  mode  = *(u32 *)vector[0].data;
 		char *path = "";
 
@@ -862,15 +914,22 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 			path = (char *)vector[1].data;
 
 		FS_printf("FS_SetMode(%d, \"%s\")\n", mode, path);
-
-		/* Set flag */
-		*performed = 1;
 		
 		return __FS_SetMode(mode, path);
 	}
 
 	/** Get FS mode **/
 	case IOCTL_ISFS_GETMODE: {
+
+		/* Set flag */
+		*performed = 1;
+
+		/* When a title is running this command can be invoked through ES only */
+		if (Swi_GetRunningTitle() && !Swi_GetEsRequest()) {
+			Stealth_Log(STEALTH_RUNNING_TITLE | STEALTH_ES_REQUEST, FFS, "IOCTL_ISFS_GETMODE");
+			return IPC_ENOENT;
+		}
+
 		u32  *mode     = (u32 *) vector[0].data;
 		u32   mode_len = (u32)   vector[0].len;
 		char *path     = (char *)vector[1].data;
@@ -885,9 +944,6 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 		/* Flush cache */
 		os_sync_after_write(mode, mode_len);
 		os_sync_after_write(path, path_len);
-
-		/* Set flag */
-		*performed = 1;
 		
 		return 0;
 	}

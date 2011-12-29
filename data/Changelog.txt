@@ -3,6 +3,25 @@
 +-----------+
 
 
+[ d2x v8 ]
+
+- Enhanced stealth mode to prevent cios detection.
+- Added ioctl command to enable/disable stealth mode when a game is not
+  running. Stealth mode is enabled by default.
+- IOS reload block is now enabled by default.
+- Fixed IOS reload block failure when the original IOS required by the game
+  is not installed. It works for real and emu nand.
+- Fixed missing cache flush when removing error 002 after IOS reload block.
+  Now syscall kernel_set_version is used instead.
+- Added direct access to syscalls. This allows you to invoke a syscall from
+  inside another syscall.
+- Added support for paths starting with '#' which are used to open files on
+  real nand even if nand emu is on. Also, access to these paths is protected
+  by stealth mode.
+- Removed the unused method 1 for IOS reload block.
+- Minor changes and code clean up.
+
+
 [ d2x v7 ]
 
 - Refactored all modules and plugins in order to achieve code reuse through
@@ -19,12 +38,12 @@
 - FAT Module moved a bit forward in memory in order to create the space
   required by the new experimental EHCI module (not released yet).
 - Fixed a bug when closing FAT module.
-- Fixed an alignement issue on file renaming in FFS plugin.
+- Fixed an alignment issue on file renaming in FFS plugin.
 - Removed support for base IOSs with old version like IOS38 v3610.
 - Added ios reload block capability for nand emulation.
 - Removed FAT ISO loading support from DIP plugin (never used by any loader
   and completely useless now thanks to fraglist capability added in v6).
-- Fixed a memory alignement issue that could break ios reload block.
+- Fixed a memory alignment issue that could break ios reload block.
 - Added bidirectional escape for invalid FAT characters in nand emulation.
 - Now FAT_GetUsage returns fake values for WiiWare/VirtualConsole and real 
   values taken from FAT for disc-based Wii games. This workaround has proven 

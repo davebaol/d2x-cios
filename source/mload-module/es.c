@@ -1,10 +1,9 @@
 /*   
-	Custom IOS Library
+	Custom IOS Module (MLOAD)
 
 	Copyright (C) 2008 neimod.
-	Copyright (C) 2009 WiiGator.
-	Copyright (C) 2009 Waninkoko.
 	Copyright (C) 2010 Hermes.
+	Copyright (C) 2010 Waninkoko.
 	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
@@ -22,25 +21,27 @@
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef _IOSINFO_H_
-#define _IOSINFO_H_
-
+#include "syscalls.h"
 #include "types.h"
 
-/* IOS info structure */
-typedef struct {
-	/* Syscall base */
-	u32 syscallBase;
-
-	/* Module versions */
-	u32 dipVersion;
-	u32 esVersion;
-	u32 ffsVersion;
-	u32 iopVersion;
-} iosInfo;
+/* IOCTL commands */
+#define IOCTL_ES_LAUNCHMIOS	0x1337
 
 
-/* Extern global variable */
-extern iosInfo ios;
+s32 ES_LaunchMIOS(void)
+{
+	s32 fd, ret;
 
-#endif
+	/* Open ES */
+	fd = os_open("/dev/es", 0);
+	if (fd < 0)
+		return fd;
+
+	/* Call IOCTLV */
+	ret = os_ioctlv(fd, IOCTL_ES_LAUNCHMIOS, 0, 0, NULL);
+
+	/* Close ES */
+	os_close(fd);
+
+	return ret;
+}

@@ -29,7 +29,7 @@
 #ifdef DEBUG
 s32 (*DI_Printf)(const char * fmt, ...);
 #else
-#define DI_Printf(fmt, ...)
+#define DI_Printf(fmt, ...)     do {} while (0)
 #endif
 s32   (*DI_ReadHash)(void); 
 void *(*DI_Alloc)(u32 size, u32 align);

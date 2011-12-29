@@ -86,8 +86,8 @@
 	syscall 0x40, os_sync_after_write
 	syscall 0x42, os_ios_boot
 	syscall 0x46, os_check_DI_reset
-	syscall 0x4c, os_set_version
-	syscall 0x4d, os_get_version
+	syscall 0x4c, os_kernel_set_version
+	syscall 0x4d, os_kernel_get_version
 	syscall 0x4f, os_virt_to_phys
 	syscall 0x50, os_set_dvd_video_mode
 	syscall 0x54, os_set_ahbprot

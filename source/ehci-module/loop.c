@@ -27,10 +27,10 @@
 
 #include "ehci_types.h"
 #include "ehci.h"
-#include "es.h"
 #include "ipc.h"
 #include "mem.h"
 #include "module.h"
+#include "stealth.h"
 #include "syscalls.h"
 #include "usbstorage.h"
 #include "utils.h"
@@ -374,15 +374,9 @@ s32 EHCI_Loop(void)
 			char *devpath  = message->open.device;
 			s32   resultfd = message->open.resultfd;
 
-			u64 tid;
-
-			/* Get title ID */
-			ret = ES_GetTitleID(&tid);
-
-			/* Check title ID */
-			if (ret >= 0) {
-				svc_write("EHCI: Title identified. Blocking opening request.\n");
-
+			/* Block opening request if a title is running */
+			ret = Stealth_CheckRunningTitle("EHCI", NULL);
+			if (ret) {
 				ret = IPC_ENOENT;
 				break;
 			}

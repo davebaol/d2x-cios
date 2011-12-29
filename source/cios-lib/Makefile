@@ -21,10 +21,12 @@ LIBS	=
 TARGET	=	cios-lib
 
 # Objects
-OBJS	=	es.o			\
+OBJS	=	direct_syscalls.o	\
+		iosinfo.o		\
 		ipc.o			\
 		isfs.o			\
 		mem.o			\
+		stealth.o		\
 		swi_mload.o		\
 		syscalls.o		\
 		timer.o			\

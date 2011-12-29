@@ -26,6 +26,7 @@ TARGET	=	mload-module
 # Objects
 OBJS	=	debug.o			\
 		di.o			\
+		es.o			\
 		elf.o			\
 		epic.o			\
 		gpio.o			\
@@ -34,6 +35,7 @@ OBJS	=	debug.o			\
 		start.o			\
 		swi.o			\
 		swi_asm.o		\
+		tid.o			\
 		usb.o
 
 

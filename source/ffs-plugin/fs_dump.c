@@ -18,8 +18,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
-
 #include "fs_calls.h"
 #include "ioctl.h"
 #include "ipc.h"

@@ -23,13 +23,13 @@
 #define MLOAD_MEMSET			0x4D4C4491
 #define MLOAD_SET_LOG_MODE		0x4D4C44D0
 #define MLOAD_GET_LOG_BUFFER		0x4D4C44D1
+#define MLOAD_SET_STEALTH_MODE		0x4D4C44E0
 
 /* Module space */
 extern u8  exe_mem[];
 extern u32 exe_mem_size;
 
-/* Externs */
-extern iosInfo ios;
+extern u32 stealth_mode;
 
 #endif
  

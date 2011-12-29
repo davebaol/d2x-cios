@@ -22,66 +22,8 @@
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "syscalls.h"
+#include "iosinfo.h"
 #include "types.h"
 
-/* IOCTL commands */
-#define IOCTL_ES_GETTITLEID	0x20
-#define IOCTL_ES_LEET		0x1337
-
-/* Variables */
-static ioctlv vector[8] ATTRIBUTE_ALIGN(32);
-
-
-s32 __ES_Init(void)
-{
-	/* Open /dev/es */
-	return os_open("/dev/es", 0);
-}
-
-void __ES_Close(s32 fd)
-{
-	/* Close /dev/es */
-	os_close(fd);
-}
-
-
-s32 ES_GetTitleID(u64 *tid)
-{
-	s32 fd, ret;
-
-	/* Open ES */
-	fd = __ES_Init();
-	if (fd < 0)
-		return fd;
-
-	/* Setup vector */
-	vector[0].data = tid;
-	vector[0].len  = sizeof(u64);
-
-	/* Get title ID */
-	ret = os_ioctlv(fd, IOCTL_ES_GETTITLEID, 0, 1, vector);
-
-	/* Close ES */
-	__ES_Close(fd);
-
-	return ret;
-}
-
-s32 ES_LeetStuff(void)
-{
-	s32 fd, ret;
-
-	/* Open ES */
-	fd = __ES_Init();
-	if (fd < 0)
-		return fd;
-
-	/* Call IOCTLV */
-	ret = os_ioctlv(fd, IOCTL_ES_LEET, 0, 0, NULL);
-
-	/* Close ES */
-	__ES_Close(fd);
-
-	return ret;
-}
+/* IOS information */
+iosInfo ios = { 0, 0, 0, 0, 0 };

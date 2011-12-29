@@ -28,10 +28,12 @@
 #include "elf.h"
 #include "epic.h"
 #include "es.h"
+#include "iosinfo.h"
 #include "ipc.h"
 #include "mem.h"
 #include "module.h"
 #include "patches.h"
+#include "stealth.h"
 #include "swi_mload.h"
 #include "syscalls.h"
 #include "timer.h"
@@ -43,11 +45,9 @@
 //#define DEBUG_MODE DEBUG_GECKO
 
 
-/* IOS information */
-iosInfo ios = { 0, 0, 0, 0, 0 };
-
-/* Variables */
-s32 offset = 0;
+/* Global variables */
+s32 offset       = 0;
+u32 stealth_mode = 1;     // Stealth mode is on by default
 
 
 s32 __MLoad_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
@@ -174,6 +174,17 @@ s32 __MLoad_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 		break;
 	}
 
+	case MLOAD_SET_STEALTH_MODE: {
+		u32 mode = *(u32 *)vector[0].data;
+
+		/* Set stealth mode */
+		stealth_mode = mode;
+
+		ret = 0;
+
+		break;
+	}
+
 	default:
 		break;
 	}
@@ -220,16 +231,6 @@ void __MLoad_Detect(void)
 
 	/* Set ES version */
 	switch (esAddr) {
-//	case 0x2010147D:		// IOS: ??????  --> NO MORE SUPPORTED
-//		/* ES: 06/03/09 03:45:06 */
-//		ios.esVersion = 0x4A25F1C2;
-//		break;
-
-//	case 0x201013F5:		// IOS: 36v3090, 38v3610  --> NO MORE SUPPORTED
-//		/* ES: 06/03/09 03:36:55 */
-//		ios.esVersion = 0x4A25EFD7;
-//		break;
-
 	case 0x201015A5:		// IOS: 70v6687
 		/* ES: 06/03/09 07:46:02 */
 		ios.esVersion = 0x4A262A3A;
@@ -276,31 +277,18 @@ void __MLoad_Detect(void)
 
 	/* Set IOP version */
 	switch (iopAddr) {
-
 	case 0xFFFF1D60:		// IOS: 37v5662, 53v5662, 55v5662	
 		/* IOSP: 07/11/08 14:34:29 */
 				/* IOSP: 03/01/10 03:28:58 */
-		ios.iopVersion = 0x48776F75;
-		ios.syscall    = 0xFFFF91B0;
+		ios.iopVersion  = 0x48776F75;
+		ios.syscallBase = 0xFFFF91B0;
 
 		break;
 
-	/*
-	 * NOTE:  
-	 * IOS38 v3610 is not supported anymore 
-	 * since has been replaced by IOS38 v4123 (see below)  
-	 */ 
-//	case 0xFFFF1CA0:        // IOS: 38v3610 
-//		/* IOSP: 12/23/08 17:28:32 */
-//		ios.iopVersion = 0x49511FC0;
-//		ios.syscall    = 0xFFFF8AA0;
-//
-//		break;
-
 	case 0xFFFF1D10:		// IOS: 36v3607, 38v4123
 		/* IOSP: 03/01/10 03:13:17 */
-		ios.iopVersion = 0x4B8B30CD;
-		ios.syscall    = 0xFFFF9100;
+		ios.iopVersion  = 0x4B8B30CD;
+		ios.syscallBase = 0xFFFF9100;
 
 		break;
 
@@ -311,15 +299,15 @@ void __MLoad_Detect(void)
 		case 0xFFFF9390:		// IOS: 60v6174, 70v6687	
 			/* IOSP: 11/24/08 15:39:12 */
 					/* IOSP: 06/03/09 07:49:12 */
-			ios.iopVersion = 0x492ACAA0;
-			ios.syscall    = 0xFFFF9390;
+			ios.iopVersion  = 0x492ACAA0;
+			ios.syscallBase = 0xFFFF9390;
 
 			break;
 
 		case 0xFFFF93D0:		// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943	
 			/* IOSP: 03/03/10 10:43:18 */
-			ios.iopVersion = 0x4B8E3D46;
-			ios.syscall    = 0xFFFF93D0;
+			ios.iopVersion  = 0x4B8E3D46;
+			ios.syscallBase = 0xFFFF93D0;
 
 			break;
 		}
@@ -438,15 +426,10 @@ int main(void)
 
 		switch (message->command) {
 		case IOS_OPEN: {
-			u64 tid;
 
-			/* Get title ID */
-			ret = ES_GetTitleID(&tid);
-
-			/* Check title ID */
-			if (ret >= 0) {
-				svc_write("MLOAD: Title identified. Blocking opening request.\n");
-
+			/* Block opening request if a title is running */
+			ret = Stealth_CheckRunningTitle("MLOAD", NULL);
+			if (ret) {
 				ret = IPC_ENOENT;
 				break;
 			}

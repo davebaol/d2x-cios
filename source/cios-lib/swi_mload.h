@@ -26,16 +26,27 @@
 #define _SWI_MLOAD_H_
 
 #include "iosinfo.h"
+#include "tools.h"
 #include "types.h"
+
+typedef s32(*TRCheckFunc)(s32 tid, u32 rights);
+
+/* Macros */
+#define Swi_GetSyscallBase()                          Swi_MLoad( 17,   0,   0, 0)
+#define Swi_SetRunningTitle(V)                        Swi_MLoad( 32, (V),   0, 0)
+#define Swi_GetRunningTitle()                         Swi_MLoad( 33,   0,   0, 0)
+#define Swi_SetEsRequest(V)                           Swi_MLoad( 34, (V),   0, 0)
+#define Swi_GetEsRequest()                            Swi_MLoad( 35,   0,   0, 0)
+#define Swi_AddThreadRights(T, R)                     Swi_MLoad( 36, (T), (R), 0)
+#define Swi_GetThreadRightsCheckFunc()  ((TRCheckFunc)Swi_MLoad( 37,   0,   0, 0))
+#define Swi_LedOn()                                   Swi_MLoad(128,   0,   0, 0)
+#define Swi_LedOff()                                  Swi_MLoad(129,   0,   0, 0)
+#define Swi_LedBlink()                                Swi_MLoad(130,   0,   0, 0)
 
 /* Prototypes */
 void Swi_Memcpy(void *dst, void *src, s32 len);
 void Swi_uMemcpy(void *dst, void *src, s32 len);
 s32  Swi_CallFunc(s32 (*func)(void *in, void *out), void *in, void *out);
-u32  Swi_GetSyscallBase(void);
 u32  Swi_GetIosInfo(iosInfo *buffer);
-void Swi_LedOn(void);
-void Swi_LedOff(void);
-void Swi_LedBlink(void);
 
 #endif

@@ -31,7 +31,7 @@
 #ifdef DEBUG
 s32 (*FS_printf)(const char * fmt, ...);
 #else
-#define FS_printf(fmt, ...)
+#define FS_printf(fmt, ...)     do {} while (0)
 #endif
 
 /* FFS handlers */
@@ -43,8 +43,5 @@ s32 fs_write (void *data);
 s32 fs_seek  (void *data);
 s32 fs_ioctl (void *data);
 s32 fs_ioctlv(void *data);
-
-/* Syscall open hook */
-s32 syscall_open(char *path, s32 mode);
 
 #endif

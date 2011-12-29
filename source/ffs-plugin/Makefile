@@ -21,9 +21,11 @@ LIBS	=	../cios-lib/cios-lib.a
 TARGET	=	ffs-plugin
 
 # Objects
-OBJS	=	fat.o			\
+OBJS	=	iop.o			\
+		iop_calls.o		\
+		fat.o			\
 		fs_calls.o		\
-		fs_dump.o			\
+		fs_dump.o		\
 		fs_tools.o		\
 		main.o			\
 		patches.o		\

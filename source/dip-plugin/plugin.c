@@ -26,10 +26,15 @@
 #include "fat.h"
 #include "ioctl.h"
 #include "plugin.h"
+#include "stealth.h"
+#include "swi_mload.h"
 #include "syscalls.h"
 #include "wbfs.h"
 #include "frag.h"
 #include "string.h"
+
+/* Constants */
+#define DIP    "DIP"
 
 /* Global config */
 static struct dipConfig config = { 0 };
@@ -363,6 +368,10 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 
 	/** Set offset base **/
 	case IOCTL_DI_OFFSET_SET: {
+		/* Check running title */
+		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_OFFSET_SET"))
+			goto handle_cmd;
+
 		u32 offset = inbuf[1];
 
 		/* Set base offset */
@@ -373,6 +382,10 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 
 	/** Get offset base **/
 	case IOCTL_DI_OFFSET_GET: {
+		/* Check running title */
+		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_OFFSET_GET"))
+			goto handle_cmd;
+
 		/* Return offset base */
 		*outbuf = config.offset[0];
 
@@ -381,6 +394,10 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 
 	/** Set crypt mode **/
 	case IOCTL_DI_CRYPT_SET: {
+		/* Check running title */
+		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_CRYPT_SET"))
+			goto handle_cmd;
+
 		u32 mode = inbuf[1];
 
 		/* Enable crypt mode */
@@ -394,6 +411,10 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 
 	/** Get crypt mode **/
 	case IOCTL_DI_CRYPT_GET: {
+		/* Check running title */
+		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_CRYPT_GET"))
+			goto handle_cmd;
+
 		/* Check crypt bit */
 		*outbuf = DI_ChkMode(MODE_CRYPT);
 
@@ -402,6 +423,10 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 
 	/** Set WBFS mode **/
 	case IOCTL_DI_WBFS_SET: {
+		/* Check running title */
+		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_WBFS_SET"))
+			goto handle_cmd;
+
 		u32 device = inbuf[1];
 
 		/* Close WBFS */
@@ -433,6 +458,10 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 
 	/** Get WBFS mode **/
 	case IOCTL_DI_WBFS_GET: {
+		/* Check running title */
+		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_WBFS_GET"))
+			goto handle_cmd;
+
 		/* Check WBFS bit */
 		*outbuf = DI_ChkMode(MODE_WBFS);
 
@@ -441,6 +470,10 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 
 	/** Set FRAG mode **/
 	case IOCTL_DI_FRAG_SET: {
+		/* Check running title */
+		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_FRAG_SET"))
+			goto handle_cmd;
+
 		u32   device   = inbuf[1];
 		void *fraglist = (void*)inbuf[2];
 		u32   size     = inbuf[3];
@@ -477,6 +510,10 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 
 	/** Get IO mode **/
 	case IOCTL_DI_MODE_GET: {
+		/* Check running title */
+		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_MODE_GET"))
+			goto handle_cmd;
+
 		/* return all mode bits */
 		*outbuf = config.mode;
 		break;
@@ -484,6 +521,10 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 
 	/** Save config **/
 	case IOCTL_DI_SAVE_CONFIG: {
+		/* Block any request not coming from ES */
+		if (!Stealth_CheckEsRequest(DIP, "IOCTL_DI_SAVE_CONFIG"))
+			goto handle_cmd;
+
 
 		DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Getting nand emulation config from FFS...\n");
 
@@ -537,6 +578,10 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 
 	/** Disable reset **/
 	case IOCTL_DI_RESET_DISABLE: {
+		/* Check running title */
+		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_RESET_DISABLE"))
+			goto handle_cmd;
+
 		u32 value = inbuf[1];
 
 		/* Disable reset */
@@ -547,6 +592,10 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 
 	/** Send custom DVD command **/
 	case IOCTL_DI_CUSTOMCMD: {
+		/* Check running title */
+		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_CUSTOMCMD"))
+			goto handle_cmd;
+
 		void *buffer = (void *)inbuf[1];
 
 		/* Convert address to physical */
@@ -559,6 +608,8 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 	}
 
 	default:
+		handle_cmd:
+
 		/* Call command */
 		ret = DI_HandleCmd(inbuf, outbuf, size);
 	}
@@ -718,6 +769,14 @@ void __DI_InitDriveEmulation(void)
  */
 void DI_EmulateInitDrive(void)
 {
+	s32 tid;
+
+	/* Get current thread id */
+	tid = os_get_thread_id();
+
+	/* Add thread rights for stealth mode */
+	Swi_AddThreadRights(tid, TID_RIGHTS_OPEN_FAT);
+
 	/* Init DVD driver */
 	DI_HandleInitDrive();
 

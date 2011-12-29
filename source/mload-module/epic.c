@@ -33,7 +33,7 @@
 #include "types.h"
 
 /* Constants */
-#define EPIC_TIME	125000
+#define EPIC_TIME		125000
 
 /* Variables */
 static u32 cnt = 0;
@@ -55,8 +55,8 @@ void __Epic_Trigger(void)
 	/* Sleep 5 seconds */
 	msleep(5000);
 
-	/* Do some ES stuff */
-	ES_LeetStuff();
+	/* Launch MIOS */
+	ES_LaunchMIOS();
 }
 
 

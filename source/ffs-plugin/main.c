@@ -18,15 +18,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "iop.h"
 #include "iosinfo.h"
 #include "patches.h"
 #include "swi_mload.h"
 #include "syscalls.h"
 #include "tools.h"
 #include "types.h"
-
-/* IOS information */
-iosInfo ios = { 0, 0, 0, 0, 0 };
 
 
 s32 __FS_System(u32 arg1, u32 arg2)
@@ -55,6 +53,9 @@ int main(void)
 {
 	/* Print info */
 	svc_write("$IOSVersion: FFSP: " __DATE__ " " __TIME__ " 64M$\n");
+
+	/* Initialize IOP */
+	IOP_Init();
 
 	/* Get IOS info */
 	Swi_GetIosInfo(&ios);

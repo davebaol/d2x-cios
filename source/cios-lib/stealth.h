@@ -22,25 +22,22 @@
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef _IOSINFO_H_
-#define _IOSINFO_H_
+#ifndef _STEALTH_H_
+#define _STEALTH_H_ 
 
 #include "types.h"
 
-/* IOS info structure */
-typedef struct {
-	/* Syscall base */
-	u32 syscallBase;
+/* Constants */
+#define STEALTH_RUNNING_TITLE  0x01
+#define STEALTH_ES_REQUEST     0x02
 
-	/* Module versions */
-	u32 dipVersion;
-	u32 esVersion;
-	u32 ffsVersion;
-	u32 iopVersion;
-} iosInfo;
+#define TID_RIGHTS_FORCE_REAL_NAND  0x01
+#define TID_RIGHTS_OPEN_FAT         0x02
 
 
-/* Extern global variable */
-extern iosInfo ios;
+/* Prototypes */
+s32  Stealth_CheckRunningTitle(const char* module, const char* command);
+s32  Stealth_CheckEsRequest(const char* module, const char* command);
+void Stealth_Log(u32 type, const char* module, const char* command);
 
 #endif
