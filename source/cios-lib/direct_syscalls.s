@@ -23,6 +23,8 @@
  * Macros
  */
 .macro direct_syscall num name
+	.align 4
+	.code 32
 	.global \name
 \name:
 	mov	r11, #(\num)
@@ -36,11 +38,10 @@
 	.text
 
 /*
- * Direct syscalls 
+ * Direct syscall invocation
  *
  * NOTE:
- * Direct syscalls are required when you have to call
- * a syscall from inside a syscall.
+ * Input register r11 specifies the syscall number to jump to.
  */
 	.align 4
 	.code 32
@@ -53,6 +54,13 @@ invoke_direct_syscall:
 	nop
 	bx	r12
 	
+/*
+ * Direct syscalls 
+ *
+ * NOTE:
+ * Direct syscalls are required when you have to call
+ * a syscall from inside a syscall.
+ */
 	direct_syscall 0x03, direct_os_get_thread_id
 	direct_syscall 0x3f, direct_os_sync_before_read
 	direct_syscall 0x40, direct_os_sync_after_write

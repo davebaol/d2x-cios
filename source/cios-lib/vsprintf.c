@@ -315,7 +315,7 @@ int svc_printf( const char *fmt, ...)
 	len = vsprintf(buffer, fmt, args);
 	va_end(args);
   
-  svc_write(buffer);
+	svc_write(buffer);
 
 	return len;
 }

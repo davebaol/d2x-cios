@@ -27,6 +27,7 @@
 #include "fat_wrapper.h"
 #include "ipc.h"
 #include "led.h"
+#include "main.h"
 #include "mem.h"
 #include "module.h"
 #include "sdio.h"
@@ -34,14 +35,6 @@
 #include "timer.h"
 #include "types.h"
 
-//#define DEBUG
-
-#ifdef DEBUG
-#include "vsprintf.h"
-#define dbg_printf(fmt, ...) svc_printf(fmt, ## __VA_ARGS__)
-#else
-#define dbg_printf(fmt, ...)
-#endif
 
 s32 __FAT_Ioctl(s32 fd, u32 cmd, void *inbuf, u32 inlen, void *iobuf, u32 iolen)
 {

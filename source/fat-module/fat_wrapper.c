@@ -248,6 +248,11 @@ s32 FAT_Open(const char *path, u32 mode)
 		/* Free entry */
 		Mem_Free(fil);
 
+		/* File sharing control disabled. See issue 11. */
+		if (_FS_SHARE == 0)
+			return FS_ENOENT;
+
+		/* File sharing control enabled */
 		return ret == FR_TOO_MANY_OPEN_FILES ? FS_ENFILE : FS_ENOENT;
 	}
 

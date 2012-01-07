@@ -81,8 +81,8 @@ typedef struct {
 	const char *path;
 	u8  delete;
 	u8  make;
-	u32 blocks;
-	u32 inodes;
+	s32 blocks;
+	s32 inodes;
 } dirinfo;
 
 #define NUM_FOLDERS 12
@@ -127,7 +127,9 @@ u32 __FS_FakeUsage(const char *path, u32 *blocks, u32 *inodes)
 	s32 cnt;
 
 	for (cnt = 0; cnt < NUM_FOLDERS; cnt++) {
-		if (!strcmp(dirs[cnt].path, path) && dirs[cnt].blocks >= 0 && dirs[cnt].inodes >= 0) {
+		if (!strcmp(dirs[cnt].path, path)) {
+			if (dirs[cnt].blocks == -1 && dirs[cnt].inodes == -1)
+				return 0;			
 			*blocks = dirs[cnt].blocks;
 			*inodes = dirs[cnt].inodes;
 			return 1;			
@@ -752,7 +754,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 	}
 
 	default:
-		FS_printf("FS_Ioctl(): default case reached cmd = %x\n", cmd);
+		FS_printf("FS_Ioctl(): Unknown command 0x%x\n", cmd);
 		break;
 	}
 
@@ -850,12 +852,21 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 			u32 *inodes = (u32 *)vector[2].data;
 			u8  syscode = *(u8*)0x0;
 
+#ifdef DEBUG
+			static char *dbgstr = "FS_GetUsage: Disc based game = %s\n";
+#endif
+
+			FS_printf("FS_GetUsage: Emulating...\n");
+
 			// This is just an ugly workaround.
 			// WiiWare and VirtualConsole seem to work
 			// better with fake values, while disc-based 
 			// Wii games (for example SSBB and MPT) seem
 			// to work better with values taken from FAT.
 			if (syscode != 'R' && syscode != 'S') {
+
+				FS_printf(dbgstr,"FALSE");
+
 				/* Set fake values */
 				*blocks = 1;
 				*inodes = 1;
@@ -866,7 +877,7 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 				char fatpath[FAT_MAXPATH];
 				s32 fake;
 
-				FS_printf("FS_GetUsage: Emulating...\n");
+				FS_printf(dbgstr,"TRUE");
 
 				*blocks = 0;
 				*inodes = 1;        // empty folders return a file count of 1
@@ -949,7 +960,7 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 	}
 
 	default:
-		FS_printf("FS_Ioctlv(): default case reached cmd = %x\n", cmd);
+		FS_printf("FS_Ioctlv(): Unknown command 0x%x\n", cmd);
 		break;
 	}
 

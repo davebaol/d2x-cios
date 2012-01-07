@@ -1,6 +1,9 @@
 /*   
 	Custom IOS Module (FAT)
 
+	Copyright (C) 2008 neimod.
+	Copyright (C) 2009 WiiGator.
+	Copyright (C) 2010 Waninkoko.
 	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
@@ -18,11 +21,16 @@
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef _LED_H_
-#define _LED_H_
+#ifndef _MAIN_H_
+#define _MAIN_H_
 
-void Led_BlinkOn(void);
-void Led_BlinkOff(void);
-void Led_CreateBlinkThread(void);
+//#define DEBUG
+
+#ifdef DEBUG
+#include "vsprintf.h"
+#define dbg_printf(fmt, ...) svc_printf(fmt, ## __VA_ARGS__)
+#else
+#define dbg_printf(fmt, ...) do {} while (0)
+#endif
 
 #endif

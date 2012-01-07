@@ -30,6 +30,8 @@
 #include "tools.h"
 #include "types.h"
 
+//#define IOP_TRACE_OPEN
+
 /* Function pointer */
 static TRCheckFunc CheckThreadRights = NULL;
 
@@ -53,10 +55,17 @@ char *__IOP_SyscallOpen(char *path, s32 mode)
 
 	s32 ret;
 
+#ifdef IOP_TRACE_OPEN
+	svc_write("IOP: open ");svc_write(path);svc_write("\n");
+#endif
+
 	/*
 	 * Paths starting with '#' are always sent to real nand.
 	 * This is an internal feature, only authorized threads 
 	 * can use it.
+	 *
+	 * TODO
+	 * This doesn't work when MODE_REV17 is enabled.
 	 */
 	if (*path == '#') {
 		s32 tid;
