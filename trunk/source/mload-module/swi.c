@@ -79,7 +79,7 @@ s32 Swi_Handler(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 		if (SwiTable[cmd])
 			return SwiTable[cmd](arg0, arg1, arg2, arg3);
 
-			return arg0;
+		return arg0;
 	}
 
 	/* Check argument */

@@ -11,6 +11,8 @@
 - IOS reload block is now enabled by default.
 - Fixed IOS reload block failure when the original IOS required by the game
   is not installed. It works for real and emu nand.
+- Fixed return to channel failure when the system menu is not installed on
+  emu nand.
 - Fixed missing cache flush when removing error 002 after IOS reload block.
   Now syscall kernel_set_version is used instead.
 - Added direct access to syscalls. This allows you to invoke a syscall from
@@ -18,6 +20,10 @@
 - Added support for paths starting with '#' which are used to open files on
   real nand even if nand emu is on. Also, access to these paths is protected
   by stealth mode.
+- Disabled file sharing control in FAT module to overcome a stupid issue made
+  by developers in The Beatles Rock Band. See issue 11.
+- Fixed black screen in partial emulation when starting a game never launched
+  before on real nand. See issue 14.
 - Removed the unused method 1 for IOS reload block.
 - Minor changes and code clean up.
 

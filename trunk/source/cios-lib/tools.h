@@ -29,18 +29,18 @@
 
 
 /* Macros */
-#define DCWrite8(addr, val)	do {	\
-	*(vu8 *)(addr) = (val);	\
+#define DCWrite8(addr, val)	do {			\
+	*(vu8 *)(addr) = (val);				\
 	DCFlushRange((void *)(addr), sizeof(u8));	\
 } while (0)
 
-#define DCWrite16(addr, val)	do {	\
-	*(vu16 *)(addr) = (val);	\
+#define DCWrite16(addr, val)	do {			\
+	*(vu16 *)(addr) = (val);			\
 	DCFlushRange((void *)(addr), sizeof(u16));	\
 } while (0)
 
-#define DCWrite32(addr, val)	do {	\
-	*(vu32 *)(addr) = (val);	\
+#define DCWrite32(addr, val)	do {			\
+	*(vu32 *)(addr) = (val);			\
 	DCFlushRange((void *)(addr), sizeof(u32));	\
 } while (0)
 
@@ -65,4 +65,3 @@ void *VirtToPhys(void *address);
 void *PhysToVirt(void *address);
 
 #endif
-

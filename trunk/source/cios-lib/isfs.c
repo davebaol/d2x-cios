@@ -87,8 +87,8 @@ s32 ISFS_CreateFile(const char *filename)
 	strcpy(isfsBuf.fsattr.filepath, filename);
 
 	/* Set attributes */
-	isfsBuf.fsattr.owner_id = 0;
-	isfsBuf.fsattr.group_id = 0;
+	isfsBuf.fsattr.owner_id  = 0;
+	isfsBuf.fsattr.group_id  = 0;
 	isfsBuf.fsattr.ownerperm = ISFS_OPEN_RW;
 	isfsBuf.fsattr.groupperm = ISFS_OPEN_RW;
 	isfsBuf.fsattr.otherperm = ISFS_OPEN_RW;
@@ -127,9 +127,9 @@ s32 ISFS_SetMode(u32 mode, char *path)
 
 	/* Setup vector */
 	isfsBuf.fsconfig.vector[0].data = &isfsBuf.fsconfig.mode; 
-	isfsBuf.fsconfig.vector[0].len = sizeof(u32); 
+	isfsBuf.fsconfig.vector[0].len  = sizeof(u32); 
 	isfsBuf.fsconfig.vector[1].data = isfsBuf.fsconfig.path; 
-	isfsBuf.fsconfig.vector[1].len = sizeof(isfsBuf.fsconfig.path); 
+	isfsBuf.fsconfig.vector[1].len  = sizeof(isfsBuf.fsconfig.path); 
 
 	/* Flush cache */
 	os_sync_after_write(&isfsBuf, sizeof(isfsBuf)); 
@@ -153,9 +153,9 @@ s32 ISFS_GetMode(u32 *mode, char *path)
 
 	/* Setup vector */
 	isfsBuf.fsconfig.vector[0].data = &isfsBuf.fsconfig.mode;
-	isfsBuf.fsconfig.vector[0].len = sizeof(u32);
+	isfsBuf.fsconfig.vector[0].len  = sizeof(u32);
 	isfsBuf.fsconfig.vector[1].data = isfsBuf.fsconfig.path;
-	isfsBuf.fsconfig.vector[1].len = sizeof(isfsBuf.fsconfig.path);
+	isfsBuf.fsconfig.vector[1].len  = sizeof(isfsBuf.fsconfig.path);
 
 	/* Flush cache */
 	os_sync_after_write(&isfsBuf, sizeof(isfsBuf)); 

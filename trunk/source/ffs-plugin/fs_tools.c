@@ -81,7 +81,9 @@ u32 FS_CheckRealPath(const char *path)
 		/* Never emulate '/tmp/launch.sys' (used by ES_LAUNCHTITLE) */
 		if (!strcmp(path, "/tmp/launch.sys")) return 1;
 
-		/* Full emulation */
+		/*
+		 * Full emulation
+		 */
 		if (config.mode & MODE_FULL) {
 	
 			/* Don't emulate paths starting with '/dev', i.e. virtual devices */
@@ -93,16 +95,47 @@ u32 FS_CheckRealPath(const char *path)
 			return *path != '/';
 		}
 
-		/* Partial emulation */
+		/*
+		 * Partial emulation
+		 */
 
-		if (!strncmp(path, "/ticket/00010001", 16)) return 0;
-		if (!strncmp(path, "/ticket/00010005", 16)) return 0;
-		if (!strncmp(path, "/title/00010000",  15)) return 0;
-		if (!strncmp(path, "/title/00010001",  15)) return 0;
-		if (!strncmp(path, "/title/00010004",  15)) return 0;
-		if (!strncmp(path, "/title/00010005",  15)) return 0;
-		if (!strncmp(path, "/tmp", 4))              return 0;
-		if (!strncmp(path, "/import", 7))           return 0;  /* Used by ES during title install */
+		/* Check /ticket paths */
+		if (!strncmp(path, "/ticket/", 8)) {
+			const char *p = path + 8;
+			if (!strncmp(p, "00010001", 8)) return 0;
+			if (!strncmp(p, "00010005", 8)) return 0;
+			return 1;
+		}
+
+		/* Check /title paths */
+		if (!strncmp(path, "/title/", 7)) {
+			const char *p = path + 7;
+			if (!strncmp(p, "00010000", 8)) return 0;
+			if (!strncmp(p, "00010001", 8)) return 0;
+			if (!strncmp(p, "00010004", 8)) return 0;
+			if (!strncmp(p, "00010005", 8)) return 0;
+			return 1;
+		}
+
+		/* Check /tmp paths */
+		if (!strncmp(path, "/tmp", 4)) {
+			const char *p = path + 4;
+			/* Fix issue 14.
+			 * We have to use /tmp/uid.sys on real nand because
+			 * /sys/uid.sys is no more emulated, see system file
+			 * check below.
+			 * This way FS_Rename("/tmp/uid.sys","/sys/uid.sys")
+			 * called by ES will work. In fact file renaming
+			 * between emulated and real paths is not supported.
+			 */
+			if (!strcmp(p, "/uid.sys")) return 1;
+			return 0;
+		}
+
+		/* Check /import path which is used by ES during title install */
+		if (!strncmp(path, "/import", 7))           return 0;
+
+		/* Check some system files used by ES */
 		if (!strcmp(path, "/sys/disc.sys"))         return 0;
 //		if (!strcmp(path, "/sys/uid.sys"))          return 0;
 	}

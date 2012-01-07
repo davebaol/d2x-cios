@@ -124,7 +124,7 @@ typedef struct {
 } ATTRIBUTE_PACKED tmd;
 
 
-/* Signature Macros */
+/* SignatureMacros */
 #define SIGNATURE_SIZE(x) (\
 	((*(x))==ES_SIG_RSA2048) ? sizeof(sig_rsa2048) : ( \
 	((*(x))==ES_SIG_RSA4096) ? sizeof(sig_rsa4096) : 0 ))
@@ -245,6 +245,119 @@ s32 __ES_SetFakeIosLaunch(u32 mode, u32 ios)
 	return 0;
 }
 
+void __ES_RemoveError002(void *data, u32 len)
+{
+	/* Check whether the cios has been reloaded by a disc-based game */
+	if (config.fakelaunch != 0 && config.title_id != 0) {
+		/* Get TitleMetaData */
+		if (data != NULL && len >= sizeof(sig_rsa2048) + sizeof(tmd)) {
+			tmd* titleMetaData = (tmd*)(data + sizeof(sig_rsa2048));
+ 
+			/* Not matched title ID */
+			if(titleMetaData->title_id != config.title_id) {
+
+				/* Disable ios reload block */
+				config.fakelaunch = 0;
+			}
+			else {
+
+				// Fix d2x v7 beta1
+				// This line 
+				// *(u32 *)0x00003140 = (*((u32 *)0x00003188)) | 0xFFFF;
+				// has been made more general by taking the required IOS
+				// from TMD rather than from MEM1. This way all those
+				// games that reload different IOSs are now supported.
+				// For example in Wii Fit Plus IOS53 is required for the game 
+				// while IOS33 is required for channel installation.
+				// 
+				// Also, since d2x v8 beta1, the syscall os_kernel_set_version
+				// is used instead of assigning address 0x00003140 directly.
+
+				/* Remove error 002 */
+				os_kernel_set_version((((u32)titleMetaData->sys_version)<<16) | 0xFFFF);
+			}
+		}
+
+		/* Reset title ID */
+		config.title_id = 0;
+	}
+}
+
+s32 __ES_FixMissingTitle(s32 justCounting, ioctlv *vector, s32 ret)
+{
+	s32 expectedRet   = justCounting ? 0 : -1017;
+	s32 expectedCount = justCounting ? 0 : FAKE_IOS_TICKET_VIEWS;
+	u32 *count        = vector[1].data;
+	u64 *tid          = (u64 *)vector[0].data;
+
+	/* Check input */
+	if (count == NULL || tid == NULL)
+		return ret;
+
+	/* Check missing IOS for future fake launch, see bug http://code.google.com/p/d2x-cios/issues/detail?id=2 */
+	if (ret == expectedRet && *count == expectedCount) {
+		u32 tidh = (u32)(*tid >> 32);
+		u32 tidl = (u32) *tid;
+
+		/* System title */
+		if (tidh == 1) {
+			u64 fake_tid = 0;
+
+			/* System menu */
+			if (tidl == 2 && config.sm_title_id != 0) {
+				fake_tid = config.sm_title_id;
+			}
+
+
+			/* IOS */
+			if (tidl >= 3 && tidl <= 255 && config.fakelaunch != 0 && config.title_id == 0) {
+				u64 running_tid;
+				s32 ret2;
+
+				/* Get title ID */
+				ret2 = __ES_GetTitleID(&running_tid);
+				
+				/* Check a disc-based game is running */
+				if (ret2 >= 0 && IS_DISC_BASED_GAME(running_tid)) {
+
+					/* The required title matches the game IOS */
+					if (tidl == ((*(vu32 *)0x00003140) >> 16)) {
+						fake_tid = 0x0000000100000000LL | config.ios;
+					}
+				}
+			}
+
+			/* Use fake title id */
+			if (fake_tid != 0) {
+				if (justCounting) {
+					ES_printf("__ES_Ioctlv: GetNumTicketViews: Setting fake count...\n");
+
+					/* Set fake count*/
+					*count = FAKE_IOS_TICKET_VIEWS;
+
+					/* Success */
+					ret = 0;
+				}
+				else {
+					s32 ret2;
+
+					tikview *view = (tikview *)vector[2].data;
+					ES_printf("__ES_Ioctlv: GetNumTicketViews: Creating fake ticket view...\n");
+
+					/* Create fake ticket view */
+					ret2 = __ES_GetTicketView((u32)(fake_tid >> 32), (u32)fake_tid , (void *)view);
+
+					/* Success */
+					if (ret2 >= 0)
+						ret = 0;
+				}
+			}
+		}
+	}
+
+	return ret;
+}
+
 s32 ES_EmulateOpen(ipcmessage *message)
 {
 	static s32 stage2_done = 0;
@@ -293,40 +406,8 @@ s32 ES_EmulateIoctlv(ipcmessage *message)
 	case IOCTL_ES_DIVERIFY: {
 		ES_printf("__ES_Ioctlv: DIVerify()\n");
 
-		/* Check whether the cios has been reloaded by a disc-based game */
-		if (config.fakelaunch != 0 && config.title_id != 0) {
-			/* Get TitleMetaData */
-			if (vector[3].data != NULL && vector[3].len >= sizeof(sig_rsa2048) + sizeof(tmd)) {
-				tmd* titleMetaData = (tmd*)(vector[3].data + sizeof(sig_rsa2048));
- 
-				/* Not matched title ID */
-				if(titleMetaData->title_id != config.title_id) {
-
-					/* Disable ios reload block */
-					config.fakelaunch = 0;
-				}
-				else {
-
-					// Fix d2x v7 beta1
-					// This line 
-					// *(u32 *)0x00003140 = (*((u32 *)0x00003188)) | 0xFFFF;
-					// has been made more general by taking the required IOS
-					// from TMD rather than from MEM1. This way all those
-					// games that reload different IOSs are now supported.
-					// For example in Wii Fit Plus IOS53 is required for the game 
-					// while IOS33 is required for channel installation.
-					// 
-					// Also, since d2x v8 beta1, the syscall os_kernel_set_version
-					// is used instead of assigning address 0x00003140 directly.
-
-					/* Remove error 002 */
-					os_kernel_set_version((((u32)titleMetaData->sys_version)<<16) | 0xFFFF);
-				}
-			}
-
-			/* Reset title ID */
-			config.title_id = 0;
-		}
+		/* Remove error 002 after IOS reload block */
+		__ES_RemoveError002(vector[3].data, vector[3].len);
 
 		/* Call IOCTLV handler */
 		ret = ES_HandleIoctlv(message);
@@ -342,53 +423,14 @@ s32 ES_EmulateIoctlv(ipcmessage *message)
 	case IOCTL_ES_GETNUMTICKETVIEWS:
 	case IOCTL_ES_GETTICKETVIEWS: {
 		s32 justCounting  = (cmd == IOCTL_ES_GETNUMTICKETVIEWS);
-		s32 expectedRet   = justCounting ? 0 : -1017;
-		s32 expectedCount = justCounting ? 0 : FAKE_IOS_TICKET_VIEWS;
-		u32 *count        = vector[1].data;
 
 		ES_printf("__ES_Ioctlv: Get%sTicketViews()\n", (justCounting ? "Num": ""));
 
 		/* Call IOCTLV handler */
 		ret = ES_HandleIoctlv(message);
 
-		/* Check missing IOS for future fake launch, see bug http://code.google.com/p/d2x-cios/issues/detail?id=2 */
-		if (ret == expectedRet && *count == expectedCount && config.fakelaunch != 0 && config.title_id == 0) {
-			u64 tid  = *(u64 *)vector[0].data;
-			u32 tidh = (u32)(tid >> 32);
-			u32 tidl = (u32) tid;
-
-			/* Check the required title is a IOS */
-			if (tidh == 1 && tidl >= 3 && tidl <= 255) {
-				u64 running_tid;
-				s32 ret2;
-
-				/* Get title ID */
-				ret2 = __ES_GetTitleID(&running_tid);
-				
-				/* Check a disc-based game is running */
-				if (ret2 >= 0 && IS_DISC_BASED_GAME(running_tid)) {
-
-					/* The required title matches the game IOS */
-					if (tidl == ((*(vu32 *)0x00003140) >> 16)) {
-						if (justCounting) {
-							ES_printf("__ES_Ioctlv: GetNumTicketViews: Setting fake count...\n");
-
-							/* Set fake count*/
-							*count = FAKE_IOS_TICKET_VIEWS;
-						}
-						else {
-							tikview *view = (tikview *)vector[2].data;
-							ES_printf("__ES_Ioctlv: GetNumTicketViews: Creating fake ticket view...\n");
-
-							/* Create fake ticket view */
-							ret2 = __ES_GetTicketView(tidh, config.ios, (void *)view);
-							if (ret2 >= 0)
-								ret = 0;
-						}
-					}
-				}
-			}
-		}
+		/* Fix missing title for fake launch */
+		ret = __ES_FixMissingTitle(justCounting, vector, ret);
 
 		ES_printf("__ES_Ioctlv: Get%sTicketViews: ret = %d\n", (justCounting ? "Num": ""), ret);
 

@@ -23,7 +23,6 @@
 #include "fat.h"
 #include "fs_calls.h"
 #include "ipc.h"
-#include "isfs.h"
 #include "syscalls.h"
 #include "tools.h"
 #include "types.h"
@@ -297,7 +296,7 @@ s32 FAT_GetUsage(const char *path, u32 *blocks, u32 *inodes)
 
 	os_sync_before_read(iobuf, sizeof(*iobuf));
 
-	FS_printf("FS_GetUsage(): ret = %d, size = %lu, files = %u, dirs = %u\n", ret, iobuf->usage.size, iobuf->usage.files, iobuf->usage.dirs);
+	FS_printf("FS_GetUsage(): ret = %d, size = %llu, files = %u, dirs = %u\n", ret, iobuf->usage.size, iobuf->usage.files, iobuf->usage.dirs);
 
 	/* Copy data */
 	if (ret >= 0) {

@@ -18,6 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
+
 #include "fs_calls.h"
 #include "ioctl.h"
 #include "ipc.h"
@@ -98,8 +100,20 @@ void FS_Dump_Ioctl(ipcmessage *message, s32 ret)
 		break;
 	}
 
+	/** Set mode **/
+	case IOCTL_ISFS_SETMODE: {
+		FS_printf("FS_SetMode: ret = %d\n", ret);
+		break;
+	}
+
+	/** Get mode **/
+	case IOCTL_ISFS_GETMODE: {
+		FS_printf("FS_GetMode: ret = %d\n", ret);
+		break;
+	}
+
 	default:
-		FS_printf("FS_Ioctl(): default case reached cmd = %x\n", cmd);
+		FS_printf("FS_Ioctl(): Unknown command 0x%x\n", cmd);
 		break;
 	}
 }
@@ -135,12 +149,12 @@ void FS_Dump_Ioctlv(ipcmessage *message, s32 ret)
 	}
 
 	default:
-		FS_printf("FS_Ioctlv(): default case reached cmd = %x\n", cmd);
+		FS_printf("FS_Ioctlv(): Unknown command 0x%x\n", cmd);
 		break;
 	}
 }
 
-void  FS_os_message_queue_ack(struct ipcmessage *message, s32 result)
+void  FS_os_message_queue_ack(ipcmessage *message, s32 result)
 {
 	switch (message->command) {
 	case IOS_OPEN:
