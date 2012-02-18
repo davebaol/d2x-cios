@@ -33,7 +33,9 @@
 #include "usbglue.h"
 #include "wbfs.h"
 
+
 /* Variables */
+char *moduleName = "USBS";
 s32 queuehandle = -1;
 
 /* Async replies */
@@ -243,7 +245,7 @@ int main(void)
 		case IOS_OPEN: {
 
 			/* Block opening request if a title is running */
-			ret = Stealth_CheckRunningTitle("USBS", NULL);
+			ret = Stealth_CheckRunningTitle(NULL);
 			if (ret) {
 				ret = IPC_ENOENT;
 				break;

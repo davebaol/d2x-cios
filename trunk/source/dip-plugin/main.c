@@ -18,52 +18,24 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "iosinfo.h"
+#include "ios.h"
 #include "patches.h"
-#include "swi_mload.h"
 #include "syscalls.h"
-#include "tools.h"
 #include "types.h"
-#include "wbfs.h"
 
 
-s32 __DI_System(u32 arg1, u32 arg2)
-{
-	u32 perms;
-
-	/* Invalidate cache */
-	ICInvalidate();
-
-	/* Apply permissions */
-	perms = Perms_Read();
-	Perms_Write(0xFFFFFFFF);
-
-	/* Patch modules */
-	Patch_DipModule(ios.dipVersion);
-
-	/* Restore permissions */
-	Perms_Write(perms);
-
-	return 0;
-}
-
-s32 __DI_Initialize(void)
-{
-	/* Get IOS info */
-	Swi_GetIosInfo(&ios);
-
-	/* Prepare system */
-	Swi_CallFunc((void *)__DI_System, NULL, NULL);
-
-	return 0;
-}
-
+char *moduleName = "DIP";
 
 int main(void)
 {
+	/* System patchers */
+	static patcher patchers[] = {{Patch_DipModule, 0}};
+
 	/* Print info */
 	svc_write("$IOSVersion: DIPP: " __DATE__ " " __TIME__ " 64M$\n");
 
 	/* Initialize plugin */
-	return __DI_Initialize();
+	IOS_InitSystem(patchers, sizeof(patchers));
+
+	return 0;
 }

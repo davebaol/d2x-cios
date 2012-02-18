@@ -24,8 +24,8 @@
 #include "types.h"
 
 /* Prototypes */
-void Patch_FfsModule(u32 version);
-void Patch_IopModule(u32 version);
+s32 Patch_FfsModule(void);
+s32 Patch_IopModule(void);
 
 #endif
 

@@ -19,48 +19,30 @@
  */
 
 #include "config.h"
-#include "iosinfo.h"
+#include "ios.h"
 #include "ipc.h"
 #include "patches.h"
 #include "plugin.h"
-#include "swi_mload.h"
 #include "syscalls.h"
-#include "tools.h"
 #include "types.h"
 
+char *moduleName = "ES";
 
-s32 __ES_System(u32 arg1, u32 arg2)
+int main(void)
 {
-	u32 perms;
+	/* System patchers */
+	static patcher patchers[] = {{Patch_EsModule, 0}};
 
-	/* Invalidate cache */
-	ICInvalidate();
-
-	/* Apply permissions */
-	perms = Perms_Read();
-	Perms_Write(0xFFFFFFFF);
-
-	/* Patch modules */
-	Patch_EsModule(ios.esVersion);
-
-	/* Restore permissions */
-	Perms_Write(perms);
-
-	return 0;
-}
-
-s32 __ES_Initialize(void)
-{
 	s32 fd;
+
+	/* Print info */
+	svc_write("$IOSVersion: ESP: " __DATE__ " " __TIME__ " 64M$\n");
 
 	/* Load config */
 	Config_Load(&config, sizeof(config));
 
-	/* Get IOS info */
-	Swi_GetIosInfo(&ios);
-
-	/* Prepare system */
-	Swi_CallFunc((void *)__ES_System, NULL, NULL);
+	/* Initialize plugin */
+	IOS_InitSystem(patchers, sizeof(patchers));
 
 	/* Open ES to initialize 2nd stage */
 	fd = os_open("/dev/es", 0);
@@ -68,17 +50,6 @@ s32 __ES_Initialize(void)
 		svc_write("ESP: main: 2nd stage init failed.\n");
 	else
 		os_close(fd);
-
-	return 0;
-}
-
-int main(void)
-{
-	/* Print info */
-	svc_write("$IOSVersion: ESP: " __DATE__ " " __TIME__ " 64M$\n");
-
-	/* Initialize plugin */
-	__ES_Initialize();
 
 	return 0;
 }

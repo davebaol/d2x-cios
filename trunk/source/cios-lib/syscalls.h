@@ -25,8 +25,19 @@
 #ifndef _IOS_SYSCALLS_H_
 #define _IOS_SYSCALLS_H_
 
+#include "ios.h"
 #include "ipc.h"
 #include "types.h"
+
+#ifdef CIOSLIB_DEBUG
+#include "syscalls_dbg.h"
+#define os_sync_before_read(P, S) dbg_os_sync_before_read(P, S, __FUNCTION__, __LINE__)
+#define os_sync_after_write(P, S) dbg_os_sync_after_write(P, S, __FUNCTION__, __LINE__)
+#else
+#define os_sync_before_read(P, S) __os_sync_before_read(P, S)
+#define os_sync_after_write(P, S) __os_sync_after_write(P, S)
+#endif
+
 
 /* IOS syscalls */
 s32   os_thread_create(u32 (*entry)(void *arg), void *arg, void *stack, u32 stacksize, u32 priority, s32 autostart);
@@ -48,8 +59,8 @@ void *os_heap_alloc_aligned(s32 heap, s32 size, s32 align);
 void  os_heap_free(s32 heap, void *ptr);
 s32   os_device_register(const char *devicename, s32 queuehandle);
 void  os_message_queue_ack(void *message, s32 result);
-void  os_sync_before_read(void *ptr, s32 size);
-void  os_sync_after_write(void *ptr, s32 size);
+void  __os_sync_before_read(void *ptr, s32 size);
+void  __os_sync_after_write(void *ptr, s32 size);
 void  os_set_dvd_video_mode(u32 enable);
 void  os_set_ahbprot(u32 enable);
 s32   os_open(const char *device, s32 mode);

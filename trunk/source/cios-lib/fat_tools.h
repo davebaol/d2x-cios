@@ -22,20 +22,13 @@
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef _MEM_H_
-#define _MEM_H_
+#ifndef _FAT_TOOLS_H_
+#define _FAT_TOOLS_H_ 
 
-#include "ios.h"
 #include "types.h"
 
 /* Prototypes */
-s32   Mem_Init(u32 *heapspace, u32 heapspaceSize);
-#ifdef CIOSLIB_DEBUG
-void *Mem_Alloc_Debug(u32 size, const char* func, u32 line);
-#define Mem_Alloc(S) Mem_Alloc_Debug(S, __FUNCTION__, __LINE__)
-#else
-void *Mem_Alloc(u32 size);
-#endif
-void  Mem_Free(void *ptr);
+void FAT_Escape(char *dst, const char *src);
+s32  FAT_Unescape(char *path);
 
 #endif

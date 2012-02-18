@@ -1,6 +1,9 @@
 /*   
-	Custom IOS Module (FAT)
+	Custom IOS Module (MLOAD)
 
+	Copyright (C) 2008 Nuke.
+	Copyright (C) 2009 marcan.
+	Copyright (C) 2009 dhewg.
 	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
@@ -18,19 +21,14 @@
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef _LED_H_
-#define _LED_H_
+#ifndef __GECKO_H__
+#define __GECKO_H__
 
-#define LED_ACTIVITY
+#include "types.h"
 
-#ifdef LED_ACTIVITY
-void Led_BlinkOn(void);
-void Led_BlinkOff(void);
-void Led_CreateBlinkThread(void);
-#else
-#define Led_BlinkOn()             do {} while (0)
-#define Led_BlinkOff()            do {} while (0)
-#define Led_CreateBlinkThread()   do {} while (0)
-#endif
+void Gecko_Init(void);
+u8   Gecko_EnableConsole(const u8 enable);
+u32  Gecko_SendString(const char *string);
 
 #endif
+

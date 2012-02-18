@@ -32,15 +32,29 @@
 
 //#define IOP_TRACE_OPEN
 
+
 /* Function pointer */
 static TRCheckFunc CheckThreadRights = NULL;
 
 
-void __IOP_LogBlockedRequest(char *path)
+s32 __IOP_CheckOpeningRequest(char *path, u32 rights)
 {
-	svc_write("IOP: Unauthorized access to '");
-	svc_write(path);
-	svc_write("'. Blocking opening request.\n");
+	s32 tid, ret;
+
+	/* Get current thread id */
+	tid = direct_os_get_thread_id();
+
+	/* Check thread rights */
+	ret = CheckThreadRights(tid, rights);
+
+	/* Log unauthorized request */
+	if (!ret) {
+		svc_write("IOP: Unauthorized access to '");
+		svc_write(path);
+		svc_write("'. Blocking opening request.\n");
+	}
+
+	return ret;
 }
 
 void IOP_Init()
@@ -63,30 +77,23 @@ char *__IOP_SyscallOpen(char *path, s32 mode)
 	 * Paths starting with '#' are always sent to real nand.
 	 * This is an internal feature, only authorized threads 
 	 * can use it.
-	 *
-	 * TODO
-	 * This doesn't work when MODE_REV17 is enabled.
 	 */
 	if (*path == '#') {
-		s32 tid;
+		/* Check opening request */
+		ret = __IOP_CheckOpeningRequest(path, TID_RIGHTS_FORCE_REAL_NAND);
 
-		/* Get current thread id */
-		tid = direct_os_get_thread_id();
-
-		/* Check thread rights */
-		ret = CheckThreadRights(tid, TID_RIGHTS_FORCE_REAL_NAND);
-
-		/* Block opening request */
-		if (!ret) {
-			/* Write log */
-			__IOP_LogBlockedRequest(path);
-
-			/* Return original path */
+		/* Block request returning original invalid path */
+		if (!ret)
 			return path;
-		}
 
-		/* Copy path skipping '#' */
-		strcpy(newpath, path + 1);
+		/* Copy path */
+		strcpy(newpath, path);
+
+		/* Replace first character */
+		*newpath = '/';
+
+		/* Set flag for mode rev17-like */
+		forceRealPath = ((config.mode & MODE_REV17) != 0);
 
 		/* Return new path */
 		return newpath;
@@ -94,9 +101,14 @@ char *__IOP_SyscallOpen(char *path, s32 mode)
 
 	/*
 	 * When a title is running only authorized threads 
-	 * can open fat
+	 * can open fat.
+	 *
+	 * NOTE:
+	 * Since v8 beta r42 relative fat paths, identified by the initial 
+	 * '$', have been introduced to fix issue 16.
+	 * These paths are always relative to nand emulation folder.
 	 */
-	if (!strncmp(path, "fat", 3)) {
+	if (*path == '$' || !strncmp(path, "fat", 3)) {
 		u32 running_title;
 		
 		/* Check a title is running */
@@ -104,19 +116,11 @@ char *__IOP_SyscallOpen(char *path, s32 mode)
 
 		/* Check thread rigths if a title is running */
 		if (running_title) {
-			s32 tid, ret;
-
-			/* Get current thread id */
-			tid = direct_os_get_thread_id();
-
-			/* Check thread rights */
-			ret = CheckThreadRights(tid, TID_RIGHTS_OPEN_FAT);
+			/* Check opening request */
+			ret = __IOP_CheckOpeningRequest(path, TID_RIGHTS_OPEN_FAT);
 
 			/* Block opening request */
 			if (!ret) {
-				/* Write log */
-				__IOP_LogBlockedRequest(path);
-
 				/* Set new invalid path */
 				strcpy(newpath, "GTFO");
 
@@ -124,6 +128,9 @@ char *__IOP_SyscallOpen(char *path, s32 mode)
 				return newpath;
 			}
 		}
+
+		/* Return original path */
+		return path;
 	}
 
 	/* Emulation mode */
@@ -131,7 +138,12 @@ char *__IOP_SyscallOpen(char *path, s32 mode)
 
 		/* SDHC mode */
 		if (config.mode & MODE_SDHC) {
-			if (!strcmp(path, "/dev/sdio")) {
+			if (!strcmp(path, "/dev/sdio/slot0")) {
+
+				/* Log */
+				svc_write("IOP: The game is trying to open /dev/sdio/slot0.\n");
+				svc_write("IOP: To avoid interferences with emu nand on sd card the request is redirected to /dev/null.\n");
+
 				/* Replace path */
 				strcpy(newpath, "/dev/null");
 
@@ -147,11 +159,12 @@ char *__IOP_SyscallOpen(char *path, s32 mode)
 
 			/* Emulate path */
 			if (!ret) {
-				/* Generate path */
-				FS_GeneratePathWithPrefix(path, newpath);
+				/* Generate relative path */
+				ret = FS_GenerateRelativePath(path, newpath);
 
 				/* Return new path */
-				return newpath;
+				if (ret)
+					return newpath;
 			}
 		}
 	}

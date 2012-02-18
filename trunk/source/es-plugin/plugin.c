@@ -37,7 +37,6 @@
 #define ES_SIG_RSA4096		0x10000
 #define ES_SIG_RSA2048		0x10001
 #define TIK_SIZE		676
-#define ESP			"ESP"
 
 
 /* RSA (2048 bits) signature structure */
@@ -124,7 +123,7 @@ typedef struct {
 } ATTRIBUTE_PACKED tmd;
 
 
-/* SignatureMacros */
+/* Signature Macros */
 #define SIGNATURE_SIZE(x) (\
 	((*(x))==ES_SIG_RSA2048) ? sizeof(sig_rsa2048) : ( \
 	((*(x))==ES_SIG_RSA4096) ? sizeof(sig_rsa4096) : 0 ))
@@ -139,7 +138,6 @@ typedef struct {
 
 /* Global config */
 struct esConfig config = { 0, 0, 0, 0 };
-
 
 s32 __ES_GetTitleID(u64 *tid)
 {
@@ -183,7 +181,7 @@ s32 __ES_GetTicketView(u32 tidh, u32 tidl, u8 *view)
 	s32  fd, ret;
 
 	/* Generate ticket path forcing real nand access with '#' */
-	ES_snprintf(path, sizeof(path), "#/ticket/%08x/%08x.tik", tidh, tidl);
+	ES_snprintf(path, sizeof(path), "#ticket/%08x/%08x.tik", tidh, tidl);
 
 	/* Open ticket */
 	fd = os_open(path, 1);
@@ -251,7 +249,7 @@ void __ES_RemoveError002(void *data, u32 len)
 	if (config.fakelaunch != 0 && config.title_id != 0) {
 		/* Get TitleMetaData */
 		if (data != NULL && len >= sizeof(sig_rsa2048) + sizeof(tmd)) {
-			tmd* titleMetaData = (tmd*)(data + sizeof(sig_rsa2048));
+			tmd *titleMetaData = (tmd *)(data + sizeof(sig_rsa2048));
  
 			/* Not matched title ID */
 			if(titleMetaData->title_id != config.title_id) {
@@ -383,13 +381,15 @@ s32 ES_EmulateOpen(ipcmessage *message)
 		/* Add thread rights for stealth mode */
 		ret = Swi_AddThreadRights(tid, TID_RIGHTS_FORCE_REAL_NAND);
 
+		/* Enable PPC HW access */
+		os_set_ahbprot(1);
+
 		/* Mark stage 2 as initilized */
 		stage2_done = 1;
 	}
 
 	/* Call OPEN handler */
 	return ES_HandleOpen(message);
-
 }
 
 s32 ES_EmulateIoctlv(ipcmessage *message)
@@ -400,7 +400,7 @@ s32 ES_EmulateIoctlv(ipcmessage *message)
 	u32     cmd    = message->ioctlv.command;
 
 	s32 ret;
-
+  
 	/* Parse command */
 	switch (cmd) {
 	case IOCTL_ES_DIVERIFY: {
@@ -510,7 +510,7 @@ s32 ES_EmulateIoctlv(ipcmessage *message)
 		ES_printf("__ES_Ioctlv: SetFakeIosLaunch()\n");
 
 		/* Block custom command if a title is running */
-		ret = Stealth_CheckRunningTitle(ESP, "IOCTL_ES_SET_FAKE_IOS_LAUNCH");
+		ret = Stealth_CheckRunningTitle("IOCTL_ES_SET_FAKE_IOS_LAUNCH");
 		if (ret)
 			return IPC_ENOENT;
 
@@ -525,7 +525,7 @@ s32 ES_EmulateIoctlv(ipcmessage *message)
 		ES_printf("__ES_Ioctlv: SetFakeSystemMenuLaunch()\n");
 
 		/* Block custom command if a title is running */
-		ret = Stealth_CheckRunningTitle(ESP, "IOCTL_ES_SET_FAKE_SM_LAUNCH");
+		ret = Stealth_CheckRunningTitle("IOCTL_ES_SET_FAKE_SM_LAUNCH");
 		if (ret)
 			return IPC_ENOENT;
 
@@ -541,7 +541,7 @@ s32 ES_EmulateIoctlv(ipcmessage *message)
 		ES_printf("__ES_Ioctlv: LanchMIOS()\n");
 
 		/* Block custom command if a title is running */
-		ret = Stealth_CheckRunningTitle(ESP, "IOCTL_ES_LAUNCHMIOS");
+		ret = Stealth_CheckRunningTitle("IOCTL_ES_LAUNCHMIOS");
 		if (ret)
 			return IPC_ENOENT;
 

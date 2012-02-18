@@ -61,7 +61,7 @@ struct fstats {
 
 
 /* Prototypes */
-s32 FAT_Init(void);
+s32 FAT_Init(const char *nandpath);
 s32 FAT_CreateDir(const char *dirpath);
 s32 FAT_CreateFile(const char *filepath);
 s32 FAT_ReadDir(const char *dirpath, void *outbuf, u32 *entries);

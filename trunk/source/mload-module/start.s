@@ -28,7 +28,7 @@
 	.EQU	ios_thread_priority,	0x79
 	.EQU	ios_thread_stacksize,	0x2000
 
-	.EQU	exe_mem_size,		0x80000
+	.EQU	__exe_mem_size,		0x80000
 	.EQU	swi_stacksize,		0x900
 
 
@@ -78,6 +78,16 @@ IRQ9_Exit:
 	bx	lr
 
 
+/*
+ * Modules space size
+ */
+	.align 4
+
+	.global exe_mem_size
+exe_mem_size:
+	.long __exe_mem_size
+
+
 
 /*
  * Modules space
@@ -85,9 +95,8 @@ IRQ9_Exit:
 	.section ".exe_mem", "aw", %progbits 
 
 	.global exe_mem
-	.global exe_mem_size
 exe_mem:
-	.space	exe_mem_size
+	.space	__exe_mem_size
 
 
 /*

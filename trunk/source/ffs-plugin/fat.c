@@ -45,6 +45,7 @@
 #define IOCTL_FAT_UMOUNT_SD	0xF1
 #define IOCTL_FAT_MOUNT_USB	0xF2
 #define IOCTL_FAT_UMOUNT_USB	0xF3
+#define IOCTL_FAT_SETNANDPATH	0xF5
 
 /* FAT structure */
 typedef struct {
@@ -94,7 +95,7 @@ static s32 fatFd = 0;
 static fatBuf *iobuf = NULL;
 
 
-s32 FAT_Init(void)
+s32 FAT_Init(const char *nandpath)
 {
 	/* FAT module already open */
 	if (fatFd > 0)
@@ -112,7 +113,14 @@ s32 FAT_Init(void)
 	if (fatFd < 0)
 		return fatFd;
 
-	return 0;
+	/* Copy path */
+	strcpy(iobuf->filename, nandpath);
+
+	/* Flush cache */
+	os_sync_after_write(iobuf->filename, FAT_MAXPATH);
+
+	/* Set nand path */
+	return os_ioctl(fatFd, IOCTL_FAT_SETNANDPATH, iobuf->filename, FAT_MAXPATH, NULL, 0);
 }
 
 s32 FAT_CreateDir(const char *dirpath)
@@ -124,6 +132,7 @@ s32 FAT_CreateDir(const char *dirpath)
 	iobuf->vector[0].data = iobuf->filename;
 	iobuf->vector[0].len  = FAT_MAXPATH;
 
+	/* Flush cache */
 	os_sync_after_write(iobuf, sizeof(*iobuf));
 
 	/* Create directory */
@@ -139,6 +148,7 @@ s32 FAT_CreateFile(const char *filepath)
 	iobuf->vector[0].data = iobuf->filename;
 	iobuf->vector[0].len  = FAT_MAXPATH;
 
+	/* Flush cache */
 	os_sync_after_write(iobuf, sizeof(*iobuf));
 
 	/* Create file */
@@ -179,6 +189,7 @@ s32 FAT_ReadDir(const char *dirpath, void *outbuf, u32 *entries)
 		iobuf->vector[3].len  = 4;
 	}
 
+	/* Flush cache */
 	os_sync_after_write(iobuf, sizeof(*iobuf));
 
 	/* Read directory */
@@ -202,6 +213,7 @@ s32 FAT_Delete(const char *path)
 	iobuf->vector[0].data = iobuf->filename;
 	iobuf->vector[0].len  = FAT_MAXPATH;
 
+	/* Flush cache */
 	os_sync_after_write(iobuf, sizeof(*iobuf));
 
 	/* Delete */
@@ -217,6 +229,7 @@ s32 FAT_DeleteDir(const char *dirpath)
 	iobuf->vector[0].data = iobuf->filename;
 	iobuf->vector[0].len  = FAT_MAXPATH;
 
+	/* Flush cache */
 	os_sync_after_write(iobuf, sizeof(*iobuf));
 
 	/* Delete directory */
@@ -235,6 +248,7 @@ s32 FAT_Rename(const char *oldpath, const char *newpath)
 	iobuf->vector[1].data = iobuf->rename.newname;
 	iobuf->vector[1].len  = FAT_MAXPATH;
 
+	/* Flush cache */
 	os_sync_after_write(iobuf, sizeof(*iobuf));
 
 	/* Rename */
@@ -254,6 +268,7 @@ s32 FAT_GetStats(const char *path, struct stats *stats)
 	iobuf->vector[1].data = &iobuf->stats.stats;
 	iobuf->vector[1].len  = sizeof(struct stats);
 
+	/* Flush cache */
 	os_sync_after_write(iobuf, sizeof(*iobuf));
 
 	/* Get stats */
@@ -267,7 +282,7 @@ s32 FAT_GetStats(const char *path, struct stats *stats)
 
 		/* Flush cache */
 		os_sync_after_write(stats, sizeof(struct stats));
-  }
+	}
 
 	return ret;
 }
@@ -289,6 +304,7 @@ s32 FAT_GetUsage(const char *path, u32 *blocks, u32 *inodes)
 	iobuf->vector[3].data = &iobuf->usage.dirs;
 	iobuf->vector[3].len  = 4;
 
+	/* Flush cache */
 	os_sync_after_write(iobuf, sizeof(*iobuf));
 
 	/* Get usage */

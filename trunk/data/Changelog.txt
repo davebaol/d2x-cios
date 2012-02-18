@@ -20,10 +20,20 @@
 - Added support for paths starting with '#' which are used to open files on
   real nand even if nand emu is on. Also, access to these paths is protected
   by stealth mode.
+- FAT files are now opened through relative path to fix issue 16. Now Disney 
+  Universe and all the games using long paths work properly in nand emulation.
 - Disabled file sharing control in FAT module to overcome a stupid issue made
   by developers in The Beatles Rock Band. See issue 11.
 - Fixed black screen in partial emulation when starting a game never launched
   before on real nand. See issue 14.
+- Added support for virtual sector size on WBFS drives to bypass the 500 game
+  limit (thanks fig2k4). The optimal sector size is 4KB, that allows up to 4084
+  games. Note that this feature is useful only for the loaders that don't use
+  the fraglist for WBFS partitions, for example NeoGamma, WiiFlow and CFG.
+- AHBPROT is now really enabled.
+- USB Gecko functions completely rewritten. Now it's really plug&play and the
+  cios works even when debug mode is enabled and USB Gecko is connected only to
+  the Wii (tnx to mini source).
 - Removed the unused method 1 for IOS reload block.
 - Minor changes and code clean up.
 

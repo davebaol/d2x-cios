@@ -18,10 +18,22 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ios.h"
 #include "plugin.h"
 #include "syscalls.h"
 #include "tools.h"
 
+
+typedef struct {
+	u32 init;
+	u32 ioctl;
+	u32 cmd;
+	u32 readHash;
+	u32 alloc;
+	u32 free;
+	u32 printf;
+	u32 readCtrl;
+} dipAddrInfo;
 
 /* Addresses */
 u32 addr_handleInitDrive = 0;
@@ -36,60 +48,90 @@ void *(*DI_Alloc)(u32 size, u32 align)    = 0;
 void  (*DI_Free)(void *ptr)               = 0;
 
 
-void __Patch_DipModule(u32 aInit, u32 aIoctl, u32 aCmd, u32 aReadHash,  
-		u32 aAlloc, u32 aFree, u32 aPrintf, u32 aReadCtrl)
+void __Patch_DipModule(dipAddrInfo *aInfo)
 {
 	/* Patch DVD driver init stage 2 */
-	DCWrite32(aInit    , 0x4B004718);
-	DCWrite32(aInit + 4, (u32)DI_EmulateInitDrive);
+	DCWrite32(aInfo->init    , 0x4B004718);
+	DCWrite32(aInfo->init + 4, (u32)DI_EmulateInitDrive);
 
 	/* Patch IOCTL handler */
-	DCWrite32(aIoctl,     0x4B004718);
-	DCWrite32(aIoctl + 4, (u32)DI_EmulateIoctl);
+	DCWrite32(aInfo->ioctl,     0x4B004718);
+	DCWrite32(aInfo->ioctl + 4, (u32)DI_EmulateIoctl);
 		
 	/* Patch command handler */
-	DCWrite32(aCmd,     0x4B004718);
-	DCWrite32(aCmd + 4, (u32)DI_EmulateCmd);
+	DCWrite32(aInfo->cmd,     0x4B004718);
+	DCWrite32(aInfo->cmd + 4, (u32)DI_EmulateCmd);
 
 	/* Set addresses */
-	addr_handleInitDrive = (aInit  +  8) + 1;
-	addr_handleIoctl     = (aIoctl + 12) + 1;
-	addr_handleCmd       = (aCmd   + 12) + 1;
-	dip_readctrl         = (u8 *) aReadCtrl;
+	addr_handleInitDrive = (aInfo->init  +  8) + 1;
+	addr_handleIoctl     = (aInfo->ioctl + 12) + 1;
+	addr_handleCmd       = (aInfo->cmd   + 12) + 1;
+	dip_readctrl         = (u8 *) aInfo->readCtrl;
 
 	/* Set function pointers */
-	DI_ReadHash = (void *)aReadHash + 1;
-	DI_Alloc    = (void *)aAlloc    + 1;
-	DI_Free     = (void *)aFree     + 1;
-	DI_Printf   = (void *)aPrintf   + 1;
+	DI_ReadHash = (void *)aInfo->readHash + 1;
+	DI_Alloc    = (void *)aInfo->alloc    + 1;
+	DI_Free     = (void *)aInfo->free     + 1;
+	DI_Printf   = (void *)aInfo->printf   + 1;
 }
 
-void Patch_DipModule(u32 version)
+s32 Patch_DipModule(void)
 {
-	switch (version) {
+	switch (ios.dipVersion) {
 	/** 07/11/08 14:34:26 **/
-	case 0x48776F72:        // IOS: 37v5662, 53v5662, 55v5662
-		__Patch_DipModule(0x20200074, 0x20200400, 0x20200EF8, 0x20202A70, 
-				0x2020096C, 0x2020093C, 0x2020387C, 0x2022DD60);
+	case 0x48776F72: {      // IOS: 37v5662, 53v5662, 55v5662
+		static dipAddrInfo aInfo = {
+			0x20200074,	// init
+			0x20200400,	// ioctl
+			0x20200EF8,	// cmd
+			0x20202A70,	// readHash
+			0x2020096C,	// alloc
+			0x2020093C,	// free
+			0x2020387C,	// printf
+			0x2022DD60	// readCtrl
+		};
+		__Patch_DipModule(&aInfo);
 		break;
+	}
 
 	/** 07/24/08 20:08:44 **/
-	case 0x4888E14C:        // IOS: 36v3607, 38v4123
-		__Patch_DipModule(0x20200068, 0x202003B8, 0x20200D2C, 0x20202874, 
-				0x202008C4, 0x20200898, 0x2020365C, 0x2022CDAC);
+	case 0x4888E14C: {      // IOS: 36v3607, 38v4123
+		static dipAddrInfo aInfo = {
+			0x20200068,	// init
+			0x202003B8,	// ioctl
+			0x20200D2C,	// cmd
+			0x20202874,	// readHash
+			0x202008C4,	// alloc
+			0x20200898,	// free
+			0x2020365C,	// printf
+			0x2022CDAC	// readCtrl
+		};
+		__Patch_DipModule(&aInfo);
 		break;
+	}
 
 	/** 11/24/08 15:39:09 **/
 	case 0x492ACA9D:        // IOS: 60v6174
 	/** 06/03/09 07:49:09 **/
-	case 0x4A262AF5:        // IOS: 56v5661, 57v5918, 58v6175, 61v5661, 70v6687, 80v6943
-		__Patch_DipModule(0x20200074, 0x20200400, 0x20200EF8, 0x20202944, 
-				0x2020096C, 0x2020093C, 0x20203750, 0x2022CD60);
-		break;
-
-	default:
-		svc_write("DIPP: Error -> Can't patch DI module (unknown version)\n");
-
+	case 0x4A262AF5: {       // IOS: 56v5661, 57v5918, 58v6175, 61v5661, 70v6687, 80v6943
+		static dipAddrInfo aInfo = {
+			0x20200074,	// aInit
+			0x20200400,	// aIoctl
+			0x20200EF8,	// aCmd
+			0x20202944,	// aReadHash
+			0x2020096C,	// aAlloc
+			0x2020093C,	// aFree
+			0x20203750,	// aPrintf
+			0x2022CD60	// aReadCtrl
+		};
+		__Patch_DipModule(&aInfo);
 		break;
 	}
+
+	default:
+		/* Unknown version */
+		return IOS_ERROR_DIP;
+	}
+
+	return 0;
 }

@@ -22,8 +22,6 @@
 #include "swi_mload.h"
 #include "types.h"
 
-//#define THREAD_PRIORITY   0x79
-//#define THREAD_PRIORITY   0x62
 #define THREAD_STACK_SIZE 1024
 
 static vu32 state = 1;

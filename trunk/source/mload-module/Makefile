@@ -24,19 +24,20 @@ LIBS	=	../cios-lib/cios-lib.a
 TARGET	=	mload-module
 
 # Objects
-OBJS	=	debug.o			\
-		di.o			\
-		es.o			\
-		elf.o			\
-		epic.o			\
-		gpio.o			\
-		main.o			\
-		patches.o		\
-		start.o			\
-		swi.o			\
-		swi_asm.o		\
-		tid.o			\
-		usb.o
+OBJS	=	debug.o		\
+		detect.o	\
+		di.o		\
+		es.o		\
+		elf.o		\
+		epic.o		\
+		gecko.o		\
+		gpio.o		\
+		main.o		\
+		patches.o	\
+		start.o		\
+		swi.o		\
+		swi_asm.o	\
+		tid.o
 
 
 $(TARGET).elf: $(OBJS) $(LIBS)

@@ -45,5 +45,6 @@ struct fsConfig {
 
 /* Extern */
 extern struct fsConfig config;
- 
+extern u32 forceRealPath;
+
 #endif

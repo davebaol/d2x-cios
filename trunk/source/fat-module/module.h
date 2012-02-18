@@ -20,8 +20,10 @@
 #define IOCTL_FAT_MOUNT_USB	0xF2
 #define IOCTL_FAT_UMOUNT_USB	0xF3
 #define IOCTL_FAT_GETPARTITION	0xF4
+#define IOCTL_FAT_SETNANDPATH	0xF5
 
 /* Device name */
 #define DEVICE_FAT		"fat"
+#define DEVICE_FAT_LEN		(sizeof(DEVICE_FAT)-1)
 
 #endif

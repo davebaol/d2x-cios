@@ -34,6 +34,8 @@
 #include "wbfs.h"
 
 
+char *moduleName = "SDHC";
+
 s32 __SDHC_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 {
 	s32 ret = IPC_EINVAL;
@@ -179,7 +181,7 @@ int main(void)
 		case IOS_OPEN: {
 
 			/* Block opening request if a title is running */
-			ret = Stealth_CheckRunningTitle("SDHC", NULL);
+			ret = Stealth_CheckRunningTitle(NULL);
 			if (ret) {
 				ret = IPC_ENOENT;
 				break;

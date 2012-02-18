@@ -18,12 +18,19 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ios.h"
 #include "iop_calls.h"
 #include "fs_calls.h"
 #include "fs_dump.h"
 #include "syscalls.h"
 #include "tools.h"
 
+
+typedef struct {
+	u32 table;
+	u32 reentry;
+	u32 printf;
+} ffsAddrInfo;
 
 /* FFS jump table */
 static u32 fsTable[8] =
@@ -64,19 +71,29 @@ u32 __geArmBranchDestAddr(u32 addr)
 
 #define __geArmBranchDestOffset(srcAddr, dstAddr)   ((((dstAddr)-(srcAddr))/4-2) & 0xFFFFFF)
 
+static void __PatchSyscall(u32 addr1, u32 addr2, u32 func)
+{
+	/* Patch the syscall to call the new one */
+	DCWrite32(addr2,     0xE51FF004);
+	DCWrite32(addr2 + 4, func);
+
+	/* Patch the jump */
+	DCWrite32(addr1, 0xEA000000 | __geArmBranchDestOffset(addr1, addr2));
+}
+
 #endif
 
-void __Patch_FfsModule(u32 aTable, u32 aReentry, u32 aPrintf)
+void __Patch_FfsModule(ffsAddrInfo *aInfo)
 {
 	/* Set addresses */
-	addrTable   = *(u32 *)aTable;
-	addrReentry = aReentry;
+	addrTable   = *(u32 *)aInfo->table;
+	addrReentry = aInfo->reentry;
 
 	/* Set function pointers */
-	FS_printf = (void *)aPrintf + 1;
+	FS_printf = (void *)aInfo->printf + 1;
 
 	/* Patch command handler */
-	DCWrite32(aTable, (u32)fsTable);
+	DCWrite32(aInfo->table, (u32)fsTable);
 
 #ifdef DEBUG
 #ifdef DUMP
@@ -87,46 +104,60 @@ void __Patch_FfsModule(u32 aTable, u32 aReentry, u32 aPrintf)
 */
 
 	// Calculate address from long branch with link (thumb mode)
-	u32 aMsgAck1 = __geThumbLongBranchWithLinkDestAddr(aReentry + 2) + 4;
+	u32 aMsgAck1 = __geThumbLongBranchWithLinkDestAddr(aInfo->reentry + 2) + 4;
 
 	// Calculate address from branch (ARM mode)
 	u32 aMsgAck2 = __geArmBranchDestAddr(aMsgAck1) + 8;
  
 	/* Patch syscall os_message_queue_ack */
-	if (*((u32 *) aMsgAck2) == 0xE6000570) {
-		/* Patch an unused syscall to store the new FS_os_message_queue_ack entry */
-		DCWrite32(aMsgAck2,     0xE51FF004);
-		DCWrite32(aMsgAck2 + 4, ((u32) FS_os_message_queue_ack) | 1);
-
-		/* Patch the jump */
-		DCWrite32(aMsgAck1, 0xEA000000 | __geArmBranchDestOffset(aMsgAck1, aMsgAck2));
-	}
+	if (*((u32 *) aMsgAck2) == 0xE6000570)
+		__PatchSyscall(aMsgAck1, aMsgAck2, ((u32) FS_os_message_queue_ack) | 1);
 #endif
 #endif
 }
 
-void Patch_FfsModule(u32 version)
-{               
-	switch (version) {
+s32 Patch_FfsModule(void)
+{
+	switch (ios.ffsVersion) {
 	/** 12/24/08 13:48:17 **/
-	case 0x49523DA1:        // IOS: 37v5662, 53v5662, 55v5662
-		__Patch_FfsModule(0x20005F38, 0x20005F0A, 0x20006084);
-		break;
-
-	/** 12/23/08 17:26:21 **/
-	case 0x49511F3D:        // IOS: 36v3607, 38v4123
-		__Patch_FfsModule(0x200021D0, 0x2000219C, 0x200060BC);
-		break;
-
-	/** 11/24/08 15:36:10 **/
-	case 0x492AC9EA:        // IOS: 56v5661, 57v5918, 58v6175, 60v6174, 61v5661, 70v6687, 80v6943
-		__Patch_FfsModule(0x200061B8, 0x2000618A, 0x20006304);
-		break;
-
-	default:
-		svc_write("FFSP: Error -> Can't patch FFS module (unknown version)\n");
+	case 0x49523DA1: {	// IOS: 37v5662, 53v5662, 55v5662
+		static ffsAddrInfo aInfo = {
+			0x20005F38,	// table
+			0x20005F0A,	// reentry
+			0x20006084	// printf
+		};
+		__Patch_FfsModule(&aInfo);
 		break;
 	}
+
+	/** 12/23/08 17:26:21 **/
+	case 0x49511F3D: {	// IOS: 36v3607, 38v4123
+		static ffsAddrInfo aInfo = {
+			0x200021D0,	// table
+			0x2000219C,	// reentry
+			0x200060BC	// printf
+		};
+		__Patch_FfsModule(&aInfo);
+		break;
+	}
+
+	/** 11/24/08 15:36:10 **/
+	case 0x492AC9EA: {	// IOS: 56v5661, 57v5918, 58v6175, 60v6174, 61v5661, 70v6687, 80v6943
+		static ffsAddrInfo aInfo = {
+			0x200061B8,	// table
+			0x2000618A,	// reentry
+			0x20006304	// printf
+		};
+		__Patch_FfsModule(&aInfo);
+		break;
+	}
+
+	default:
+		/* Unknown version */
+		return IOS_ERROR_FFS;
+	}
+
+	return 0;
 }
 
 void __Patch_IopModule(u32 aSysOpen)
@@ -142,11 +173,10 @@ void __Patch_IopModule(u32 aSysOpen)
 	DCWrite32(aSysOpen + 8, (u32)syscall_open);
 }
 
-void Patch_IopModule(u32 version)
+s32 Patch_IopModule(void)
 {
-	switch (version) {
+	switch (ios.iopVersion) {
 	/** 07/11/08 14:34:29 **/
-	/** 03/01/10 03:28:58 **/
 	case 0x48776F75:        // IOS: 37v5662, 53v5662, 55v5662
 		__Patch_IopModule(0xFFFF2E50);
 		break;
@@ -157,7 +187,6 @@ void Patch_IopModule(u32 version)
 		break;
 
 	/** 11/24/08 15:39:12 **/
-	/** 06/03/09 07:49:12 **/
 	/** 03/03/10 10:43:18 **/
 	case 0x492ACAA0:        // IOS: 60v6174, 70v6687 
 	case 0x4B8E3D46:        // IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943 
@@ -165,7 +194,9 @@ void Patch_IopModule(u32 version)
 		break;
 
 	default:
-		svc_write("FFSP: Error -> Can't patch IOP module (unknown version)\n");
-		break;
+		/* Unknown version */
+		return IOS_ERROR_IOP;
 	}
+
+	return 0;
 }

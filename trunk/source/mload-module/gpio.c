@@ -4,6 +4,7 @@
 	Copyright (C) 2008 neimod.
 	Copyright (C) 2010 Hermes.
 	Copyright (C) 2010 Waninkoko.
+	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -21,12 +22,13 @@
 */
 
 #include "gpio.h"
+#include "hollywood.h"
 #include "types.h"
 #include "utils.h"
 
 /* Constants */
-#define GPIO_OUT	0xD8000C0
-#define GPIO_IN		0xD8000E8
+#define GPIO_OUT	HW_GPIO1BOUT
+#define GPIO_IN		HW_GPIO1IN
 
 
 u8 GPIO_Read(u8 bit)

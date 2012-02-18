@@ -170,7 +170,8 @@ int unplug_device=0;
 
 int handshake_mode=0;
 
-#define get_timer()  (*(((volatile u32*)0x0D800010)))
+#include "hollywood.h"
+#define get_timer()  (*(((vu32*)HW_TIMER)))
 
 static int handshake (void __iomem *pstatus, void __iomem *ptr,
 		      u32 mask, u32 done, int usec)
