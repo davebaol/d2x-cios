@@ -25,13 +25,15 @@
 #ifndef _SWI_MLOAD_H_
 #define _SWI_MLOAD_H_
 
-#include "iosinfo.h"
+#include "ios.h"
 #include "tools.h"
 #include "types.h"
 
 typedef s32(*TRCheckFunc)(s32 tid, u32 rights);
 
 /* Macros */
+#define Swi_SetRegister(A, V)                         Swi_MLoad(  5, (A), (V), 0)
+#define Swi_ClearRegister(A, V)                       Swi_MLoad(  6, (A), (V), 0)
 #define Swi_GetSyscallBase()                          Swi_MLoad( 17,   0,   0, 0)
 #define Swi_SetRunningTitle(V)                        Swi_MLoad( 32, (V),   0, 0)
 #define Swi_GetRunningTitle()                         Swi_MLoad( 33,   0,   0, 0)

@@ -36,8 +36,8 @@
 
 
 /* Prototypes */
-s32  Stealth_CheckRunningTitle(const char* module, const char* command);
-s32  Stealth_CheckEsRequest(const char* module, const char* command);
-void Stealth_Log(u32 type, const char* module, const char* command);
+s32  Stealth_CheckRunningTitle(const char* command);
+s32  Stealth_CheckEsRequest(const char* command);
+void Stealth_Log(u32 type, const char* command);
 
 #endif

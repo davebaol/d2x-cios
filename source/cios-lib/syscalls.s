@@ -82,8 +82,8 @@
 	syscall 0x29, os_ioctlv_async
 	syscall 0x2a, os_message_queue_ack
 	syscall 0x34, os_software_IRQ
-	syscall 0x3f, os_sync_before_read
-	syscall 0x40, os_sync_after_write
+	syscall 0x3f, __os_sync_before_read
+	syscall 0x40, __os_sync_after_write
 	syscall 0x42, os_ios_boot
 	syscall 0x46, os_check_DI_reset
 	syscall 0x4c, os_kernel_set_version

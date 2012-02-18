@@ -375,7 +375,7 @@ s32 EHCI_Loop(void)
 			s32   resultfd = message->open.resultfd;
 
 			/* Block opening request if a title is running */
-			ret = Stealth_CheckRunningTitle("EHCI", NULL);
+			ret = Stealth_CheckRunningTitle(NULL);
 			if (ret) {
 				ret = IPC_ENOENT;
 				break;

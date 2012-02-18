@@ -25,10 +25,11 @@
 #include <string.h>
 
 #include "debug.h"
+#include "detect.h"
 #include "elf.h"
 #include "epic.h"
 #include "es.h"
-#include "iosinfo.h"
+#include "ios.h"
 #include "ipc.h"
 #include "mem.h"
 #include "module.h"
@@ -46,6 +47,7 @@
 
 
 /* Global variables */
+char *moduleName = "MLOAD";
 s32 offset       = 0;
 u32 stealth_mode = 1;     // Stealth mode is on by default
 
@@ -195,154 +197,27 @@ s32 __MLoad_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 	return ret;
 }
 
-void __MLoad_Detect(void)
+s32 __MLoad_DisableMem2Protection(void)
 {
-	u32 dipAddr, esAddr, ffsAddr, iopAddr;
+	/* Disable MEM2 protection (so the PPC can access all 64MB) */
+	MEM2_Prot(0);
 
-	/* Get modules addresses */
-	dipAddr = *(vu32 *)0x20200040;
-	esAddr  = *(vu32 *)0x20100044;
-	ffsAddr = *(vu32 *)0x20000044;
-	iopAddr = *(vu32 *)0xFFFF0028;
-
-	/* Set DIP version */
-	switch (dipAddr) {
-
-	case 0x20207F40:		// IOS: 37v5662, 53v5662, 55v5662
-		/* DIP: 07/11/08 14:34:26 */
-		ios.dipVersion = 0x48776F72;
-		break;
-
-	case 0x20207C2C:		// IOS: 36v3607, 38v4123
-		/* DIP: 07/24/08 20:08:44 */
-		ios.dipVersion = 0x4888E14C;
-		break;
-
-	case 0x20207EA8:		// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 70v6687, 80v6943
-		/* DIP: 06/03/09 07:49:09 */
-		ios.dipVersion = 0x4A262AF5;
-		break;
-
-	case 0x20207DB8:		// IOS: 60v6174
-		/* DIP: 11/24/08 15:39:09 */
-		ios.dipVersion = 0x492ACA9D;
-		break;
-	}
-
-	/* Set ES version */
-	switch (esAddr) {
-	case 0x201015A5:		// IOS: 70v6687
-		/* ES: 06/03/09 07:46:02 */
-		ios.esVersion = 0x4A262A3A;
-		break;
-
-	case 0x201014D5:		// IOS: 60v6174
-		/* ES: 11/24/08 15:36:08 */
-		ios.esVersion = 0x492AC9E8;
-		break;
-
-	case 0x201015E9:		// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
-		/* ES: 03/03/10 10:40:14 */
-		ios.esVersion = 0x4B8E90EE;
-		break;
-
-	case 0x2010142D:		// IOS: 37v5662, 53v5662, 55v5662		
-		/* ES: 03/01/10 03:26:03 */
-		ios.esVersion = 0x4B8B882B;
-		break;
-
-	case 0x2010139D:		// IOS: 36v3607, 38v4123
-		/* ES: 03/01/10 03:18:58 */
-		ios.esVersion = 0x4B8B8682;
-		break;
-	}
-
-	/* Set FFS version */
-	switch (ffsAddr) {
-	case 0x20005D89:		// IOS: 37v5662, 53v5662, 55v5662	
-		/* FFS: 12/24/08 13:48:17 */
-		ios.ffsVersion = 0x49523DA1;
-		break;
-
-	case 0x2000200D:		// IOS: 36v3607, 38v4123
-		/* FFS: 12/23/08 17:26:21 */
-		ios.ffsVersion = 0x49511F3D;
-		break;
-
-	case 0x20006009:		// IOS: 56v5661, 57v5918, 58v6175, 60v6174, 61v5661, 70v6687, 80v6943 	
-		/* FFS: 11/24/08 15:36:10 */
-		ios.ffsVersion = 0x492AC9EA;
-		break;
-	}
-
-	/* Set IOP version */
-	switch (iopAddr) {
-	case 0xFFFF1D60:		// IOS: 37v5662, 53v5662, 55v5662	
-		/* IOSP: 07/11/08 14:34:29 */
-				/* IOSP: 03/01/10 03:28:58 */
-		ios.iopVersion  = 0x48776F75;
-		ios.syscallBase = 0xFFFF91B0;
-
-		break;
-
-	case 0xFFFF1D10:		// IOS: 36v3607, 38v4123
-		/* IOSP: 03/01/10 03:13:17 */
-		ios.iopVersion  = 0x4B8B30CD;
-		ios.syscallBase = 0xFFFF9100;
-
-		break;
-
-	case 0xFFFF1F20:
-		iopAddr = *(vu32 *)0xFFFF2418;
-
-		switch (iopAddr) {
-		case 0xFFFF9390:		// IOS: 60v6174, 70v6687	
-			/* IOSP: 11/24/08 15:39:12 */
-					/* IOSP: 06/03/09 07:49:12 */
-			ios.iopVersion  = 0x492ACAA0;
-			ios.syscallBase = 0xFFFF9390;
-
-			break;
-
-		case 0xFFFF93D0:		// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943	
-			/* IOSP: 03/03/10 10:43:18 */
-			ios.iopVersion  = 0x4B8E3D46;
-			ios.syscallBase = 0xFFFF93D0;
-
-			break;
-		}
-
-		break;
-	}
+	return 0;
 }
+
+/* System detectors and patchers */
+static patcher moduleDetectors[] = {
+	{Detect_DipModule, 0},
+	{Detect_EsModule, 0},
+	{Detect_FfsModule, 0},
+	{Detect_IopModule, 0},
+	{Patch_IopModule, 0}  // We want to patch swi vector asap
+};
 
 s32 __MLoad_System(void)
 {
-	u32 perms;
-
-	/* Invalidate cache */
-	ICInvalidate();
-
-	/* Apply permissions */
-	perms = Perms_Read();
-	Perms_Write(0xFFFFFFFF);
-
-	/* Detect modules */
-	__MLoad_Detect();
-
-	/* Apply patches */
-	Patch_DipModule(ios.dipVersion);
-	Patch_EsModule (ios.esVersion);
-	Patch_FfsModule(ios.ffsVersion);
-	Patch_IopModule(ios.iopVersion);
-
-	/* Disable MEM2 protection */
-	MEM2_Prot(0);
-
-	/* Restore permissions */
-	Perms_Write(perms);
-
-	return 0;
+	/* Detect modules and patch swi vector */
+	return IOS_PatchModules(moduleDetectors, sizeof(moduleDetectors));
 }
 
 s32 __MLoad_Initialize(u32 *queuehandle)
@@ -373,11 +248,16 @@ s32 __MLoad_Initialize(u32 *queuehandle)
 	if (ret < 0)
 		return ret;
 
-	/* Enable PPC HW access */
-	os_set_ahbprot(1);
+	/* System patchers */
+	static patcher patchers[] = {
+		{Patch_DipModule, 0},
+		{Patch_EsModule, 0},
+		{Patch_FfsModule, 0},
+		{__MLoad_DisableMem2Protection, 0}
+	};
 
-	/* Software interrupt */
-	os_software_IRQ(9);
+	/* Initialize plugin */
+	IOS_InitSystem(patchers, sizeof(patchers));
 
 	/* Register devices */
 	os_device_register(DEVICE_NAME, ret);
@@ -400,13 +280,22 @@ int main(void)
 	/* Print info */
 	svc_write("$IOSVersion: MLOAD: " __DATE__ " " __TIME__ " 64M$\n");
 
+	/* Call __MLoad_System through software interrupt 9 */
+	ret = os_software_IRQ(9);
+
+	/* Set debug mode */
+ 	Debug_SetMode(DEBUG_MODE);
+
+	/* Check modules patch */
+	if (ret) {
+		svc_write("MLOAD: ERROR -> Can't detect some IOS modules.\n");
+		IOS_CheckPatches(moduleDetectors, sizeof(moduleDetectors));
+	}
+
 	/* Initialize module */
 	ret = __MLoad_Initialize(&queuehandle);
 	if (ret < 0)
 		return ret;
-
-	/* Set debug mode */
- 	Debug_SetMode(DEBUG_MODE);
 
 	/* Initialize stuff */
 	Epic_Init(queuehandle);
@@ -416,7 +305,9 @@ int main(void)
 		ipcmessage *message = NULL;
 
 		/* Wait for message */
-		os_message_queue_receive(queuehandle, (void *)&message, 0);
+		ret = os_message_queue_receive(queuehandle, (void *)&message, 0);
+		if (ret)
+			continue;
 
 		/* Epic stuff */
 		if ((u32)message == EPIC_MESSAGE) {
@@ -428,7 +319,7 @@ int main(void)
 		case IOS_OPEN: {
 
 			/* Block opening request if a title is running */
-			ret = Stealth_CheckRunningTitle("MLOAD", NULL);
+			ret = Stealth_CheckRunningTitle(NULL);
 			if (ret) {
 				ret = IPC_ENOENT;
 				break;

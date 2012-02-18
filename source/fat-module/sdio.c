@@ -491,7 +491,7 @@ static	bool __sd0_initio(void)
 			usleep(10000);
 		}
 
-		if (tries < 0)
+		if (tries <= 0)
 			goto fail;
 
 		if (resp.rsp_fields[0] & (1 << 30))

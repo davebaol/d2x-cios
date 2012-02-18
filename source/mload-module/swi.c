@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "gpio.h"
+#include "ios.h"
 #include "module.h"
 #include "swi.h"
 #include "tools.h"

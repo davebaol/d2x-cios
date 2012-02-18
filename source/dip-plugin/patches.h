@@ -23,7 +23,7 @@
 #include "types.h"
 
 /* Prototypes */
-void Patch_DipModule(u32 version);
+s32 Patch_DipModule(void);
 
 #endif
 

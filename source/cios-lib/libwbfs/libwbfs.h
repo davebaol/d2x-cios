@@ -208,6 +208,9 @@ u32 wbfs_extract_file(wbfs_disc_t*d, char *path);
 // remove some sanity checks
 void wbfs_set_force_mode(int force);
 
+// ratio between physical and virtual sector sizes
+int wbfs_get_hd_sec_sz_ratio(void);
+
 #ifdef __cplusplus
    }
 #endif /* __cplusplus */

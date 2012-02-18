@@ -22,25 +22,13 @@
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef _IOSINFO_H_
-#define _IOSINFO_H_
+#ifndef _LOG_H_
+#define _LOG_H_
 
 #include "types.h"
 
-/* IOS info structure */
-typedef struct {
-	/* Syscall base */
-	u32 syscallBase;
 
-	/* Module versions */
-	u32 dipVersion;
-	u32 esVersion;
-	u32 ffsVersion;
-	u32 iopVersion;
-} iosInfo;
-
-
-/* Extern global variable */
-extern iosInfo ios;
+/* Prototypes */
+void LOG_Write(const char *msg, const char* func, u32 line);
 
 #endif

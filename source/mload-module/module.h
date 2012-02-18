@@ -1,7 +1,6 @@
 #ifndef _MODULE_H_
 #define _MODULE_H_
 
-#include "iosinfo.h"
 #include "types.h"
 
 /* Module info */

@@ -32,13 +32,15 @@
 #include "syscalls.h"
 #include "types.h"
 
+/* Constants */
+#define FORCE_MODE_REV17
+#define MAX_FAT_FD	20
+
 /* Global config */
 struct fsConfig config = { 0, {'\0'}, 0 };
 
-/* Constants */
-//#define FORCE_MODE_REV17
-#define MAX_FAT_FD	20
-#define FFS		"FFS"
+/* Global flag to force real path in mode rev17-like */
+u32 forceRealPath = 0;
 
 static s32 fat_fd[MAX_FAT_FD];
 
@@ -109,8 +111,8 @@ void __FS_PrepareFolders(void)
 
 	/* Create directories */
 	for (cnt = 0; cnt < NUM_FOLDERS; cnt++) {
-		/* Generate path */
-		FS_GeneratePath(dirs[cnt].path, fatpath);
+		/* Generate absolute path */
+		FS_GenerateAbsolutePath(dirs[cnt].path, fatpath);
 
 		/* Delete directory */
 		if (dirs[cnt].delete)
@@ -139,20 +141,17 @@ u32 __FS_FakeUsage(const char *path, u32 *blocks, u32 *inodes)
 	return 0;			
 }
 
-s32 __FS_SetMode(u32 mode, char *path)
+s32 __FS_SetMode(u32 mode, const char *path)
 {
+	s32 ret = 0;
+
 	/* FAT mode enabled */
 	if (mode & (MODE_SDHC | MODE_USB)) {
-		u32 ret;
+		char fatNandPath[FAT_MAXPATH];
 
 		/* Nand emu can not be enabled when a title is running */
-		if (Stealth_CheckRunningTitle(FFS, "IOCTL_ISFS_SETMODE(ON)"))
+		if (Stealth_CheckRunningTitle("IOCTL_ISFS_SETMODE(ON)"))
 			return IPC_ENOENT;
-
-		/* Initialize FAT */
-		ret = FAT_Init();
-		if (ret < 0)
-			return ret;
 
 #ifdef FORCE_MODE_REV17
 		mode |= MODE_REV17;
@@ -169,8 +168,8 @@ s32 __FS_SetMode(u32 mode, char *path)
 			Swi_AddThreadRights(tid, TID_RIGHTS_OPEN_FAT);
 		}
 
-		/* Set FS mode */
-		config.mode = mode;
+		/* Clear open files */
+		__FS_UnregisterAllFiles();
 
 		/* Set nand path */
 		strcpy(config.path, path);
@@ -178,30 +177,40 @@ s32 __FS_SetMode(u32 mode, char *path)
 		/* Set nand path length */
 		config.pathlen = strlen(path);
 
-		/* Clear open files */
-		__FS_UnregisterAllFiles();
+		/* Set FS mode */
+		config.mode = mode;
 
-		/* Prepare folders */
-		__FS_PrepareFolders();
+		/* Generate absolute nand path */
+		FS_GenerateAbsolutePath("", fatNandPath);
+
+		/* Initialize FAT */
+		ret = FAT_Init(fatNandPath);
+		if (ret >= 0) {
+			/* Prepare folders */
+			__FS_PrepareFolders();
+
+			/* Success */
+			return ret;
+		}
 	}
 	else {
 		/* When a title is running nand emu can be disabled through ES only */
 		if (Swi_GetRunningTitle() && !Swi_GetEsRequest()) {
-			Stealth_Log(STEALTH_RUNNING_TITLE | STEALTH_ES_REQUEST, FFS, "IOCTL_ISFS_SETMODE(OFF)");
+			Stealth_Log(STEALTH_RUNNING_TITLE | STEALTH_ES_REQUEST, "IOCTL_ISFS_SETMODE(OFF)");
 			return IPC_ENOENT;
 		}
-
-		/* Set FS mode */
-		config.mode = 0;
-
-		/* Set nand path */
-		config.path[0] = '\0';
-
-		/* Set nand path length */
-		config.pathlen = 0;
 	}
 
-	return 0;
+	/* Set FS mode */
+	config.mode = 0;
+
+	/* Set nand path */
+	config.path[0] = '\0';
+
+	/* Set nand path length */
+	config.pathlen = 0;
+
+	return ret;
 }
 
 /*
@@ -213,10 +222,9 @@ s32 FS_Open(ipcmessage *message, u32 *performed)
 	char *path = message->open.device;
 	u32 mode = message->open.mode;
 
-
 #ifdef DEBUG
 #ifdef FILTER_OPENING_REQUESTS
-	if (strncmp("/dev", path, 3) || !strncmp("/dev/fs", path, 7))
+	if (strncmp(path, "/dev", 4) || !strncmp(path, "/dev/fs", 7))
 #endif
 		FS_printf("FS_Open(\"%s\", %d)\n", path, mode);
 #endif
@@ -225,8 +233,16 @@ s32 FS_Open(ipcmessage *message, u32 *performed)
 	*performed = 0;
 
 	/* FAT mode rev17-like */
-	if (config.mode & MODE_REV17) {
+	if (config.mode & MODE_REV17 ) {
 		s32 ret;
+
+		/* Force real path */
+		if (forceRealPath) {
+			/* Reset flag */
+			forceRealPath = 0;
+
+			return -6;
+		}
 
 		/* Check path */
 		ret = FS_CheckRealPath(path);
@@ -238,8 +254,8 @@ s32 FS_Open(ipcmessage *message, u32 *performed)
 			/* Set flag */
 			*performed = 1;
 
-			/* Generate path */ 
-			FS_GeneratePathWithPrefix(path, fatpath);
+			/* Generate relative path */ 
+			FS_GenerateRelativePath(path, fatpath);
 
 			/* Open file */
 			ret = os_open(fatpath, mode);
@@ -436,8 +452,8 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 			FS_printf("FS_CreateDir: Emulating...\n");
 
-			/* Generate path */
-			FS_GeneratePath(attr->filepath, fatpath);
+			/* Generate absolute path */
+			FS_GenerateAbsolutePath(attr->filepath, fatpath);
 
 			/* Create directory */
 			return FAT_CreateDir(fatpath);
@@ -465,8 +481,8 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 			FS_printf("FS_CreateFile: Emulating...\n");
 
-			/* Generate path */
-			FS_GeneratePath(attr->filepath, fatpath);
+			/* Generate absolute path */
+			FS_GenerateAbsolutePath(attr->filepath, fatpath);
 
 			/* Create file */
 			return FAT_CreateFile(fatpath); 
@@ -494,8 +510,8 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 			FS_printf("FS_Delete: Emulating...\n");
 
-			/* Generate path */
-			FS_GeneratePath(filepath, fatpath);
+			/* Generate absolute path */
+			FS_GenerateAbsolutePath(filepath, fatpath);
 
 			/* Delete */
 			return FAT_Delete(fatpath); 
@@ -507,14 +523,19 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 	/** Rename object **/
 	case IOCTL_ISFS_RENAME: {
 		fsrename *rename = (fsrename *)inbuf;
+		s32 ret2;
 
 		FS_printf("FS_Rename(\"%s\", \"%s\")\n", rename->filepathOld, rename->filepathNew);
 
 		/* Check paths */
 		ret  = FS_CheckRealPath(rename->filepathOld);
-		ret |= FS_CheckRealPath(rename->filepathNew);
+		ret2 = FS_CheckRealPath(rename->filepathNew);
 
-		if (ret) {
+		/* Mixed paths are not supported */
+		if (ret ^ ret2)
+			svc_write("FS_Rename: Invalid arguments. Paths must be both real or both emulated.\n");
+
+		if (ret | ret2) {
 			*performed = 0;
 			break;
 		}
@@ -528,9 +549,9 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 			FS_printf("FS_Rename: Emulating...\n");
 
-			/* Generate paths */
-			FS_GeneratePath(rename->filepathOld, oldpath);
-			FS_GeneratePath(rename->filepathNew, newpath);
+			/* Generate absolute paths */
+			FS_GenerateAbsolutePath(rename->filepathOld, oldpath);
+			FS_GenerateAbsolutePath(rename->filepathNew, newpath);
 
 			/* Compare paths */
 			if (strcmp(oldpath, newpath)) {
@@ -640,8 +661,8 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 			FS_printf("FS_GetAttributes: Emulating...\n");
 
-			/* Generate path */
-			FS_GeneratePath(path, fatpath);
+			/* Generate absolute path */
+			FS_GenerateAbsolutePath(path, fatpath);
 
 			/* Check path */
 			ret = FAT_GetStats(fatpath, NULL);
@@ -714,8 +735,8 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 			FS_printf("FS_SetAttributes: Emulating...\n");
 
-			/* Generate path */
-			FS_GeneratePath(attr->filepath, fatpath);
+			/* Generate absolute path */
+			FS_GenerateAbsolutePath(attr->filepath, fatpath);
 
 			/* Check path exists, permission ignored */
 			return FAT_GetStats(fatpath, NULL);
@@ -774,7 +795,7 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 	u32     cmd    = message->ioctlv.command;
 
 	s32 ret;
-
+	
 	/* Set flag */
 	*performed = config.mode;
 
@@ -813,8 +834,8 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 			} else
 				outlen  =  (u32 *)vector[1].data;
 
-			/* Generate path */
-			FS_GeneratePath(dirpath, fatpath);
+			/* Generate absolute path */
+			FS_GenerateAbsolutePath(dirpath, fatpath);
 
 			/* Read directory */
 			ret = FAT_ReadDir(fatpath, outbuf, &entries);
@@ -884,8 +905,8 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 
 				fake = __FS_FakeUsage(dirpath, blocks, inodes);
 			
-				/* Generate path */
-				FS_GeneratePath(dirpath, fatpath);
+				/* Generate absolute path */
+				FS_GenerateAbsolutePath(dirpath, fatpath);
 
 				if (fake) {
 					/* Check path */
@@ -937,7 +958,7 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 
 		/* When a title is running this command can be invoked through ES only */
 		if (Swi_GetRunningTitle() && !Swi_GetEsRequest()) {
-			Stealth_Log(STEALTH_RUNNING_TITLE | STEALTH_ES_REQUEST, FFS, "IOCTL_ISFS_GETMODE");
+			Stealth_Log(STEALTH_RUNNING_TITLE | STEALTH_ES_REQUEST, "IOCTL_ISFS_GETMODE");
 			return IPC_ENOENT;
 		}
 

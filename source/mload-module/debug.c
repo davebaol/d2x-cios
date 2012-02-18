@@ -4,6 +4,7 @@
 	Copyright (C) 2008 neimod.
 	Copyright (C) 2010 Hermes.
 	Copyright (C) 2010 Waninkoko.
+	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -24,9 +25,9 @@
 #include <string.h>
 
 #include "debug.h"
+#include "gecko.h"
 #include "swi.h"
 #include "types.h"
-#include "usb.h"
 
 /* Constants */
 #define LOG_SIZE	4095
@@ -73,31 +74,20 @@ s32 __Debug_Buffer(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 
 s32 __Debug_Gecko(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 {
-	static char connected = 0;
-	static char checked   = 0;
-
-	char *msg = (char *)arg1;
+	static char gecko_inited = 0;
 
 	/* Check command */
 	if (arg0 != 4)
 		return arg0;
 
-	/* Check for USB Gecko */
-	if (!checked) {
-		connected = usb_checkgecko();
-		checked   = 1;
+	/* Init USB Gecko */
+	if (!gecko_inited) {
+		Gecko_Init();
+		gecko_inited = 1;
 	}
 
-	/* USB Gecko connected */
-	if (connected) {
-		u32 len;
-
-		/* Message length */
-		len = strnlen(msg, 128);
-
-		/* Send message */
-		usb_sendbuffersafe(msg, len);
-	}
+	/* Send message */
+	Gecko_SendString((char *)arg1);
 
 	return 0;
 }
@@ -119,13 +109,13 @@ s32 Debug_SetMode(u8 mode)
 		/* Clear buffer */
 		memset(buffer, 0, sizeof(buffer));
 
-		/* Set text handler */
+		/* Set buffer text handler */
 		*SwiText = __Debug_Buffer;
 
 		break;
 
 	case DEBUG_GECKO:
-		/* Set text handler */
+		/* Set usb gecko text handler */
 		*SwiText = __Debug_Gecko;
 
 		break;

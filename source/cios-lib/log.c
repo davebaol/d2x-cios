@@ -22,59 +22,22 @@
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "stealth.h"
-#include "swi_mload.h"
+#include <string.h>
+
+#include "ios.h"
+#include "str_utils.h"
 #include "syscalls.h"
 #include "types.h"
 
-
-s32 Stealth_CheckRunningTitle(const char* command)
+void LOG_Write(const char *msg, const char* func, u32 line)
 {
-	s32 ret;
+	static char buffer[8];
 
-	/* Get stealth mode */
-	ret = Swi_GetRunningTitle();
-
-	 /* Trace blocked request */
-	if (ret)
-		Stealth_Log(STEALTH_RUNNING_TITLE, command);
-
-	return ret;
-}
-
-s32 Stealth_CheckEsRequest(const char* command)
-{
-	s32 ret;
-
-	/* Get ES status */
-	ret = Swi_GetEsRequest();
-
-	/* Trace blocked request */
-	if (!ret)
-		Stealth_Log(STEALTH_ES_REQUEST, command);
-
-	return ret;
-}
-
-void Stealth_Log(u32 type, const char* command)
-{
 	svc_write(moduleName);
-	svc_write(": ");
-	if (type & STEALTH_RUNNING_TITLE) {
-		svc_write("Title identified");
-		if (type & STEALTH_ES_REQUEST)
-			svc_write(" or ");
-	}
-	if (type & STEALTH_ES_REQUEST)
-		svc_write("Request not coming from ES");
-	svc_write(". Blocking ");
-	if (command) {
-		svc_write("custom command ");
-		svc_write(command);
-	}
-	else
-		svc_write("opening request");
-	svc_write(".\n");
+	svc_write(": (");
+	svc_write(func);
+	svc_write(", ");
+	svc_write(itoa(line, buffer, 10));
+	svc_write(") : ");
+	svc_write(msg);
 }
-
-

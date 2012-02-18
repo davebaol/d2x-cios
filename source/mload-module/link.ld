@@ -6,7 +6,7 @@ ENTRY(_start)
 MEMORY {
 	table		: ORIGIN = 0x0, LENGTH = 0x4000
 	exe(rwx)	: ORIGIN = 0x136d0000, LENGTH = 0x2000
-	ram(rw)		: ORIGIN = 0x136d2000, LENGTH = 0x8000
+	ram(rw)		: ORIGIN = 0x136d2000, LENGTH = 0x9000
 	mem(rw)		: ORIGIN = 0x13700000, LENGTH = 0x80000
 }
 

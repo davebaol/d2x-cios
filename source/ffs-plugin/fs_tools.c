@@ -20,43 +20,11 @@
 
 #include <string.h>
 
+#include "fat_tools.h"
 #include "fs_tools.h"
 #include "fat.h"
 #include "plugin.h"
 #include "types.h"
-
-#define FAT_DEVICE       "fat"
-#define FAT_DEVICE_LEN   3
-
-
-void __FS_CopyPath(char *dst, const char *src)
-{
-	char c;
-
-	/* Escape invalid FAT characters */
-	while ((c = *(src++)) != '\0') {
-		char *esc;
-
-		/* Check character */
-		switch (c) {
-		case '"': esc = "&qt;"; break;   // Escape double quote
-		case '*': esc = "&st;"; break;   // Escape star
-		case ':': esc = "&cl;"; break;   // Escape colon
-		case '<': esc = "&lt;"; break;   // Escape lesser than
-		case '>': esc = "&gt;"; break;   // Escape greater than
-		case '?': esc = "&qm;"; break;   // Escape question mark
-		case '|': esc = "&vb;"; break;   // Escape vertical bar
-		default: *(dst++) = c; continue; // Copy valid FAT character
-		}
-
-		/* Replace escape sequence */
-		strcpy(dst, esc);
-		dst += 4;
-	}
-
-	/* End of string */
-	*dst = '\0';
-}
 
 
 u16 FS_GetUID(void)
@@ -157,7 +125,12 @@ u32 FS_MatchPath(char *path, const char *pattern, s32 strict)
 	return 1;
 }
 
-void FS_GeneratePath(const char *fspath, char *fatpath)
+/*
+ * NOTE:
+ * - Absolute paths are typically used to work on FAT files through ioctl commands.
+ * - Only the invalid FAT characters after the nand folder are escaped.
+ */
+void FS_GenerateAbsolutePath(const char *fspath, char *fatpath)
 {
 	u32 device = config.mode & (MODE_SDHC | MODE_USB);
 
@@ -177,18 +150,28 @@ void FS_GeneratePath(const char *fspath, char *fatpath)
 	/* Append nand folder */
 	strcpy(fatpath, config.path);
 
-	/* Append and escape required path */
-	__FS_CopyPath(fatpath + config.pathlen, fspath);
+	/* Append escaped path */
+	FAT_Escape(fatpath + config.pathlen, fspath);
 }
 
-s32 FS_GeneratePathWithPrefix(const char *fspath, char *fatpath)
+/*
+ * NOTES:
+ * - Relative paths can be used used only to open FAT files inside the nand folder.
+ * - Relative paths always start with '$' which must NOT be followed by '/'.
+ * - Invalid fat characters inside a relative path are NOT escaped.
+ * - Cunnings above allow you not to waste any character of the 64 allowed
+ *   by IOS on opening requests.
+ */
+s32 FS_GenerateRelativePath(const char *fspath, char *fatpath)
 {
-	/* Set FAT prefix */
-	strcpy(fatpath, FAT_DEVICE);
+	if (*fspath != '/')
+		return 0;
 
-	/* Generate path */
-	FS_GeneratePath(fspath, fatpath + FAT_DEVICE_LEN);
+	/* Copy path */
+	strcpy(fatpath, fspath);
 
-	/* Return prefix length */
-	return FAT_DEVICE_LEN;
+	/* Replace first char */
+	*fatpath = '$';
+
+	return 1;
 }

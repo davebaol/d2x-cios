@@ -24,7 +24,7 @@
 #include "types.h"
 
 /* Prototypes */
-void Patch_EsModule(u32 version);
+s32 Patch_EsModule(void);
 
 #endif
 

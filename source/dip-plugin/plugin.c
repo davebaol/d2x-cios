@@ -33,8 +33,6 @@
 #include "frag.h"
 #include "string.h"
 
-/* Constants */
-#define DIP    "DIP"
 
 /* Global config */
 static struct dipConfig config = { 0 };
@@ -173,6 +171,8 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 
 	s32 res;
 	s32 ret = 0;
+
+	DI_Printf("DIP: DI_EmulateCmd(0x%x)\n", cmd);
 
 	/* Reset error */
 	if (cmd != IOCTL_DI_REQERROR)
@@ -369,7 +369,7 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 	/** Set offset base **/
 	case IOCTL_DI_OFFSET_SET: {
 		/* Check running title */
-		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_OFFSET_SET"))
+		if (Stealth_CheckRunningTitle("IOCTL_DI_OFFSET_SET"))
 			goto handle_cmd;
 
 		u32 offset = inbuf[1];
@@ -383,7 +383,7 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 	/** Get offset base **/
 	case IOCTL_DI_OFFSET_GET: {
 		/* Check running title */
-		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_OFFSET_GET"))
+		if (Stealth_CheckRunningTitle("IOCTL_DI_OFFSET_GET"))
 			goto handle_cmd;
 
 		/* Return offset base */
@@ -395,7 +395,7 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 	/** Set crypt mode **/
 	case IOCTL_DI_CRYPT_SET: {
 		/* Check running title */
-		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_CRYPT_SET"))
+		if (Stealth_CheckRunningTitle("IOCTL_DI_CRYPT_SET"))
 			goto handle_cmd;
 
 		u32 mode = inbuf[1];
@@ -412,7 +412,7 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 	/** Get crypt mode **/
 	case IOCTL_DI_CRYPT_GET: {
 		/* Check running title */
-		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_CRYPT_GET"))
+		if (Stealth_CheckRunningTitle("IOCTL_DI_CRYPT_GET"))
 			goto handle_cmd;
 
 		/* Check crypt bit */
@@ -424,7 +424,7 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 	/** Set WBFS mode **/
 	case IOCTL_DI_WBFS_SET: {
 		/* Check running title */
-		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_WBFS_SET"))
+		if (Stealth_CheckRunningTitle("IOCTL_DI_WBFS_SET"))
 			goto handle_cmd;
 
 		u32 device = inbuf[1];
@@ -459,7 +459,7 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 	/** Get WBFS mode **/
 	case IOCTL_DI_WBFS_GET: {
 		/* Check running title */
-		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_WBFS_GET"))
+		if (Stealth_CheckRunningTitle("IOCTL_DI_WBFS_GET"))
 			goto handle_cmd;
 
 		/* Check WBFS bit */
@@ -471,7 +471,7 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 	/** Set FRAG mode **/
 	case IOCTL_DI_FRAG_SET: {
 		/* Check running title */
-		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_FRAG_SET"))
+		if (Stealth_CheckRunningTitle("IOCTL_DI_FRAG_SET"))
 			goto handle_cmd;
 
 		u32   device   = inbuf[1];
@@ -511,7 +511,7 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 	/** Get IO mode **/
 	case IOCTL_DI_MODE_GET: {
 		/* Check running title */
-		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_MODE_GET"))
+		if (Stealth_CheckRunningTitle("IOCTL_DI_MODE_GET"))
 			goto handle_cmd;
 
 		/* return all mode bits */
@@ -522,7 +522,7 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 	/** Save config **/
 	case IOCTL_DI_SAVE_CONFIG: {
 		/* Block any request not coming from ES */
-		if (!Stealth_CheckEsRequest(DIP, "IOCTL_DI_SAVE_CONFIG"))
+		if (!Stealth_CheckEsRequest("IOCTL_DI_SAVE_CONFIG"))
 			goto handle_cmd;
 
 
@@ -579,7 +579,7 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 	/** Disable reset **/
 	case IOCTL_DI_RESET_DISABLE: {
 		/* Check running title */
-		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_RESET_DISABLE"))
+		if (Stealth_CheckRunningTitle("IOCTL_DI_RESET_DISABLE"))
 			goto handle_cmd;
 
 		u32 value = inbuf[1];
@@ -593,7 +593,7 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 	/** Send custom DVD command **/
 	case IOCTL_DI_CUSTOMCMD: {
 		/* Check running title */
-		if (Stealth_CheckRunningTitle(DIP, "IOCTL_DI_CUSTOMCMD"))
+		if (Stealth_CheckRunningTitle("IOCTL_DI_CUSTOMCMD"))
 			goto handle_cmd;
 
 		void *buffer = (void *)inbuf[1];
@@ -614,6 +614,8 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 		ret = DI_HandleCmd(inbuf, outbuf, size);
 	}
 
+	DI_Printf("DIP: DI_EmulateCmd: ret = 0x%x\n", ret);
+
 	return ret;
 }
 
@@ -624,6 +626,8 @@ s32 DI_EmulateIoctl(ioctl *buffer, s32 fd)
 
 	s32 res;
 	s32 ret = 1;
+
+	DI_Printf("DIP: DI_EmulateIoctl(0x%x)\n", cmd);
 
 	/* Parse command */
 	switch (cmd) {
@@ -699,6 +703,8 @@ s32 DI_EmulateIoctl(ioctl *buffer, s32 fd)
 		/* Call IOCTL */
 		ret = DI_HandleIoctl(buffer, fd);
 	}
+
+	DI_Printf("DIP: DI_EmulateIoctl: ret = 0x%x\n", ret);
 
 	return ret;
 }

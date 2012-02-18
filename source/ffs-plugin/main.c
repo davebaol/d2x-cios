@@ -19,49 +19,30 @@
  */
 
 #include "iop.h"
-#include "iosinfo.h"
+#include "ios.h"
 #include "patches.h"
-#include "swi_mload.h"
 #include "syscalls.h"
-#include "tools.h"
 #include "types.h"
 
 
-s32 __FS_System(u32 arg1, u32 arg2)
-{
-	u32 perms;
-
-	/* Invalidate cache */
-	ICInvalidate();
-
-	/* Apply permissions */
-	perms = Perms_Read();
-	Perms_Write(0xFFFFFFFF);
-
-	/* Patch modules */
-	Patch_FfsModule(ios.ffsVersion);
-	Patch_IopModule(ios.iopVersion);
-
-	/* Restore permissions */
-	Perms_Write(perms);
-
-	return 0;
-}
-
+char *moduleName = "FFS";
 
 int main(void)
 {
+	/* System patchers */
+	static patcher patchers[] = {
+		{Patch_FfsModule, 0},
+		{Patch_IopModule, 0}
+	};
+
 	/* Print info */
 	svc_write("$IOSVersion: FFSP: " __DATE__ " " __TIME__ " 64M$\n");
 
 	/* Initialize IOP */
 	IOP_Init();
 
-	/* Get IOS info */
-	Swi_GetIosInfo(&ios);
-
 	/* Initialize plugin */
-	Swi_CallFunc((void *)__FS_System, NULL, NULL);
+	IOS_InitSystem(patchers, sizeof(patchers));
 
 	return 0;
 }

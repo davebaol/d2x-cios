@@ -28,6 +28,8 @@
 #include "types.h"
 
 
+char *moduleName = "EHCI";
+
 int main(void)
 {
 	/* Heap space */

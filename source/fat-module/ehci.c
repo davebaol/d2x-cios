@@ -55,7 +55,7 @@ static u32    __buffer1[1] ATTRIBUTE_ALIGN(32);
 static u32    __buffer2[1] ATTRIBUTE_ALIGN(32);
 
 
-bool __ehci_Read(u32 sector, u32 numSectors, void *buffer)
+bool __ehci_Read_Write(u32 write, u32 sector, u32 numSectors, void *buffer)
 {
 	ioctlv *vector = __iovec;
 	u32    *offset = __buffer1;
@@ -86,8 +86,15 @@ bool __ehci_Read(u32 sector, u32 numSectors, void *buffer)
 
 	os_sync_after_write(vector, sizeof(ioctlv) * 3);
 
-	/* Read data */
-	ret = os_ioctlv(fd, USB_IOCTL_UMS_READ_SECTORS, 2, 1, vector);
+	if (write) {
+		/* Write data */
+		ret = os_ioctlv(fd, USB_IOCTL_UMS_WRITE_SECTORS, 3, 0, vector);
+	} else {
+		/* Read data */
+		ret = os_ioctlv(fd, USB_IOCTL_UMS_READ_SECTORS, 2, 1, vector);
+	}
+
+	/* Check error */
 	if (ret)
 		return false;
 
@@ -98,47 +105,14 @@ bool __ehci_Read(u32 sector, u32 numSectors, void *buffer)
 	return true;
 }
 
-bool __ehci_Write(u32 sector, u32 numSectors, void *buffer)
+static bool __ehci_Read(u32 sector, u32 numSectors, void *buffer)
 {
-	ioctlv *vector = __iovec;
-	u32    *offset = __buffer1;
-	u32    *length = __buffer2;
+	return __ehci_Read_Write(0, sector, numSectors, buffer);
+}
 
-	u32 cnt, len = (sectorSz * numSectors);
-	s32 ret;
-
-	/* Device not opened */
-	if (fd < 0)
-		return false;
-
-	/* Sector info */
-	*offset = sector;
-	*length = numSectors;
-
-	/* Setup vector */
-	vector[0].data = offset;
-	vector[0].len  = sizeof(u32);
-	vector[1].data = length;
-	vector[1].len  = sizeof(u32);
-	vector[2].data = buffer;
-	vector[2].len  = len;
-
-	/* Flush cache */
-	for (cnt = 0; cnt < 3; cnt++)
-		os_sync_after_write(vector[cnt].data, vector[cnt].len);
-
-	os_sync_after_write(vector, sizeof(ioctlv) * 3);
-
-	/* Write data */
-	ret = os_ioctlv(fd, USB_IOCTL_UMS_WRITE_SECTORS, 3, 0, vector);
-	if (ret)
-		return false;
-
-	/* Invalidate cache */
-	for (cnt = 0; cnt < 3; cnt++)
-		os_sync_before_read(vector[cnt].data, vector[cnt].len);
-
-	return true;
+static bool __ehci_Write(u32 sector, u32 numSectors, void *buffer)
+{
+	return __ehci_Read_Write(1, sector, numSectors, buffer);
 }
 
 // FIX:

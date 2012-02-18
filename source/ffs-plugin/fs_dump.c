@@ -28,6 +28,7 @@
 #include "syscalls.h"
 #include "types.h"
 
+
 void FS_Dump_Ioctl(ipcmessage *message, s32 ret)
 {
 //	u32 *inbuf = message->ioctl.buffer_in;
@@ -106,12 +107,6 @@ void FS_Dump_Ioctl(ipcmessage *message, s32 ret)
 		break;
 	}
 
-	/** Get mode **/
-	case IOCTL_ISFS_GETMODE: {
-		FS_printf("FS_GetMode: ret = %d\n", ret);
-		break;
-	}
-
 	default:
 		FS_printf("FS_Ioctl(): Unknown command 0x%x\n", cmd);
 		break;
@@ -148,6 +143,18 @@ void FS_Dump_Ioctlv(ipcmessage *message, s32 ret)
 		break;
 	}
 
+	/** Set mode **/
+	case IOCTL_ISFS_SETMODE: {
+		FS_printf("FS_SetMode: ret = %d\n", ret);
+		break;
+	}
+
+	/** Get mode **/
+	case IOCTL_ISFS_GETMODE: {
+		FS_printf("FS_GetMode: ret = %d\n", ret);
+		break;
+	}
+
 	default:
 		FS_printf("FS_Ioctlv(): Unknown command 0x%x\n", cmd);
 		break;
@@ -161,9 +168,10 @@ void  FS_os_message_queue_ack(ipcmessage *message, s32 result)
 
 #ifdef DEBUG
 #ifdef FILTER_OPENING_REQUESTS
-		if (strncmp("/dev", message->open.device, 4) || !strncmp("/dev/fs", message->open.device, 7))
+		if (strncmp("/dev", message->open.device, 4) || !strncmp("/dev/fs", message->open.device, 7)) {
 #endif
 			FS_printf("FS_Open: ret = %d\n", result);
+		}
 #endif
 		break;
 

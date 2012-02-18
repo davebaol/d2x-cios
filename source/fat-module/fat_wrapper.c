@@ -27,8 +27,10 @@
 
 #include "ff.h"
 #include "fs.h"
+#include "fat_tools.h"
 #include "fat_wrapper.h"
 #include "ipc.h"
+#include "main.h"
 #include "mem.h"
 #include "types.h"
 #include "ehci.h"
@@ -38,47 +40,12 @@
 static FATFS fatFs[_VOLUMES] ATTRIBUTE_ALIGN(32);
 
 PARTITION VolToPart[_VOLUMES]  ATTRIBUTE_ALIGN(32) = {
-{0,4}, {1,4}
+	{0,4}, {1,4}
 };
 
 /* Long file name buffer */
 static char  lfnBuf[_MAX_LFN + 1] ATTRIBUTE_ALIGN(32);
 
-
-s32 __FAT_Unescape(char *path)
-{
-	char *src = path;
-	char *dst = path;
-	char c;
-
-	/* Unescape invalid FAT characters */
-	while ((c = *(src++)) != '\0') {
-
-		/* Check character */
-		if (c == '&') {
-			if      (!strncmp(src, "qt;", 3)) c = '"'; // Unescape double quote     
-			else if (!strncmp(src, "st;", 3)) c = '*'; // Unescape star             
-			else if (!strncmp(src, "cl;", 3)) c = ':'; // Unescape colon            
-			else if (!strncmp(src, "lt;", 3)) c = '<'; // Unescape lesser than      
-			else if (!strncmp(src, "gt;", 3)) c = '>'; // Unescape greater than     
-			else if (!strncmp(src, "qm;", 3)) c = '?'; // Unescape question mark    
-			else if (!strncmp(src, "vb;", 3)) c = '|'; // Unescape vertical bar     
-
-			/* Skip matched escape sequence */
-			if (c != '&')
-				src += 3;
-		} 
-
-		/* Copy character */
-		*(dst++) = c;
-	}
-
-	/* End of string */
-	*dst = '\0';
-
-	/* Return length */
-	return dst - path;
-}
 
 s32 __FAT_OpenDir(DIR *dir, const char *dirpath)
 {
@@ -245,6 +212,8 @@ s32 FAT_Open(const char *path, u32 mode)
 
 	/* Error */
 	if (ret) {
+		dbg_printf("FAT_Open: fat error %d\n", ret);
+
 		/* Free entry */
 		Mem_Free(fil);
 
@@ -465,7 +434,7 @@ s32 FAT_ReadDir(const char *dirpath, char *outbuf, u32 buflen, u32 *outlen, u32 
 		/* Request coming from FS */
 		if (forFS) {
 			/* Unescape invalid FAT characters in place */
-			len = __FAT_Unescape(name);
+			len = FAT_Unescape(name);
 
 			/* Skip entries too long for FS */
 			if (len > 12)
@@ -698,7 +667,7 @@ s32 FAT_GetUsage(const char *dirpath, u64 *size, u32 *files, u32 *dirs, u8 forFS
 		if (forFS) {
 
 			/* Unescape invalid FAT characters in place */
-			len = __FAT_Unescape(name);
+			len = FAT_Unescape(name);
 
 			/* Skip entries too long for FS */
 			if (len > 12)

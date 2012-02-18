@@ -23,6 +23,8 @@
 */
 
 
+#include "ios.h"
+#include "log.h"
 #include "syscalls.h"
 
 /* Variables */
@@ -46,6 +48,21 @@ void *Mem_Alloc(u32 size)
 	/* Allocate memory */
 	return os_heap_alloc_aligned(hid, size, 32);
 }
+
+#ifdef CIOSLIB_DEBUG
+void *Mem_Alloc_Debug(u32 size, const char* func, u32 line)
+{
+	void *p;
+
+	/* Allocate memory */
+	p = os_heap_alloc_aligned(hid, size, 32);
+
+	if (p == NULL)
+		LOG_Write("Can't allocate memory.\n", func, line);
+
+	return p;
+}
+#endif
 
 void Mem_Free(void *ptr)
 {

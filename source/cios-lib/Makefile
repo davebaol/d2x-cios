@@ -22,21 +22,25 @@ TARGET	=	cios-lib
 
 # Objects
 OBJS	=	direct_syscalls.o	\
-		iosinfo.o		\
+		fat_tools.o		\
+		ios.o			\
 		ipc.o			\
 		isfs.o			\
+		log.o			\
 		mem.o			\
 		stealth.o		\
+		str_utils.o		\
 		swi_mload.o		\
 		syscalls.o		\
+		syscalls_dbg.o		\
 		timer.o			\
 		tools.o			\
 		vsprintf.o
-
+		
 OBJS2	=	libwbfs/libwbfs.o	\
 		libwbfs/rijndael.o	\
 		libwbfs/wiidisc.o
-		
+
 
 $(TARGET).a: $(OBJS) $(OBJS2)
 	@echo -e " AR\t$@"

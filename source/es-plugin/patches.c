@@ -18,10 +18,19 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "ios.h"
 #include "plugin.h"
 #include "syscalls.h"
 #include "tools.h"
 
+
+typedef struct {
+	u32 open;
+	u32 ioctlv;
+	u32 launchTitle;
+	u32 printf;
+	u32 snprintf;
+} esAddrInfo;
 
 /* Addresses */
 u32 addrOpen   = 0;
@@ -33,66 +42,102 @@ s32 (*ES_snprintf)(char *str, u32 size, const char *fmt, ...)    = 0;
 s32 (*ES_LaunchTitle)(u32 tidh, u32 tidl, void *view, u32 reset) = 0;
 
 
-void __Patch_EsModule(u32 aOpen, u32 aIoctlv, u32 aLaunchTitle, u32 aPrintf, u32 aSnprintf)
+void __Patch_EsModule(esAddrInfo *aInfo)
 {
 	/* Patch OPEN handler */
-	DCWrite32(aOpen    , 0x4B004718);
-	DCWrite32(aOpen + 4, (u32)ES_EmulateOpen);
+	DCWrite32(aInfo->open    , 0x4B004718);
+	DCWrite32(aInfo->open + 4, (u32)ES_EmulateOpen);
 
 	/* Patch IOCTLV handler */
-	DCWrite32(aIoctlv    , 0x4B004718);
-	DCWrite32(aIoctlv + 4, (u32)ES_EmulateIoctlv);
+	DCWrite32(aInfo->ioctlv    , 0x4B004718);
+	DCWrite32(aInfo->ioctlv + 4, (u32)ES_EmulateIoctlv);
 
 	/* Set addresses */
-	addrOpen   = aOpen   + 8 + 1;
-	addrIoctlv = aIoctlv + 8 + 1;
+	addrOpen   = aInfo->open   + 8 + 1;
+	addrIoctlv = aInfo->ioctlv + 8 + 1;
 
 	/* Set function pointers */
-	ES_LaunchTitle = (void *)aLaunchTitle + 1;
-	ES_printf      = (void *)aPrintf      + 1;
-	ES_snprintf    = (void *)aSnprintf    + 1;
+	ES_LaunchTitle = (void *)aInfo->launchTitle + 1;
+	ES_printf      = (void *)aInfo->printf      + 1;
+	ES_snprintf    = (void *)aInfo->snprintf    + 1;
 }
 
-void Patch_EsModule(u32 version)
+s32 Patch_EsModule(void)
 {
-	switch (version) {
+	switch (ios.esVersion) {
 	/** 06/03/09 07:46:02 **/
-	case 0x4A262A3A:		// IOS: 70v6687
-		__Patch_EsModule(0x20100048, 0x201000CC, 0x20104CA0, 0x2010A728, 0x2010ABD0);
-
+	case 0x4A262A3A: {	// IOS: 70v6687
+		static esAddrInfo addrInfo = {
+			0x20100048,	// open
+			0x201000CC,	// ioctlv
+			0x20104CA0,	// launchTitle
+			0x2010A728,	// printf
+			0x2010ABD0	// snprintf
+		};
+		__Patch_EsModule(&addrInfo);
 		break;
+	}
 
 	// FIX d2x v7 beta1
 	// Added missing base identification and patch
 	/** 11/24/08 15:36:08 **/
-	case 0x492AC9E8:		// IOS: 60v6174
-		__Patch_EsModule(0x20100048, 0x201000CC, 0x20104770, 0x20109A44, 0x20109EEC);
-
+	case 0x492AC9E8: {	// IOS: 60v6174
+		static esAddrInfo addrInfo = {
+			0x20100048,	// open
+			0x201000CC,	// ioctlv
+			0x20104770,	// launchTitle
+			0x20109A44,	// printf
+			0x20109EEC	// snprintf
+		};
+		__Patch_EsModule(&addrInfo);
 		break;
+	}
 
 	/** 03/03/10 10:40:14 **/
-	case 0x4B8E90EE:		// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
-		__Patch_EsModule(0x20100048, 0x201000CC, 0x20104CF4, 0x2010A7F0, 0x2010AC98);
-
+	case 0x4B8E90EE: {	// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
+		static esAddrInfo addrInfo = {
+			0x20100048,	// open
+			0x201000CC,	// ioctlv
+			0x20104CF4,	// launchTitle
+			0x2010A7F0,	// printf
+			0x2010AC98	// snprintf
+		};
+		__Patch_EsModule(&addrInfo);
 		break;
+	}
 
 	// FIX d2x v5 beta1
 	// Fixed wrong base identification
 	/** 03/01/10 03:26:03 **/
-	case 0x4B8B882B:		// IOS: 37v5662, 53v5662, 55v5662
-		__Patch_EsModule(0x20100048, 0x201000CC, 0x20104818, 0x201099B8, 0x20109E60);
-
-		break;
-
-	/** 03/01/10 03:18:58 **/
-	case 0x4B8B8682:		// IOS: 36v3607, 38v4123
-		__Patch_EsModule(0x20100048, 0x201000CC, 0x20104544, 0x2010933C, 0x201097E4);
-
-		break;
-
-	default:
-		svc_write("ESP: Error -> Can't patch ES module (unknown version)\n");
-
+	case 0x4B8B882B: {	// IOS: 37v5662, 53v5662, 55v5662
+		static esAddrInfo addrInfo = {
+			0x20100048,	// open
+			0x201000CC,	// ioctlv
+			0x20104818,	// launchTitle
+			0x201099B8,	// printf
+			0x20109E60	// snprintf
+		};
+		__Patch_EsModule(&addrInfo);
 		break;
 	}
+
+	/** 03/01/10 03:18:58 **/
+	case 0x4B8B8682: {	// IOS: 36v3607, 38v4123
+		static esAddrInfo addrInfo = {
+			0x20100048,	// open
+			0x201000CC,	// ioctlv
+			0x20104544,	// launchTitle
+			0x2010933C,	// printf
+			0x201097E4	// snprintf
+		};
+		__Patch_EsModule(&addrInfo);
+		break;
+	}
+
+	default:
+		/* Unknown version */
+		return IOS_ERROR_ES;
+	}
+
+	return 0;
 }

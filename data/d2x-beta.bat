@@ -17,20 +17,26 @@ if "%wadname%"=="" goto:endofd2xbat
 
 ::------------------------Section to update (below)--------------------
 ::here you should enter the new beta cIOS hashes (under the OLD non-beta "wadname")
-if /i "%wadname:~0,17%" EQU "cIOS249[37]-d2x-v" set md5=ab5a7f35774cb719bb5ce75ee6a78082
-if /i "%wadname:~0,17%" EQU "cIOS250[37]-d2x-v" set md5=c5aa883a82b019481e891876eeda0168
-if /i "%wadname:~0,17%" EQU "cIOS249[38]-d2x-v" set md5=79bf80e240737d766ecb6ea5fce7fff8
-if /i "%wadname:~0,17%" EQU "cIOS250[38]-d2x-v" set md5=3462805a398872d02d80ea34828c55f0
-if /i "%wadname:~0,17%" EQU "cIOS249[53]-d2x-v" set md5=e0a1fd1ba57ff5bd73bcdfd5616e4c96 
-if /i "%wadname:~0,17%" EQU "cIOS250[53]-d2x-v" set md5=01c96492cbd94ca13daa4f316822ea31
-if /i "%wadname:~0,17%" EQU "cIOS249[55]-d2x-v" set md5=4ad09fce709ae058b64e3be65cb11332
-if /i "%wadname:~0,17%" EQU "cIOS250[55]-d2x-v" set md5=5f1b300060d4356c517b1b516273dca4
-if /i "%wadname:~0,17%" EQU "cIOS249[56]-d2x-v" set md5=7ca2a3edfbbf5a63ad45c2ee0c2a3b73
-if /i "%wadname:~0,17%" EQU "cIOS250[56]-d2x-v" set md5=0cb51ddbadddf8486de834ad125d0540
-if /i "%wadname:~0,17%" EQU "cIOS249[57]-d2x-v" set md5=4ec8dff1afac6d451671187c63708fe1
-if /i "%wadname:~0,17%" EQU "cIOS250[57]-d2x-v" set md5=ed90eb04c16901279824a4f1261f1641 
-if /i "%wadname:~0,17%" EQU "cIOS249[58]-d2x-v" set md5=45372e6092787886d022607521da08ed
-if /i "%wadname:~0,17%" EQU "cIOS250[58]-d2x-v" set md5=ff9b8266313f8130ebc31f26fdf623bb
+if /i "%wadname:~0,17%" EQU "cIOS249[37]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS250[37]-d2x-v" set md5=ac0ffee1eddad70defeca7eadeadbeef
+if /i "%wadname:~0,17%" EQU "cIOS249[38]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS250[38]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS249[53]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS250[53]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS249[55]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS250[55]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS249[56]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS250[56]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS249[57]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS250[57]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS249[58]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS250[58]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS249[60]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS250[60]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS249[70]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS250[70]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS249[80]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
+if /i "%wadname:~0,17%" EQU "cIOS250[80]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
 ::------------------------Section to update (above)--------------------
 
 ::----------Additional Instructions---------------

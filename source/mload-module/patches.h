@@ -4,9 +4,9 @@
 #include "types.h"
 
 /* Prototypes */
-void Patch_DipModule(u32 version);
-void Patch_EsModule (u32 version);
-void Patch_FfsModule(u32 version);
-void Patch_IopModule(u32 version);
+s32 Patch_DipModule(void);
+s32 Patch_EsModule (void);
+s32 Patch_FfsModule(void);
+s32 Patch_IopModule(void);
 
 #endif

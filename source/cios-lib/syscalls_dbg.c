@@ -22,59 +22,32 @@
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "stealth.h"
-#include "swi_mload.h"
+#include "ios.h"
+#include "log.h"
 #include "syscalls.h"
 #include "types.h"
 
 
-s32 Stealth_CheckRunningTitle(const char* command)
+void __dbg_os_sync_check_args(void *ptr, s32 size, const char* func, u32 line)
 {
-	s32 ret;
-
-	/* Get stealth mode */
-	ret = Swi_GetRunningTitle();
-
-	 /* Trace blocked request */
-	if (ret)
-		Stealth_Log(STEALTH_RUNNING_TITLE, command);
-
-	return ret;
-}
-
-s32 Stealth_CheckEsRequest(const char* command)
-{
-	s32 ret;
-
-	/* Get ES status */
-	ret = Swi_GetEsRequest();
-
-	/* Trace blocked request */
-	if (!ret)
-		Stealth_Log(STEALTH_ES_REQUEST, command);
-
-	return ret;
-}
-
-void Stealth_Log(u32 type, const char* command)
-{
-	svc_write(moduleName);
-	svc_write(": ");
-	if (type & STEALTH_RUNNING_TITLE) {
-		svc_write("Title identified");
-		if (type & STEALTH_ES_REQUEST)
-			svc_write(" or ");
+	if (ptr == NULL) {
+		if (size > 0)
+			LOG_Write("buffer is NULL\n", func, line);
 	}
-	if (type & STEALTH_ES_REQUEST)
-		svc_write("Request not coming from ES");
-	svc_write(". Blocking ");
-	if (command) {
-		svc_write("custom command ");
-		svc_write(command);
-	}
-	else
-		svc_write("opening request");
-	svc_write(".\n");
+	else if ((u32)ptr & !31)
+		LOG_Write("buffer non 32 bytes aligned\n", func, line);
+	else if (size & !3)
+		LOG_Write("len non 4 bytes aligned\n", func, line);
 }
 
+void dbg_os_sync_before_read(void *ptr, s32 size, const char* func, u32 line)
+{
+	__dbg_os_sync_check_args(ptr, size, func, line);
+	__os_sync_before_read(ptr, size);
+}
 
+void dbg_os_sync_after_write(void *ptr, s32 size, const char* func, u32 line)
+{
+	__dbg_os_sync_check_args(ptr, size, func, line);
+	__os_sync_after_write(ptr, size);
+}

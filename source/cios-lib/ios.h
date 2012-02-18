@@ -22,20 +22,47 @@
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef _MEM_H_
-#define _MEM_H_
+#ifndef _IOS_H_
+#define _IOS_H_
 
-#include "ios.h"
 #include "types.h"
 
+//#define CIOSLIB_DEBUG
+
+#define IOS_ERROR_DIP -1
+#define IOS_ERROR_ES  -2
+#define IOS_ERROR_FFS -3
+#define IOS_ERROR_IOP -4
+
+/* IOS info structure */
+typedef struct {
+	/* Syscall base */
+	u32 syscallBase;
+
+	/* Module versions */
+	u32 dipVersion;
+	u32 esVersion;
+	u32 ffsVersion;
+	u32 iopVersion;
+} iosInfo;
+
+/* Module patcher function */
+typedef s32(*PatcherFunc)(void);
+
+/* Patcher structure */
+typedef struct {
+    PatcherFunc function;
+    s32         status;
+} patcher;
+
+
+/* Extern global variable */
+extern iosInfo ios;
+extern char *moduleName;
+
 /* Prototypes */
-s32   Mem_Init(u32 *heapspace, u32 heapspaceSize);
-#ifdef CIOSLIB_DEBUG
-void *Mem_Alloc_Debug(u32 size, const char* func, u32 line);
-#define Mem_Alloc(S) Mem_Alloc_Debug(S, __FUNCTION__, __LINE__)
-#else
-void *Mem_Alloc(u32 size);
-#endif
-void  Mem_Free(void *ptr);
+s32 IOS_InitSystem(patcher patchers[], u32 size);
+s32 IOS_CheckPatches(patcher patchers[], u32 size);
+s32 IOS_PatchModules(patcher patchers[], u32 size);
 
 #endif

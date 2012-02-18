@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "ehci.h"
+#include "fat_tools.h"
 #include "fat_wrapper.h"
 #include "ipc.h"
 #include "led.h"
@@ -35,6 +36,11 @@
 #include "timer.h"
 #include "types.h"
 
+
+char *moduleName = "ES";
+
+static char emuNandPath[192] = "/";
+static u32  emuNandPathLen   = 1;
 
 s32 __FAT_Ioctl(s32 fd, u32 cmd, void *inbuf, u32 inlen, void *iobuf, u32 iolen)
 {
@@ -55,6 +61,27 @@ s32 __FAT_Ioctl(s32 fd, u32 cmd, void *inbuf, u32 inlen, void *iobuf, u32 iolen)
 		ret = FAT_GetFileStats(fd, stats);
 		dbg_printf("FAT: IOCTL_FAT_FILESTATS: ret = %d, length = %d, pos = %d\n", ret, ((struct fstats *)stats)->length, ((struct fstats *)stats)->pos);
 
+		break;
+	}
+
+	case IOCTL_FAT_SETNANDPATH: {
+		char *path = inbuf;
+		dbg_printf("FAT: IOCTL_FAT_SETNANDPATH: path = %d\n", path);
+		ret = -4;
+		if (path != NULL && ((u32)path & !31) == 0 && (inlen & !3) == 0) {
+			u32 len = strnlen(path, 192);
+			if (len < 192) {
+				strcpy(emuNandPath, path);
+				emuNandPathLen = len;
+				if(emuNandPath[len] != '/') {
+					emuNandPath[len]   = '/';
+					emuNandPath[len+1] = '\0';
+					emuNandPathLen++;
+				}
+				ret = 0;
+			}
+		}
+		dbg_printf("FAT: IOCTL_FAT_SETNANDPATH: ret = %d\n", ret);
 		break;
 	}
 
@@ -355,6 +382,7 @@ s32 __FAT_Initialize(u32 *queuehandle)
 
 	/* Register device */
 	os_device_register(DEVICE_FAT, ret);
+	os_device_register("$", ret);
 
 	/* Copy queue handler */
 	*queuehandle = ret;
@@ -391,21 +419,29 @@ int main(void)
 		case IOS_OPEN: {
 			char *devpath = message->open.device;
 			u32   mode    = message->open.mode;
-			u32   len;
 
-			/* Prefix length */
-			len = strlen(DEVICE_FAT);
+			if (*devpath == '$') {
+				char path[256];
 
-			if (!strcmp(devpath, DEVICE_FAT)) {
+				/* Build absolute path to emu nand */
+				strcpy(path, emuNandPath);
+				FAT_Escape(path+emuNandPathLen, devpath+1);
+
+				dbg_printf("FAT: IOS_OPEN: Opening relative file %s\n", devpath);
+				/* Open file */
+				ret = FAT_Open(path, mode);
+				dbg_printf("FAT: IOS_OPEN: ret = %d\n", ret);
+			}
+			else if (!strcmp(devpath, DEVICE_FAT)) {
 				/* Open module */
 				dbg_printf("FAT: IOS_OPEN: Opening FAT module\n");
 				ret = 0;
 				dbg_printf("FAT: IOS_OPEN: ret = %d\n", ret);
 			}
-			else if (!strncmp(devpath, DEVICE_FAT, len)) {
-				dbg_printf("FAT: IOS_OPEN: Opening file %s\n", devpath + len);
+			else if (!strncmp(devpath, DEVICE_FAT, DEVICE_FAT_LEN)) {
 				/* Open file */
-				ret = FAT_Open(devpath + len, mode);
+				dbg_printf("FAT: IOS_OPEN: Opening absolute file %s\n", devpath + DEVICE_FAT_LEN);
+				ret = FAT_Open(devpath + DEVICE_FAT_LEN, mode);
 				dbg_printf("FAT: IOS_OPEN: ret = %d\n", ret);
 			}
 			else {
