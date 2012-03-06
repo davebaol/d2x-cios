@@ -139,7 +139,7 @@ typedef struct {
 /* Global config */
 struct esConfig config = { 0, 0, 0, 0 };
 
-s32 __ES_GetTitleID(u64 *tid)
+static s32 __ES_GetTitleID(u64 *tid)
 {
 	// FIX v7
 	// Now these 2 variables are static and aligned.
@@ -173,7 +173,7 @@ s32 __ES_GetTitleID(u64 *tid)
 	return ret;
 }
 
-s32 __ES_GetTicketView(u32 tidh, u32 tidl, u8 *view)
+static s32 __ES_GetTicketView(u32 tidh, u32 tidl, u8 *view)
 {
 	static u8 buffer[TIK_SIZE] ATTRIBUTE_ALIGN(32);
 
@@ -198,29 +198,16 @@ s32 __ES_GetTicketView(u32 tidh, u32 tidl, u8 *view)
 	if (ret < 0)
 		return ret;
 
-	/* Clear ticket view */
-	memset(view, 0, 0xD8);
-
 	/* Generate ticket view */
-	*(u8 *) (view + 0x00) = *(u8 *) (buffer + 0x1BC);
-	*(u64 *)(view + 0x04) = *(u64 *)(buffer + 0x1D0);
-	*(u32 *)(view + 0x0C) = *(u32 *)(buffer + 0x1D8);
-	*(u64 *)(view + 0x10) = *(u64 *)(buffer + 0x1DC);
-	*(u16 *)(view + 0x1A) = *(u16 *)(buffer + 0x1E6);
-	*(u32 *)(view + 0x1C) = *(u32 *)(buffer + 0x1E8);
-	*(u32 *)(view + 0x20) = *(u32 *)(buffer + 0x1EC);
-	*(u8 *) (view + 0x24) = *(u8 *) (buffer + 0x1F0);
-	*(u8 *) (view + 0x55) = *(u8 *) (buffer + 0x221);
+	*(u32 *)  (view + 0x00) = (*(u32 *) (buffer + 0x1BC)) & 0xFF000000;
+	ES_memcpy(view + 0x04, buffer + 0x1D0, sizeof(tikview) - 0x04);
+	*(u16 *) (view + 0x96) = 0;
 
-	memcpy(view + 0x18, buffer + 0x1E4, 2);
-	memcpy(view + 0x25, buffer + 0x1F1, 0x30);
-	memcpy(view + 0x56, buffer + 0x222, 0x40);
-	memcpy(view + 0x98, buffer + 0x264, 0x40);
 
 	return 0;
 }
 
-s32 __ES_CustomLaunch(u32 tidh, u32 tidl)
+static s32 __ES_CustomLaunch(u32 tidh, u32 tidl)
 {
 	static tikview view ATTRIBUTE_ALIGN(32) = { 0 };
 	s32 ret;
@@ -234,7 +221,7 @@ s32 __ES_CustomLaunch(u32 tidh, u32 tidl)
 	return ES_LaunchTitle(tidh, tidl, &view, 0);
 }
 
-s32 __ES_SetFakeIosLaunch(u32 mode, u32 ios)
+static s32 __ES_SetFakeIosLaunch(u32 mode, u32 ios)
 {
 	config.fakelaunch = mode;
 	config.ios        = ios;
@@ -243,7 +230,7 @@ s32 __ES_SetFakeIosLaunch(u32 mode, u32 ios)
 	return 0;
 }
 
-void __ES_RemoveError002(void *data, u32 len)
+static void __ES_RemoveError002(void *data, u32 len)
 {
 	/* Check whether the cios has been reloaded by a disc-based game */
 	if (config.fakelaunch != 0 && config.title_id != 0) {
@@ -281,7 +268,7 @@ void __ES_RemoveError002(void *data, u32 len)
 	}
 }
 
-s32 __ES_FixMissingTitle(s32 justCounting, ioctlv *vector, s32 ret)
+static s32 __ES_FixMissingTitle(s32 justCounting, ioctlv *vector, s32 ret)
 {
 	s32 expectedRet   = justCounting ? 0 : -1017;
 	s32 expectedCount = justCounting ? 0 : FAKE_IOS_TICKET_VIEWS;

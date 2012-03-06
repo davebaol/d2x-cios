@@ -31,7 +31,7 @@
 #define MAX_READ_RETRIES	16
 
 
-s32 __DI_ReadA8(void *outbuf, u32 len, u32 offset)
+static s32 __DI_ReadA8(void *outbuf, u32 len, u32 offset)
 {
 	u32 dic[8];
 
@@ -50,7 +50,7 @@ s32 __DI_ReadA8(void *outbuf, u32 len, u32 offset)
 	return DI_HandleCmd(dic, outbuf, len);
 }
 
-s32 __DI_ReadD0(void *outbuf, u32 len, u32 lba)
+static s32 __DI_ReadD0(void *outbuf, u32 len, u32 lba)
 {
 	u32 cnt;
 	s32 ret = DIP_EIO;
@@ -79,7 +79,7 @@ s32 __DI_ReadD0(void *outbuf, u32 len, u32 lba)
 	return ret;
 }
 
-s32 __DI_ReadFromSector(void *outbuf, u32 len, u32 pos, u32 lba)
+static s32 __DI_ReadFromSector(void *outbuf, u32 len, u32 pos, u32 lba)
 {
 	u8 *buf = NULL;
 	s32 ret;

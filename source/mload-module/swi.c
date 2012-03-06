@@ -42,7 +42,7 @@ SwiFunc SwiTable[256] = { NULL };
 u8 *SwiAddr = NULL;
 
 
-void __MemCopy(u32 fromUncached, void *dst, void *src, u32 len)
+static void __MemCopy(u32 fromUncached, void *dst, void *src, u32 len)
 {
 	u32 perms;
 

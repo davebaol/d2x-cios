@@ -31,8 +31,9 @@ s32 (*ES_printf)(const char * fmt, ...);
 #else
 #define ES_printf(fmt, ...)     do {} while (0)
 #endif
-s32 (*ES_snprintf)(char *str, u32 size, const char *fmt, ...);
-s32 (*ES_LaunchTitle)(u32 tidh, u32 tidl, void *view, u32 reset);
+s32   (*ES_snprintf)(char *str, u32 size, const char *fmt, ...);
+s32   (*ES_LaunchTitle)(u32 tidh, u32 tidl, void *view, u32 reset);
+void *(*ES_memcpy)(void *dst, void *src, s32 n);
 
 /* ES handlers */
 s32 ES_HandleOpen(void *message);

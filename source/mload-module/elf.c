@@ -72,7 +72,7 @@ typedef struct {
 elfdata elf = { 0 };
 
 
-u32 be32(u8 *val)
+static u32 be32(u8 *val)
 {
 	return (val[0] << 24) | (val[1] << 16) | (val[2] << 8) | val[3];
 }

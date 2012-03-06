@@ -23,12 +23,10 @@ TARGET	=	fat-module
 # Objects
 OBJS	=	ccsbcs.o		\
 		diskio.o		\
-		ehci.o			\
 		fat_wrapper.o		\
 		ff.o			\
 		led.o			\
 		main.o			\
-		sdio.o			\
 		start.o			\
 		syscall.o
 

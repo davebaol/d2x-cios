@@ -27,7 +27,7 @@
 #define FILENAME	"/sys/esp.cfg"
 
 
-s32 __Config_Create(void)
+static s32 __Config_Create(void)
 {
 	s32 ret;
 
@@ -45,7 +45,7 @@ s32 __Config_Create(void)
 	return ret;
 }
 
-s32 __Config_Delete(void)
+static s32 __Config_Delete(void)
 {
 	s32 ret;
 

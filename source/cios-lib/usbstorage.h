@@ -1,8 +1,7 @@
 /*   
-	Custom IOS Module (MLOAD)
+	Custom IOS Library
 
-	Copyright (C) 2008 neimod.
-	Copyright (C) 2010 Hermes.
+	Copyright (C) 2009 Kwiirk.
 	Copyright (C) 2010 Waninkoko.
 	Copyright (C) 2011 davebaol.
 
@@ -20,17 +19,21 @@
 	along with this program; if not, write to the Free Software
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-#ifndef _EPIC_H_
-#define _EPIC_H_
+
+
+#ifndef _USBSTORAGE_H_
+#define _USBSTORAGE_H_
 
 #include "types.h"
 
-/* Constants */
-#define EPIC_MESSAGE	0x1337
-
-
 /* Prototypes */
-s32  Epic_Init(s32 queuehandle);
-void Epic_Main(void);
+bool usbstorage_Init(void);
+bool usbstorage_Shutdown(void);
+bool usbstorage_IsInserted(void);
+bool usbstorage_ReadSectors(u32 sector, u32 numSectors, void *buffer);
+bool usbstorage_WriteSectors(u32 sector, u32 numSectors, void *buffer);
+u32  usbstorage_GetSectorSize(void);
+bool usbstorage_ClearStatus(void);
+bool __usbstorage_Read_Write(u32 write, u32 sector, u32 numSectors, void *buffer);
 
 #endif

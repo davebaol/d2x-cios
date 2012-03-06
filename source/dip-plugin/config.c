@@ -29,7 +29,7 @@
 #define FFS_CFG_FILENAME	"/sys/ffs.cfg"
 
 
-s32 __Config_Create(char *filename)
+static s32 __Config_Create(char *filename)
 {
 	s32 ret;
 
@@ -47,7 +47,7 @@ s32 __Config_Create(char *filename)
 	return ret;
 }
 
-s32 __Config_Delete(char *filename)
+static s32 __Config_Delete(char *filename)
 {
 	s32 ret;
 

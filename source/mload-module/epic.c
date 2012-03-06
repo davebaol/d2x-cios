@@ -36,12 +36,12 @@
 #define EPIC_TIME		125000
 
 /* Variables */
-static u32 cnt = 0;
-static u32 tmr = 0;
+static u32 cnt     = 0;
+static u32 tmr     = 0;
 static s32 timerId = -1;
 
 
-void __Epic_Trigger(void)
+static void __Epic_Trigger(void)
 {
 	/* Blink LED */
 	Swi_LedBlink();

@@ -43,7 +43,7 @@ typedef struct {
 	u32 decryptChek;
 } esAddrInfo;
 
-void __Patch_EsModule(esAddrInfo *aInfo)
+static void __Patch_EsModule(esAddrInfo *aInfo)
 {
 	/* Signature check */
 	DCWrite16(aInfo->signatureCheck1, 0x2000);

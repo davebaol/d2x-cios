@@ -28,15 +28,15 @@
 #include "types.h"
 
 
-void __dbg_os_sync_check_args(void *ptr, s32 size, const char* func, u32 line)
+static void __dbg_os_sync_check_args(void *ptr, s32 size, const char* func, u32 line)
 {
 	if (ptr == NULL) {
 		if (size > 0)
 			LOG_Write("buffer is NULL\n", func, line);
 	}
-	else if ((u32)ptr & !31)
+	else if ((u32)ptr & 31)
 		LOG_Write("buffer non 32 bytes aligned\n", func, line);
-	else if (size & !3)
+	else if (size & 3)
 		LOG_Write("len non 4 bytes aligned\n", func, line);
 }
 

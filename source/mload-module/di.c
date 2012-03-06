@@ -31,13 +31,13 @@
 static u32 inbuf[8] ATTRIBUTE_ALIGN(32);
 
 
-s32 __DI_Init(void)
+static s32 __DI_Init(void)
 {
 	/* Open /dev/di */
 	return os_open("/dev/di", 0);
 }
 
-void __DI_Close(s32 fd)
+static void __DI_Close(s32 fd)
 {
 	/* Close /dev/di */
 	os_close(fd);

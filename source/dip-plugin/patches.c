@@ -48,7 +48,7 @@ void *(*DI_Alloc)(u32 size, u32 align)    = 0;
 void  (*DI_Free)(void *ptr)               = 0;
 
 
-void __Patch_DipModule(dipAddrInfo *aInfo)
+static void __Patch_DipModule(dipAddrInfo *aInfo)
 {
 	/* Patch DVD driver init stage 2 */
 	DCWrite32(aInfo->init    , 0x4B004718);
