@@ -36,7 +36,7 @@
 
 char *moduleName = "SDHC";
 
-s32 __SDHC_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
+static s32 __SDHC_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 {
 	s32 ret = IPC_EINVAL;
 
@@ -119,7 +119,7 @@ s32 __SDHC_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 	return ret;
 }
 
-s32 __SDHC_Initialize(u32 *queuehandle)
+static s32 __SDHC_Initialize(u32 *queuehandle)
 {
 	/* Heap space */
 	static u32 heapspace[0x2000] ATTRIBUTE_ALIGN(32);
@@ -175,7 +175,9 @@ int main(void)
 		ipcmessage *message = NULL;
 
 		/* Wait for message */
-		os_message_queue_receive(queuehandle, (void *)&message, 0);
+		ret = os_message_queue_receive(queuehandle, (void *)&message, 0);
+		if (ret)
+			continue;
 
 		switch (message->command) {
 		case IOS_OPEN: {

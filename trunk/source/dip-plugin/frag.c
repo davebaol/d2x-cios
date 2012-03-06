@@ -29,25 +29,26 @@
 #define DEV_USB  1
 #define DEV_SDHC 2
 
-#define MAX_IDX   640 // 640*16MB = 10GB
-#define IDX_CHUNK 32768 // 16MB in sectors units: 16*1024*1024/512
-#define IDX_SHIFT 15 // 1<<15 = 32768
+#define MAX_IDX      640 // 640*16MB = 10GB
+#define IDX_CHUNK  32768 // 16MB in sectors units: 16*1024*1024/512
+#define IDX_SHIFT     15 // 1<<15 = 32768
 
 #define SECTOR_SIZE(dev)		((dev)==DEV_SDHC ? 512 :	\
 	((dev)==DEV_USB ? usbstorage_GetSectorSize() : 0))
 
+/* Static variables */
 static u16 frag_idx[MAX_IDX] = { 0 };
-static u32 frag_init = 0;
-static u32 frag_dev = 0;
+static u32 frag_inited       = 0;
+static u32 frag_dev          = 0;
+static u32 sector_size       = 0;
+static u32 ss_num_bits       = 0;
+static u8* sector_buf        = NULL;
+
+/* Global variables */
 FragList fraglist_data = { 0 };
-FragList *frag_list = NULL;
-u32 sector_size = 0;
-u32 ss_num_bits = 0;
-static u8* sector_buf = NULL;
+FragList *frag_list    = NULL;
 
-void optimize_frag_list(void);
-
-u32 numBits(u32 value) 
+static u32 __Frag_GetNumBits(u32 value) 
 {
 	u32 nb = 0;
 	do {
@@ -58,71 +59,12 @@ u32 numBits(u32 value)
 	return nb;
 }
 
-// NOTE 1: 
-// All local variables are declared static
-// because thread stack size is rather limited.
-// Note that this code is actually running 
-// in Nintendo's DI thread.
-
-// NOTE 2: 
-// Hmm, memcpy and char array writing seems
-// to only work if length is word aligned... cache issue?
-
-s32 Frag_Init(u32 device, void *fraglist, int size)
+static void __Frag_OptimizeList(void)
 {
-	static int ret;
-	if (frag_init) Frag_Close();
-	if (device != DEV_USB && device != DEV_SDHC) return -1;
-	if (!size) return -2;
-	if (size > sizeof(FragList)) return -3;
-
-	/* Init device */
-	ret = (device == DEV_USB ? usbstorage_Init() : sdhc_Init());
-
-	if (ret) return -4; 
-
-	sector_size = SECTOR_SIZE(device);
-	ss_num_bits = numBits(sector_size - 1);
-
-	/* Allocate sector buffer */
-	sector_buf = DI_Alloc(sector_size, 32);
-	if (!sector_buf)
-		return -5;
-
-	frag_dev = device;
-	frag_list = &fraglist_data;
-	if (fraglist != frag_list) {
-		os_sync_before_read(fraglist, size);
-		memset(frag_list, 0, sizeof(FragList));
-		memcpy(frag_list, fraglist, size);
-		os_sync_after_write(fraglist, size);
-	}
-	optimize_frag_list();
-	frag_init = 1;
-
-	return 0;
-}
-
-void Frag_Close(void)
-{
-	frag_init = 0;
-	frag_list = 0;
-	frag_dev = 0;
-
-	/* Free sector buffer */
-	if (sector_buf) {
-		DI_Free(sector_buf);
-		sector_buf = NULL;
-	}
-}
-
-
-void optimize_frag_list(void)
-{
-	int i;
+	s32 i;
 	u32 off;
 	u16 idx = 0;
-	for (i=0; i<MAX_IDX; i++) {
+	for (i = 0; i < MAX_IDX; i++) {
 		off = i << IDX_SHIFT;
 		while ((off >= frag_list->frag[idx].offset + frag_list->frag[idx].count)
 				&& (idx + 1 < frag_list->num))
@@ -136,155 +78,265 @@ void optimize_frag_list(void)
 // in case a sparse block is requested,
 // the returned poffset might not be equal to requested offset
 // the difference should be filled with 0
-int frag_get(FragList *ff, u32 offset, u32 count,
+static s32 __Frag_Get(FragList *ff, u32 offset, u32 count,
 		u32 *poffset, u32 *psector, u32 *pcount)
 {
-	static int i;
-	static u32 delta;
-	static u32 idx_off;
-	static u32 start_idx;
+	u32 delta;
+	u32 idx_off;
+	u32 start_idx;
+	s32 i;
 	
 	// optimize seek inside frag list
 	// jump to a precalculated index
 	idx_off = offset >> IDX_SHIFT;
-	if (idx_off > MAX_IDX) idx_off = MAX_IDX - 1;
+	if (idx_off > MAX_IDX)
+		idx_off = MAX_IDX - 1;
+
 	start_idx = frag_idx[idx_off];
 
-	//printf("frag_get(%u %u)\n", offset, count);
-	for (i=start_idx; i<ff->num; i++) {
+	for (i = start_idx; i < ff->num; i++) {
 		if (ff->frag[i].offset <= offset
 			&& ff->frag[i].offset + ff->frag[i].count > offset)
 		{
-			delta = offset - ff->frag[i].offset;
+			delta    = offset - ff->frag[i].offset;
 			*poffset = offset;
 			*psector = ff->frag[i].sector + delta;
-			*pcount = ff->frag[i].count - delta;
-			if (*pcount > count) *pcount = count;
+			*pcount  = ff->frag[i].count - delta;
+			if (*pcount > count)
+				*pcount = count;
 			goto out;
 		}
 		if (ff->frag[i].offset > offset
 			&& ff->frag[i].offset < offset + count)
 		{
-			delta = ff->frag[i].offset - offset;
+			delta    = ff->frag[i].offset - offset;
 			*poffset = ff->frag[i].offset;
 			*psector = ff->frag[i].sector;
-			*pcount = ff->frag[i].count;
-			count -= delta;
-			if (*pcount > count) *pcount = count;
+			*pcount  = ff->frag[i].count;
+			count   -= delta;
+			if (*pcount > count)
+				*pcount = count;
 			goto out;
 		}
 	}
-	// not found
+
+	/* Not found */
 	if (offset + count > ff->size) {
-		// error: out of range!
+		/* Error: out of range! */
 		return -2;
 	}
+
 	// if inside range, then it must be just sparse, zero filled
 	// return empty block at the end of requested
 	*poffset = offset + count;
 	*psector = 0;
-	*pcount = 0;
+	*pcount  = 0;
+
 	out:
-	//printf("=>(%u %u %u)\n", *poffset, *psector, *pcount);
+
+	/* Success */
 	return 0;
 }
 
-
 // offset and len in sectors
-int frag_read_sect(u32 offset, u8 *data, u32 len)
+static s32 __Frag_ReadSect(u32 offset, u8 *data, u32 len)
 {
-    static u32 off_ret;
-    static u32 sector;
-    static u32 count;
-    static u32 delta;
-    static int ret;
+	u32 off_ret;
+	u32 sector;
+	u32 count;
+	u32 delta;
+	s32 ret;
 
-    while (len) {
-        ret = frag_get(frag_list, offset, len,
-                &off_ret, &sector, &count);
-        if (ret) return ret; // err
-        delta = off_ret - offset;
-        if (delta) {
-            // sparse block, fill with 0
-            memset(data, 0, delta << ss_num_bits);
-            offset += delta;
-            data   += delta << ss_num_bits;
-            len    -= delta;
-        }
-        if (count) {
-            if (frag_dev == DEV_USB) {
-                ret = __usbstorage_Read(sector, count, data);
-            } else {
-                ret = sdhc_Read(sector, count, data);
-            }
-            if (!ret) return -3;
-            offset += count;
-            data   += count << ss_num_bits;
-            len    -= count;
-        }
-        if (delta + count == 0) {
-            // (should never happen)
-            return -4;
-        }
-    }
+	while (len) {
+		ret = __Frag_Get(frag_list, offset, len, &off_ret, &sector, &count);
 
-    return 0;
+	        /* Error */
+		if (ret)
+			return ret;
+
+		delta = off_ret - offset;
+		if (delta) {
+			/* Sparse block, fill with 0 */
+			memset(data, 0, delta << ss_num_bits);
+			offset += delta;
+			data   += delta << ss_num_bits;
+			len    -= delta;
+		}
+
+		if (count) {
+			/* Read sectors */
+			if (frag_dev == DEV_USB)
+				ret = __usbstorage_Read_Write(0, sector, count, data);
+			else
+				ret = sdhc_Read(sector, count, data);
+
+			/* Read error */
+			if (!ret)
+				return -3;
+
+			offset += count;
+			data   += count << ss_num_bits;
+			len    -= count;
+		}
+
+		/* Should never happen */
+		if (delta + count == 0)
+			return -4;
+	}
+
+	/* Success */
+	return 0;
 }
 
 // offset is pointing 32bit words to address the whole dvd, len is in bytes
-int frag_read_partial(u32 offset, u8 *data, u32 len, u32 *read_len)
+static s32 __Frag_ReadPartial(u32 offset, u8 *data, u32 len, u32 *read_len)
 {
-    static int ret;
-    static u32 off_sec;
-    static u32 mod;
-    static u32 rlen;
+	u32 off_sec;
+	u32 mod;
+	u32 rlen;
+	s32 ret;
 
-    off_sec = offset >> (ss_num_bits-2); // word to sect
-    mod = (offset & ((sector_size-1) >> 2)) << 2; // offset from start of sector in bytes
-    rlen = sector_size - mod; // remaining len from mod to end of sector
-    if (rlen > len) rlen = len;
-    if (rlen == sector_size) rlen = 0; // don't read whole sectors
-    if (rlen) {
-        ret = frag_read_sect(off_sec, sector_buf, 1);
-        if (ret) return ret;
-        memcpy(data, sector_buf + mod, rlen);
-    }
-    *read_len = rlen;
-    return 0;
+	/* Word to sect */
+	off_sec = offset >> (ss_num_bits-2);
+
+	/* Offset from start of sector in bytes */
+	mod = (offset & ((sector_size-1) >> 2)) << 2;
+
+	/* Remaining len from mod to end of sector */
+	rlen = sector_size - mod;
+
+	if (rlen > len)
+		rlen = len;
+
+	/* Don't read whole sectors */
+	if (rlen == sector_size)
+		rlen = 0;
+
+	if (rlen) {
+		ret = __Frag_ReadSect(off_sec, sector_buf, 1);
+		if (ret)
+			return ret;
+
+		memcpy(data, sector_buf + mod, rlen);
+	}
+
+	*read_len = rlen;
+
+	/* Success */
+	return 0;
+}
+
+s32 Frag_Init(u32 device, void *fraglist, s32 size)
+{
+	s32 ret;
+
+	/* Close previous fraglist */
+	if (frag_inited)
+		Frag_Close();
+
+	/* Check device */
+	if (device != DEV_USB && device != DEV_SDHC)
+		return -1;
+
+	/* Check empty fraglist */
+	if (!size)
+		return -2;
+
+	/* Check max size */
+	if (size > sizeof(FragList))
+		return -3;
+
+	/* Init device */
+	ret = (device == DEV_USB ? usbstorage_Init() : sdhc_Init());
+	if (!ret)
+		return -4; 
+
+	/* Retrieve device sector size */
+	sector_size = SECTOR_SIZE(device);
+
+	/* Number of bits required by sector size */
+	ss_num_bits = __Frag_GetNumBits(sector_size - 1);
+
+	/* Allocate sector buffer */
+	sector_buf = DI_Alloc(sector_size, 32);
+	if (!sector_buf)
+		return -5;
+
+	/* Copy data */
+	frag_dev = device;
+	frag_list = &fraglist_data;
+	if (fraglist != frag_list) {
+		os_sync_before_read(fraglist, size);
+		memset(frag_list, 0, sizeof(FragList));
+		memcpy(frag_list, fraglist, size);
+		os_sync_after_write(fraglist, size);
+	}
+
+	/* Optimize fraglist access */
+	__Frag_OptimizeList();
+
+	/* Set to initialized */
+	frag_inited = 1;
+
+	/* Success */
+	return 0;
+}
+
+void Frag_Close(void)
+{
+	/* Reset data */
+	frag_inited = 0;
+	frag_list   = 0;
+	frag_dev    = 0;
+
+	/* Free sector buffer */
+	if (sector_buf) {
+		DI_Free(sector_buf);
+		sector_buf = NULL;
+	}
 }
 
 // woffset is pointing 32bit words to address the whole dvd, len is in bytes
 s32 Frag_Read(void *data, u32 len, u32 woffset)
 {
-    static int ret;
-    static u32 rlen;
-    static u32 off_sec;
-    static u32 len_sec;
+	u32 rlen;
+	u32 off_sec;
+	u32 len_sec;
+	s32 ret;
 
-    // read leading partial non sector aligned data
-    ret = frag_read_partial(woffset, data, len, &rlen);
-    if (ret) return ret;
-    woffset += rlen >> 2;
-    data   += rlen;
-    len    -= rlen; 
-    if (len >= sector_size) {
-        // read sector aligned data
-        off_sec = woffset >> (ss_num_bits-2); // word to sect
-        len_sec = len >> ss_num_bits;    // byte to sect
-        ret = frag_read_sect(off_sec, data, len_sec);
-        if (ret) return ret;
-        woffset += len_sec << (ss_num_bits-2);
-        data   += len_sec << ss_num_bits;
-        len    -= len_sec << ss_num_bits;
-    }
-    if (len) {
-        // read trailing partial non sector aligned data
-        ret = frag_read_partial(woffset, data, len, &rlen);
-        if (ret) return ret;
-        len -= rlen;
-    }
-    if (len) return -5; // should never happen
-    // success
-    return 0;
+	/* Read leading partial non sector aligned data */
+	ret = __Frag_ReadPartial(woffset, data, len, &rlen);
+	if (ret)
+		return ret;
+
+	woffset += rlen >> 2;
+	data    += rlen;
+	len     -= rlen; 
+	if (len >= sector_size) {
+		/* Read sector aligned data */
+		off_sec = woffset >> (ss_num_bits-2); // word to sect
+		len_sec = len >> ss_num_bits;    // byte to sect
+		ret = __Frag_ReadSect(off_sec, data, len_sec);
+		if (ret)
+			return ret;
+		woffset += len_sec << (ss_num_bits-2);
+		data    += len_sec << ss_num_bits;
+		len     -= len_sec << ss_num_bits;
+	}
+
+	/* Read trailing partial non sector aligned data */
+	if (len) {
+		ret = __Frag_ReadPartial(woffset, data, len, &rlen);
+		if (ret)
+			return ret;
+		len -= rlen;
+	}
+
+	/* Should never happen */
+	if (len)
+		return -5;
+
+	/* Success */
+	return 0;
 }
 

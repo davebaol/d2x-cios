@@ -8,11 +8,11 @@
 #include <string.h>
 
 #include "diskio.h"
-#include "ehci.h"
 #include "mem.h"
 #include "sdio.h"
 #include "syscalls.h"
 #include "types.h"
+#include "usbstorage.h"
 
 /* Disk drives */
 #define DRIVE_SDHC	0
@@ -20,7 +20,7 @@
 
 /* Disk constants */
 #define SECTOR_SZ(drv)		((drv)==DRIVE_SDHC ? 512 :	\
-	((drv)==DRIVE_EHCI ? ehci_GetSectorSize() : 0))
+	((drv)==DRIVE_EHCI ? usbstorage_GetSectorSize() : 0))
 
 
 DSTATUS disk_initialize(BYTE drv)
@@ -40,28 +40,22 @@ DSTATUS disk_initialize(BYTE drv)
 
 DSTATUS disk_status(BYTE drv)
 {
-	s32 ret;
+	s32 ret = 1;
 
 	/* Check drive status */
 	switch (drv) {
 	case DRIVE_SDHC:
 		/* Check SD card status */
 		ret = sdio_IsInserted();
-		if (!ret)
-			return STA_NODISK;
-
 		break;
 
 	case DRIVE_EHCI:
 		/* Check USB device status */
-		ret = ehci_IsInserted();
-		if (!ret)
-			return STA_NODISK;
-
+		ret = usbstorage_IsInserted();
 		break;
 	}
 
-	return 0;
+	return ret ? RES_OK : STA_NODISK;
 }
 
 DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
@@ -76,10 +70,15 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
 	if (!len)
 		return RES_ERROR;
 
-	/* Allocate buffer */
-	buffer = Mem_Alloc(len);
-	if (!buffer)
-		return RES_ERROR;
+	/* Check buffer alignment */
+	if ((u32)buff & 31) {
+		/* Allocate buffer */
+		buffer = Mem_Alloc(len);
+		if (!buffer)
+			return RES_ERROR;
+	}
+	else
+		buffer = buff;
 
 	/* Read sectors */
 	switch (drv) {
@@ -90,16 +89,18 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
 
 	case DRIVE_EHCI:
 		/* Read USB sectors */
-		ret = ehci_ReadSectors(sector, count, buffer);
+		ret = usbstorage_ReadSectors(sector, count, buffer);
 		break;
 	}
 
-	/* Copy buffer */
-	if (ret)
-		memcpy(buff, buffer, len);
+	if (buffer != buff) {
+		/* Copy buffer */
+		if (ret)
+			memcpy(buff, buffer, len);
 
-	/* Free buffer */
-	Mem_Free(buffer);
+		/* Free buffer */
+		Mem_Free(buffer);
+	}
 
 	return (ret) ? RES_OK : RES_ERROR;
 }
@@ -117,13 +118,18 @@ DRESULT disk_write(BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
 	if (!len)
 		return RES_ERROR;
 
-	/* Allocate buffer */
-	buffer = Mem_Alloc(len);
-	if (!buffer)
-		return RES_ERROR;
+	/* Check buffer alignment */
+	if ((u32)buff & 31) {
+		/* Allocate buffer */
+		buffer = Mem_Alloc(len);
+		if (!buffer)
+			return RES_ERROR;
 
-	/* Copy buffer */
-	memcpy(buffer, buff, len);
+		/* Copy buffer */
+		memcpy(buffer, buff, len);
+	}
+	else
+		buffer = (void *)buff;
 
 	/* Write sectors */
 	switch (drv) {
@@ -134,12 +140,14 @@ DRESULT disk_write(BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
 
 	case DRIVE_EHCI:
 		/* Write USB sectors */
-		ret = ehci_WriteSectors(sector, count, buffer);
+		ret = usbstorage_WriteSectors(sector, count, buffer);
 		break;
 	}
 
-	/* Free buffer */
-	Mem_Free(buffer);
+	if (buffer != buff) {
+		/* Free buffer */
+		Mem_Free(buffer);
+	}
 
 	return (ret) ? RES_OK : RES_ERROR;
 }

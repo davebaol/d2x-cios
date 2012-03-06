@@ -23,25 +23,25 @@ static s32 fd = -1;
 static u32 sectorSz = SDHC_SECTOR_SIZE;
 
 
-int sdhc_Init(void)
+bool sdhc_Init(void)
 {
 	//s32 ret;
 
 	/* Already open */
 	if (fd >= 0)
-		return 0;
+		return true;
 
 	/* Open USB device */
 	fd = os_open(fs, 1);
 	if (fd < 0)
-		return -11;
+		return false;
 
 	/* Initialize USB storage */
 	os_ioctlv(fd, IOCTL_SDHC_INIT, 0, 0, NULL);
 
 	sectorSz = SDHC_SECTOR_SIZE;
 
-	return 0;
+	return true;
 }
 
 

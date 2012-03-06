@@ -28,6 +28,7 @@ OBJS	=	direct_syscalls.o	\
 		isfs.o			\
 		log.o			\
 		mem.o			\
+		sdio.o			\
 		stealth.o		\
 		str_utils.o		\
 		swi_mload.o		\
@@ -35,6 +36,7 @@ OBJS	=	direct_syscalls.o	\
 		syscalls_dbg.o		\
 		timer.o			\
 		tools.o			\
+		usbstorage.o		\
 		vsprintf.o
 		
 OBJS2	=	libwbfs/libwbfs.o	\

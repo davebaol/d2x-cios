@@ -39,7 +39,7 @@ static struct dipConfig config = { 0 };
 static struct dipConfigState dipCfgState = { 0 };
 static struct ffsConfigState ffsCfgState = { 0 };
 
-s32 __DI_CheckOffset(u32 offset)
+static s32 __DI_CheckOffset(u32 offset)
 {
 	u32 offmax;
 
@@ -71,7 +71,7 @@ s32 __DI_CheckOffset(u32 offset)
 	return 0;
 }
 
-s32 __DI_ReadUnencrypted(void *outbuf, u32 len, u32 offset)
+static s32 __DI_ReadUnencrypted(void *outbuf, u32 len, u32 offset)
 {
 	s32 ret;
 
@@ -99,7 +99,7 @@ s32 __DI_ReadUnencrypted(void *outbuf, u32 len, u32 offset)
 	return DI_ReadWod(outbuf, len, offset);
 }
 
-s32 __DI_ReadDiscId(u32 *outbuf, u32 len)
+static s32 __DI_ReadDiscId(u32 *outbuf, u32 len)
 {
 	s32 ret;
 
@@ -123,7 +123,7 @@ s32 __DI_ReadDiscId(u32 *outbuf, u32 len)
 	return ret;
 }
 
-void __DI_CheckDisc(void)
+static void __DI_CheckDisc(void)
 {
 	void *buffer;
 	s32   ret;
@@ -147,7 +147,7 @@ void __DI_CheckDisc(void)
 	DI_Free(buffer);
 }
 
-void __DI_ResetConfig(void)
+static void __DI_ResetConfig(void)
 {
 	/* Reset modes */
 	DI_DelMode(MODE_CRYPT);
@@ -164,6 +164,59 @@ void __DI_ResetConfig(void)
 	config.noreset = 0;
 }
 
+static void __DI_InitDriveEmulation(void)
+{
+	s32 ret;
+
+	DI_Printf("DIP: DI_InitEmulation: Loading DIP config state...\n");
+
+	/* Load DIP config state */
+	ret = DI_Config_Load(&dipCfgState);
+
+	DI_Printf("DIP: DI_InitEmulation: DIP config state %sfound. ret = %d\n", ret>0 ? "" : "NOT ", ret);
+
+	/* DIP Config state found */
+	if (ret > 0) {
+
+		DI_Printf("DIP: DI_InitEmulation: Setting DIP mode to %d\n", dipCfgState.mode);
+
+		/* Set mode */
+		config.mode = dipCfgState.mode;
+
+		if (DI_ChkMode(MODE_WBFS)) {
+			/* Open wbfs device */
+			WBFS_Open(dipCfgState.device-1, (u8 *)0x00000000);
+		}
+		else if (DI_ChkMode(MODE_FRAG)) {
+			/* Open fraglist */
+			Frag_Init(dipCfgState.device, &fraglist_data, dipCfgState.frag_size);
+		}
+	}
+
+	DI_Printf("DIP: DI_InitEmulation: Loading FFS config state...\n");
+
+	/* Load FFS config state */
+	ret = FFS_Config_Load(&ffsCfgState);
+
+	DI_Printf("DIP: DI_InitEmulation: FFS config state %sfound. ret = %d\n", ret>0 ? "" : "NOT ", ret);
+
+	/* FFS Config state found */
+	if (ret > 0 && ffsCfgState.mode) {
+		u32 device = (ffsCfgState.mode & ISFS_MODE_SDHC) ? 0 : 1;
+
+		DI_Printf("DIP: DI_InitEmulation: Mounting FAT partition %d on %s...\n", ffsCfgState.partition, device ? "USB device" : "SD card");
+
+		/* Mount FAT device */
+		FAT_Mount(device, ffsCfgState.partition);
+
+		DI_Printf("DIP: DI_InitEmulation: Enabling nand emulation: mode = %d, path = &s%d\n", ffsCfgState.mode, ffsCfgState.path);
+
+		/* Enable nand emulation */
+		ISFS_SetMode(ffsCfgState.mode, ffsCfgState.path);
+
+		DI_Printf("DIP: DI_InitEmulation: Nand emulation enabled\n");
+	}
+}
 
 s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 {
@@ -707,60 +760,6 @@ s32 DI_EmulateIoctl(ioctl *buffer, s32 fd)
 	DI_Printf("DIP: DI_EmulateIoctl: ret = 0x%x\n", ret);
 
 	return ret;
-}
-
-void __DI_InitDriveEmulation(void)
-{
-	s32 ret;
-
-	DI_Printf("DIP: DI_InitEmulation: Loading DIP config state...\n");
-
-	/* Load DIP config state */
-	ret = DI_Config_Load(&dipCfgState);
-
-	DI_Printf("DIP: DI_InitEmulation: DIP config state %sfound. ret = %d\n", ret>0 ? "" : "NOT ", ret);
-
-	/* DIP Config state found */
-	if (ret > 0) {
-
-		DI_Printf("DIP: DI_InitEmulation: Setting DIP mode to %d\n", dipCfgState.mode);
-
-		/* Set mode */
-		config.mode = dipCfgState.mode;
-
-		if (DI_ChkMode(MODE_WBFS)) {
-			/* Open wbfs device */
-			WBFS_Open(dipCfgState.device-1, (u8 *)0x00000000);
-		}
-		else if (DI_ChkMode(MODE_FRAG)) {
-			/* Open fraglist */
-			Frag_Init(dipCfgState.device, &fraglist_data, dipCfgState.frag_size);
-		}
-	}
-
-	DI_Printf("DIP: DI_InitEmulation: Loading FFS config state...\n");
-
-	/* Load FFS config state */
-	ret = FFS_Config_Load(&ffsCfgState);
-
-	DI_Printf("DIP: DI_InitEmulation: FFS config state %sfound. ret = %d\n", ret>0 ? "" : "NOT ", ret);
-
-	/* FFS Config state found */
-	if (ret > 0 && ffsCfgState.mode) {
-		u32 device = (ffsCfgState.mode & ISFS_MODE_SDHC) ? 0 : 1;
-
-		DI_Printf("DIP: DI_InitEmulation: Mounting FAT partition %d on %s...\n", ffsCfgState.partition, device ? "USB device" : "SD card");
-
-		/* Mount FAT device */
-		FAT_Mount(device, ffsCfgState.partition);
-
-		DI_Printf("DIP: DI_InitEmulation: Enabling nand emulation: mode = %d, path = &s%d\n", ffsCfgState.mode, ffsCfgState.path);
-
-		/* Enable nand emulation */
-		ISFS_SetMode(ffsCfgState.mode, ffsCfgState.path);
-
-		DI_Printf("DIP: DI_InitEmulation: Nand emulation enabled\n");
-	}
 }
 
 /*

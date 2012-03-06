@@ -23,7 +23,6 @@
 
 #include <string.h>
 
-#include "ehci.h"
 #include "fat_tools.h"
 #include "fat_wrapper.h"
 #include "ipc.h"
@@ -35,9 +34,10 @@
 #include "syscalls.h"
 #include "timer.h"
 #include "types.h"
+#include "usbstorage.h"
 
 
-char *moduleName = "ES";
+char *moduleName = "FAT";
 
 static char emuNandPath[192] = "/";
 static u32  emuNandPathLen   = 1;
@@ -323,7 +323,7 @@ s32 __FAT_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 			break;
 
 		/* Deinitialize USB */
-		ret = ehci_Shutdown();
+		ret = usbstorage_Shutdown();
 		if (!ret)
 			ret = IPC_EINVAL;
 

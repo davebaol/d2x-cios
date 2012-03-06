@@ -42,7 +42,7 @@ s32 queuehandle = -1;
 areply usbCb[2] = { { -1, -1 } };
 
 
-s32 __USB_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
+static s32 __USB_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 {
         s32 ret = IPC_EINVAL;
 
@@ -156,7 +156,7 @@ s32 __USB_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 	return ret;
 }
 
-s32 __USB_Callback(u32 message)
+static s32 __USB_Callback(u32 message)
 {
 	/* Device change callback */
 	if (message == MESSAGE_DEVCHANGE) {

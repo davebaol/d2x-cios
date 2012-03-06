@@ -32,7 +32,6 @@ OBJS	=	config.o		\
 		plugin.o		\
 		sdhc.o			\
 		start.o			\
-		usbstorage.o		\
 		wbfs.o
 
 

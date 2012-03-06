@@ -33,11 +33,11 @@
 #include "main.h"
 #include "mem.h"
 #include "types.h"
-#include "ehci.h"
 #include "sdio.h"
+#include "usbstorage.h"
 
 /* Variables */
-static FATFS fatFs[_VOLUMES] ATTRIBUTE_ALIGN(32);
+static FATFS fatFs ATTRIBUTE_ALIGN(32);
 
 PARTITION VolToPart[_VOLUMES]  ATTRIBUTE_ALIGN(32) = {
 	{0,4}, {1,4}
@@ -103,7 +103,7 @@ s32 __FAT_MountPartition(u8 device, u8 partition)
 	VolToPart[device].pt = partition;
 
 	/* Mount device */
-	ret = f_mount(device, &fatFs[device]);
+	ret = f_mount(device, &fatFs);
 	if (!ret) {
 		DIR d;
 		char *root = (device == 0) ? "0:/" : "1:/";
@@ -136,14 +136,14 @@ s32 FAT_Mount(u8 device, s32 partition)
 
 	case 1:
 		/* Initialize EHCI */
-		ret = ehci_Init();
+		ret = usbstorage_Init();
 		break;
 
 	default:
 		/* Unknown device */
 		ret = 0;
 		break;
-  }
+	}
 
 	/* Device not found */
 	if (!ret)

@@ -28,6 +28,7 @@ typedef struct {
 	u32 open;
 	u32 ioctlv;
 	u32 launchTitle;
+	u32 memcpy;
 	u32 printf;
 	u32 snprintf;
 } esAddrInfo;
@@ -37,12 +38,13 @@ u32 addrOpen   = 0;
 u32 addrIoctlv = 0;
 
 /* Function pointers */
-s32 (*ES_printf)(const char * fmt, ...)                          = 0;
-s32 (*ES_snprintf)(char *str, u32 size, const char *fmt, ...)    = 0;
-s32 (*ES_LaunchTitle)(u32 tidh, u32 tidl, void *view, u32 reset) = 0;
+s32   (*ES_LaunchTitle)(u32 tidh, u32 tidl, void *view, u32 reset) = 0;
+void *(*ES_memcpy)(void *dst, void *src, s32 n)                    = 0;
+s32   (*ES_printf)(const char * fmt, ...)                          = 0;
+s32   (*ES_snprintf)(char *str, u32 size, const char *fmt, ...)    = 0;
 
 
-void __Patch_EsModule(esAddrInfo *aInfo)
+static void __Patch_EsModule(esAddrInfo *aInfo)
 {
 	/* Patch OPEN handler */
 	DCWrite32(aInfo->open    , 0x4B004718);
@@ -58,6 +60,7 @@ void __Patch_EsModule(esAddrInfo *aInfo)
 
 	/* Set function pointers */
 	ES_LaunchTitle = (void *)aInfo->launchTitle + 1;
+	ES_memcpy      = (void *)aInfo->memcpy      + 0;
 	ES_printf      = (void *)aInfo->printf      + 1;
 	ES_snprintf    = (void *)aInfo->snprintf    + 1;
 }
@@ -71,6 +74,7 @@ s32 Patch_EsModule(void)
 			0x20100048,	// open
 			0x201000CC,	// ioctlv
 			0x20104CA0,	// launchTitle
+			0x2010A5E0,	// memcpy
 			0x2010A728,	// printf
 			0x2010ABD0	// snprintf
 		};
@@ -86,6 +90,7 @@ s32 Patch_EsModule(void)
 			0x20100048,	// open
 			0x201000CC,	// ioctlv
 			0x20104770,	// launchTitle
+			0x201098FC,	// memcpy
 			0x20109A44,	// printf
 			0x20109EEC	// snprintf
 		};
@@ -99,6 +104,7 @@ s32 Patch_EsModule(void)
 			0x20100048,	// open
 			0x201000CC,	// ioctlv
 			0x20104CF4,	// launchTitle
+			0x2010A6A8,	// memcpy
 			0x2010A7F0,	// printf
 			0x2010AC98	// snprintf
 		};
@@ -114,6 +120,7 @@ s32 Patch_EsModule(void)
 			0x20100048,	// open
 			0x201000CC,	// ioctlv
 			0x20104818,	// launchTitle
+			0x20109870,	// memcpy
 			0x201099B8,	// printf
 			0x20109E60	// snprintf
 		};
@@ -127,6 +134,7 @@ s32 Patch_EsModule(void)
 			0x20100048,	// open
 			0x201000CC,	// ioctlv
 			0x20104544,	// launchTitle
+			0x201091F4,	// memcpy
 			0x2010933C,	// printf
 			0x201097E4	// snprintf
 		};

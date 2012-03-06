@@ -22,7 +22,6 @@ TARGET	=	sdhc-module
 
 # Objects
 OBJS	=	main.o				\
-		sdio.o				\
 		start.o				\
 		wbfs.o
 

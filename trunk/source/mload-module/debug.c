@@ -36,7 +36,7 @@
 static char buffer[LOG_SIZE+1] ATTRIBUTE_ALIGN(32);
 
 
-s32 __Debug_Buffer(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
+static s32 __Debug_Buffer(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 {
 	char *msg = (char *)arg1;
 	u32   end, len, pos;
@@ -72,7 +72,7 @@ s32 __Debug_Buffer(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 	return 0;
 }
 
-s32 __Debug_Gecko(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
+static s32 __Debug_Gecko(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 {
 	static char gecko_inited = 0;
 

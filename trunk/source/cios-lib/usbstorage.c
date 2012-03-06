@@ -1,8 +1,7 @@
 /*   
-	Custom IOS Module (FAT)
+	Custom IOS Library
 
-	Copyright (C) 2008 neimod.
-	Copyright (C) 2009 WiiGator.
+	Copyright (C) 2009 Kwiirk.
 	Copyright (C) 2010 Waninkoko.
 	Copyright (C) 2011 davebaol.
 
@@ -24,11 +23,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "ehci.h"
-#include "mem.h"
 #include "syscalls.h"
-#include "timer.h"
 #include "types.h"
+#include "usbstorage.h"
 
 
 /* IOCTL commands */
@@ -43,10 +40,13 @@
 /* Constants */
 #define USB_MAX_SECTORS			64
 
-/* Variables */
+/* Device */
 static char fs[] ATTRIBUTE_ALIGN(32) = "/dev/usb2";
+
+/* Descriptor */
 static s32  fd = -1;
 
+/* Sector size */
 static u32 sectorSz = 0;
 
 /* Buffers */
@@ -55,7 +55,7 @@ static u32    __buffer1[1] ATTRIBUTE_ALIGN(32);
 static u32    __buffer2[1] ATTRIBUTE_ALIGN(32);
 
 
-bool __ehci_Read_Write(u32 write, u32 sector, u32 numSectors, void *buffer)
+bool __usbstorage_Read_Write(u32 write, u32 sector, u32 numSectors, void *buffer)
 {
 	ioctlv *vector = __iovec;
 	u32    *offset = __buffer1;
@@ -105,21 +105,42 @@ bool __ehci_Read_Write(u32 write, u32 sector, u32 numSectors, void *buffer)
 	return true;
 }
 
-static bool __ehci_Read(u32 sector, u32 numSectors, void *buffer)
+static bool __usbstorage_ReadWriteSectors(u32 write, u32 sector, u32 numSectors, void *buffer)
 {
-	return __ehci_Read_Write(0, sector, numSectors, buffer);
-}
+	u32 cnt = 0;
+	s32 ret;
 
-static bool __ehci_Write(u32 sector, u32 numSectors, void *buffer)
-{
-	return __ehci_Read_Write(1, sector, numSectors, buffer);
+	/* Device not opened */
+	if (fd < 0)
+		return false;
+
+	while (cnt < numSectors) {
+		void *ptr = (char *)buffer + (sectorSz * cnt);
+
+		u32  _sector     = sector + cnt;
+		u32  _numSectors = numSectors - cnt;
+
+		/* Limit sector count */
+		if (_numSectors > USB_MAX_SECTORS)
+			_numSectors = USB_MAX_SECTORS;
+
+		/* Read/Write sectors */
+		ret = __usbstorage_Read_Write(write, _sector, _numSectors, ptr);
+		if (!ret)
+			return false;
+
+		/* Increase counter */
+		cnt += _numSectors;
+	}
+
+	return true;
 }
 
 // FIX:
 // This function has been modified in d2x v4beta1.
 // Now it returns an unsigned int to support HDD greater than 1TB.
 // If 0 is returned then an error has occurred.
-u32 __ehci_GetCapacity(u32 *_sectorSz)
+u32 __usbstorage_GetCapacity(u32 *_sectorSz)
 {
 	ioctlv *vector = __iovec;
 	u32    *buffer = __buffer1;
@@ -152,9 +173,8 @@ u32 __ehci_GetCapacity(u32 *_sectorSz)
 }
 
 
-bool ehci_Init(void)
+bool usbstorage_Init(void)
 {
-	u32 cnt = 10;
 	s32 ret = 1;
 
 	/* Already open */
@@ -167,22 +187,13 @@ bool ehci_Init(void)
 		return false;
 
 	/* Initialize USB storage */
-	while ((cnt-- > 0) && ret) {
-		/* Init UMS */
-		ret = os_ioctlv(fd, USB_IOCTL_UMS_INIT, 0, 0, NULL);
-		if (!ret)
-			break;
-
-		/* Sleep */
-		msleep(1);
-	}
-
+	ret = os_ioctlv(fd, USB_IOCTL_UMS_INIT, 0, 0, NULL);
 	/* Error */
 	if (ret)
 		goto err;
 
 	/* Get device capacity */
-	ret = __ehci_GetCapacity(NULL);
+	ret = __usbstorage_GetCapacity(NULL);
 	if (ret == 0)
 		goto err;
 
@@ -190,104 +201,53 @@ bool ehci_Init(void)
 
 err:
 	/* Close USB device */
-	ehci_Shutdown();
+	usbstorage_Shutdown();
 
 	return false;
 }
 
-bool ehci_Shutdown(void)
+bool usbstorage_Shutdown(void)
 {
-	/* Close USB device */
-	if (fd >= 0)
+	if (fd >= 0) {
+		/* Close USB device */
 		os_close(fd);
 
-	/* Reset descriptor */
-	fd = -1;
+		/* Reset descriptor */
+		fd = -1;
+	}
 
 	return true;
 }
 
-bool ehci_IsInserted(void)
+bool usbstorage_IsInserted(void)
 {
 	u32 nbSector;
 
 	/* Get device capacity */
-	nbSector = __ehci_GetCapacity(NULL);
+	nbSector = __usbstorage_GetCapacity(NULL);
 
 	return (nbSector != 0);
 }
 
-bool ehci_ReadSectors(u32 sector, u32 numSectors, void *buffer)
+bool usbstorage_ReadSectors(u32 sector, u32 numSectors, void *buffer)
 {
-	u32 cnt = 0;
-	s32 ret;
-
-	/* Device not opened */
-	if (fd < 0)
-		return false;
-
-	while (cnt < numSectors) {
-		void *ptr = (char *)buffer + (sectorSz * cnt);
-
-		u32  _sector     = sector + cnt;
-		u32  _numSectors = numSectors - cnt;
-
-		/* Limit sector count */
-		if (_numSectors > USB_MAX_SECTORS)
-			_numSectors = USB_MAX_SECTORS;
-
-		/* Read sectors */
-		ret = __ehci_Read(_sector, _numSectors, ptr);
-		if (!ret)
-			return false;
-
-		/* Increase counter */
-		cnt += _numSectors;
-	}
-
-	return true;
+	return __usbstorage_ReadWriteSectors(0, sector, numSectors, buffer);
 }
 
-bool ehci_WriteSectors(u32 sector, u32 numSectors, void *buffer)
+bool usbstorage_WriteSectors(u32 sector, u32 numSectors, void *buffer)
 {
-	u32 cnt = 0;
-	s32 ret;
-
-	/* Device not opened */
-	if (fd < 0)
-		return false;
-
-	while (cnt < numSectors) {
-		void *ptr = (char *)buffer + (sectorSz * cnt);
-
-		u32  _sector     = sector + cnt;
-		u32  _numSectors = numSectors - cnt;
-
-		/* Limit sector count */
-		if (_numSectors > USB_MAX_SECTORS)
-			_numSectors = USB_MAX_SECTORS;
-
-		/* Write sectors */
-		ret = __ehci_Write(_sector, _numSectors, ptr);
-		if (!ret)
-			return false;
-
-		/* Increase counter */
-		cnt += _numSectors;
-	}
-
-	return true;
+	return __usbstorage_ReadWriteSectors(1, sector, numSectors, buffer);
 }
 
 // Function added in d2x v4beta4 to support hard drives
 // with sector size up to 4KB.
-u32 ehci_GetSectorSize()
+u32 usbstorage_GetSectorSize(void)
 {
 	/* Return sector size or 0 if device not opened */
 	return (fd < 0) ? 0 : sectorSz;
 }
 
-bool ehci_ClearStatus(void)
+bool usbstorage_ClearStatus(void)
 {
 	return true;
 }

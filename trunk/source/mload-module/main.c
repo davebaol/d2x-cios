@@ -52,7 +52,7 @@ s32 offset       = 0;
 u32 stealth_mode = 1;     // Stealth mode is on by default
 
 
-s32 __MLoad_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
+static s32 __MLoad_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 {
 	s32 ret = IPC_ENOENT;
 
@@ -197,7 +197,7 @@ s32 __MLoad_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 	return ret;
 }
 
-s32 __MLoad_DisableMem2Protection(void)
+static s32 __MLoad_DisableMem2Protection(void)
 {
 	/* Disable MEM2 protection (so the PPC can access all 64MB) */
 	MEM2_Prot(0);
@@ -220,7 +220,7 @@ s32 __MLoad_System(void)
 	return IOS_PatchModules(moduleDetectors, sizeof(moduleDetectors));
 }
 
-s32 __MLoad_Initialize(u32 *queuehandle)
+static s32 __MLoad_Initialize(u32 *queuehandle)
 {
 	/* Heap space */
 	static u32 heapspace[0x1000] ATTRIBUTE_ALIGN(32);
@@ -315,6 +315,7 @@ int main(void)
 			continue;
 		}
 
+		/* Parse command */
 		switch (message->command) {
 		case IOS_OPEN: {
 
