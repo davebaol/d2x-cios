@@ -1,4 +1,5 @@
 #summary How to install d2x cIOSs on your Wii.
+#labels Featured
 
 = Introduction =
 
