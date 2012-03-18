@@ -23,8 +23,8 @@
 #include "dip.h"
 #include "dip_calls.h"
 #include "errno.h"
-#include "fat.h"
 #include "ioctl.h"
+#include "isfs.h"
 #include "plugin.h"
 #include "stealth.h"
 #include "swi_mload.h"
@@ -37,7 +37,7 @@
 /* Global config */
 static struct dipConfig config = { 0 };
 static struct dipConfigState dipCfgState = { 0 };
-static struct ffsConfigState ffsCfgState = { 0 };
+static fsconfig ffsCfgState = { 0 };
 
 static s32 __DI_CheckOffset(u32 offset)
 {
@@ -202,17 +202,11 @@ static void __DI_InitDriveEmulation(void)
 
 	/* FFS Config state found */
 	if (ret > 0 && ffsCfgState.mode) {
-		u32 device = (ffsCfgState.mode & ISFS_MODE_SDHC) ? 0 : 1;
 
-		DI_Printf("DIP: DI_InitEmulation: Mounting FAT partition %d on %s...\n", ffsCfgState.partition, device ? "USB device" : "SD card");
-
-		/* Mount FAT device */
-		FAT_Mount(device, ffsCfgState.partition);
-
-		DI_Printf("DIP: DI_InitEmulation: Enabling nand emulation: mode = %d, path = &s%d\n", ffsCfgState.mode, ffsCfgState.path);
+		DI_Printf("DIP: DI_InitEmulation: Enabling nand emulation: mode = %d, partition = %d, path = &s\n", ffsCfgState.mode, ffsCfgState.partition, ffsCfgState.nandpath);
 
 		/* Enable nand emulation */
-		ISFS_SetMode(ffsCfgState.mode, ffsCfgState.path);
+		ISFS_SetConfig(ffsCfgState.mode, ffsCfgState.partition, ffsCfgState.nandpath);
 
 		DI_Printf("DIP: DI_InitEmulation: Nand emulation enabled\n");
 	}
@@ -225,7 +219,7 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 	s32 res;
 	s32 ret = 0;
 
-	DI_Printf("DIP: DI_EmulateCmd(0x%x)\n", cmd);
+	//DI_Printf("DIP: DI_EmulateCmd(0x%x)\n", cmd);
 
 	/* Reset error */
 	if (cmd != IOCTL_DI_REQERROR)
@@ -578,29 +572,22 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 		if (!Stealth_CheckEsRequest("IOCTL_DI_SAVE_CONFIG"))
 			goto handle_cmd;
 
-
 		DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Getting nand emulation config from FFS...\n");
 
 		/* Get nand emulation config */
-		ret = ISFS_GetMode(&ffsCfgState.mode, ffsCfgState.path);
+		ret = ISFS_GetConfig(&ffsCfgState.mode, &ffsCfgState.partition, ffsCfgState.nandpath);
 		if (ret < 0)
 			break;
 
-		DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Nand emulation is currently %senabled.\n", ffsCfgState.mode ? "": "NOT ");
+		DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Current FFS config = {%d, %d, \"%s\"}\n", ffsCfgState.mode, ffsCfgState.partition, ffsCfgState.nandpath);
 
+		/* Check FFS emulation mode */
 		if (ffsCfgState.mode) {
-			u32 device = (ffsCfgState.mode & ISFS_MODE_SDHC) ? 0 : 1;
 
-			DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Getting partition currently mounted on %s...\n", device ? "USB device" : "SD card");
-
-			/* Get FAT partition */
-			FAT_GetPartition(device, &ffsCfgState.partition);
-
-			DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Current partition is %d\n", ffsCfgState.partition);
 			DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Disabling nand emulation\n");
 
 			/* Disable nand emulation */
-			ISFS_SetMode(0, "");
+			ISFS_SetConfig(ISFS_MODE_NAND, 0, "");
 
 			DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Saving FFS config state..\n");
 
@@ -612,7 +599,7 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 			DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: FFS config state saved\n");
 		}
 
-		/* Check DIP modes */
+		/* Check DIP emulation mode */
 		if (DI_ChkMode(MODE_EMUL)) {
 			DI_Printf("DIP: IOCTL_DI_SAVE_CONFIG: Saving DIP config state..\n");
 
@@ -667,7 +654,7 @@ s32 DI_EmulateCmd(u32 *inbuf, u32 *outbuf, u32 size)
 		ret = DI_HandleCmd(inbuf, outbuf, size);
 	}
 
-	DI_Printf("DIP: DI_EmulateCmd: ret = 0x%x\n", ret);
+	//DI_Printf("DIP: DI_EmulateCmd: ret = 0x%x\n", ret);
 
 	return ret;
 }
@@ -680,7 +667,7 @@ s32 DI_EmulateIoctl(ioctl *buffer, s32 fd)
 	s32 res;
 	s32 ret = 1;
 
-	DI_Printf("DIP: DI_EmulateIoctl(0x%x)\n", cmd);
+	//DI_Printf("DIP: DI_EmulateIoctl(0x%x)\n", cmd);
 
 	/* Parse command */
 	switch (cmd) {
@@ -757,7 +744,7 @@ s32 DI_EmulateIoctl(ioctl *buffer, s32 fd)
 		ret = DI_HandleIoctl(buffer, fd);
 	}
 
-	DI_Printf("DIP: DI_EmulateIoctl: ret = 0x%x\n", ret);
+	//DI_Printf("DIP: DI_EmulateIoctl: ret = 0x%x\n", ret);
 
 	return ret;
 }
@@ -774,14 +761,6 @@ s32 DI_EmulateIoctl(ioctl *buffer, s32 fd)
  */
 void DI_EmulateInitDrive(void)
 {
-	s32 tid;
-
-	/* Get current thread id */
-	tid = os_get_thread_id();
-
-	/* Add thread rights for stealth mode */
-	Swi_AddThreadRights(tid, TID_RIGHTS_OPEN_FAT);
-
 	/* Init DVD driver */
 	DI_HandleInitDrive();
 

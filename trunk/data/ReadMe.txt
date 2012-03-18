@@ -31,7 +31,7 @@
   
   ModMii:
 
-  - Download and install ModMii v4.8.1 or higher on your PC. Download link:
+  - Download and install ModMii v6.0.6 or higher on your PC. Download link:
     http://gbatemp.net/topic/207126-modmii-for-windows
   - From ModMii's Main Menu, enter "4", then "beta"
   - Select the d2x beta you want to build
@@ -56,6 +56,7 @@
 
 [ KUDOS ]
 
+- rodries, for the help with EHCI improvements.
 - Crediar, for all I learned studying Sneek source code.
 - Oggzee, for his brilliant fraglist.
 - WiiPower, for the great help with ios reload block from usb.

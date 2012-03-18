@@ -18,14 +18,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _CONFIG_H_
-#define _CONFIG_H_
+#ifndef _ES_CONFIG_H_
+#define _ES_CONFIG_H_
 
 #include "types.h"
 
 /* Prototypes */
-s32 Config_Load(void *cfg, u32 size);
-s32 Config_Save(void *cfg, u32 size);
+s32 ES_LoadConfig(void);
+s32 ES_SaveConfig(void);
 
 #endif
 

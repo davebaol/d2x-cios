@@ -1,9 +1,7 @@
 /*   
-	Custom IOS Module (MLOAD)
+	Custom IOS Library
 
-	Copyright (C) 2008 neimod.
-	Copyright (C) 2010 Hermes.
-	Copyright (C) 2010 Waninkoko.
+	Copyright (C) 2009 Waninkoko.
 	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
@@ -21,13 +19,20 @@
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef _ES_H_
-#define _ES_H_
+#ifndef _SDHC_H_
+#define _SDHC_H_
 
+#include "ipc.h"
 #include "types.h"
 
-
+/* SDHC descriptor */
+#define SDHC_FD               0x5D4CFD
+          
 /* Prototypes */
-s32 ES_LaunchMIOS(void);
+s32 SDHC_RegisterDevice(s32 queuehandle);
+s32 SDHC_CheckDevicePath(char *devpath);
+s32 SDHC_Close(void);
+s32 SDHC_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen);
 
 #endif
+

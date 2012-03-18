@@ -29,6 +29,7 @@
 #include "swi.h"
 #include "types.h"
 
+#ifndef NO_DEBUG_BUFFER
 /* Constants */
 #define LOG_SIZE	4095
 
@@ -71,6 +72,7 @@ static s32 __Debug_Buffer(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 
 	return 0;
 }
+#endif
 
 static s32 __Debug_Gecko(u32 arg0, u32 arg1, u32 arg2, u32 arg3)
 {
@@ -105,6 +107,7 @@ s32 Debug_SetMode(u8 mode)
 
 		break;
 
+#ifndef NO_DEBUG_BUFFER
 	case DEBUG_BUFFER:
 		/* Clear buffer */
 		memset(buffer, 0, sizeof(buffer));
@@ -113,6 +116,7 @@ s32 Debug_SetMode(u8 mode)
 		*SwiText = __Debug_Buffer;
 
 		break;
+#endif
 
 	case DEBUG_GECKO:
 		/* Set usb gecko text handler */
@@ -127,6 +131,7 @@ s32 Debug_SetMode(u8 mode)
 	return 0;
 }
 
+#ifndef NO_DEBUG_BUFFER
 s32 Debug_GetBuffer(char *outbuf, u32 size)
 {
 	u32 len;
@@ -144,3 +149,5 @@ s32 Debug_GetBuffer(char *outbuf, u32 size)
 
 	return len;
 }
+#endif
+

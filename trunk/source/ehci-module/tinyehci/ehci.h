@@ -1,6 +1,9 @@
 /*
- * Copyright (c) 2009 Kwiirk
  * Original Copyright (c) 2001-2002 by David Brownell
+ * Copyright (c) 2009 Kwiirk.
+ * Copyright (c) 2009 Hermes.
+ * Copyright (c) 2011 rodries.
+ * Copyright (c) 2011 davebaol.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -60,7 +63,7 @@ struct ehci_urb{
         void* transfer_buffer;
         dma_addr_t transfer_dma;
         u32 transfer_buffer_length;
-        u32 actual_length;
+        s32 actual_length;
 
         u8 ep;
         u8 input;
@@ -80,6 +83,7 @@ struct ehci_hcd {			/* one per controller */
 	struct ehci_qh		*asyncqh;
         
         struct ehci_qtd	        *qtds[EHCI_MAX_QTD];
+
         int		        qtd_used;
 	unsigned long		next_statechange;
 	u32			command;
@@ -228,10 +232,6 @@ struct ehci_qh {
 
 /*-------------------------------------------------------------------------*/
 
-
-
-/*-------------------------------------------------------------------------*/
-
 /* cpu to ehci */
 #define cpu_to_hc32(b) cpu_to_le32(b)
 #define hc32_to_cpu(b) le32_to_cpu(b)
@@ -240,22 +240,16 @@ struct ehci_qh {
 /*-------------------------------------------------------------------------*/
 
 /* os specific functions */
-void*ehci_maligned(int size,int alignement,int crossing);
-dma_addr_t ehci_virt_to_dma(void *);
-dma_addr_t ehci_dma_map_to(void *buf,size_t len);
-dma_addr_t ehci_dma_map_from(void *buf,size_t len);
-dma_addr_t ehci_dma_map_bidir(void *buf,size_t len);
-void ehci_dma_unmap_to(dma_addr_t buf,size_t len);
-void ehci_dma_unmap_from(dma_addr_t buf,size_t len);
-void ehci_dma_unmap_bidir(dma_addr_t buf,size_t len);
-void ehci_usleep(int time);
-void ehci_msleep(int time);
+#include "usb_os.h"
 
+inline dma_addr_t get_qtd_dummy(void);
+
+void create_qtd_dummy(void);
 
 /* extern API */
 
 s32 ehci_control_message(struct ehci_device *dev,u8 bmRequestType,u8 bmRequest,u16 wValue,u16 wIndex,u16 wLength,void *buf);
-s32 ehci_bulk_message(struct ehci_device *dev,u8 bEndpoint,u16 wLength,void *rpData);
+s32 ehci_bulk_message(struct ehci_device *dev,u8 bEndpoint,u32 wLength,void *rpData);
 int ehci_discover(void);
 int ehci_get_device_list(u8 maxdev,u8 b0,u8*num,u16*buf);
 
@@ -270,7 +264,7 @@ extern int ehci_release_ports(void);
 /* UMS API */
 
 s32 USBStorage_Init(void);
-u32 USBStorage_Get_Capacity(u32*sector_size);
+s32 USBStorage_Get_Capacity(u32*sector_size);
 s32 USBStorage_Read_Sectors(u32 sector, u32 numSectors, void *buffer);
 s32 USBStorage_Read_Stress(u32 sector, u32 numSectors, void *buffer);
 s32 USBStorage_Write_Sectors(u32 sector, u32 numSectors, const void *buffer);
@@ -278,6 +272,8 @@ s32 USBStorage_Write_Sectors(u32 sector, u32 numSectors, const void *buffer);
 #ifndef DEBUG
 #define STUB_DEBUG_FILES
 #endif	/* DEBUG */
+
+#include "swi_mload.h"
 
 /*-------------------------------------------------------------------------*/
 

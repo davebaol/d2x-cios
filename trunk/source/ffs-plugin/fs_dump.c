@@ -29,7 +29,7 @@
 #include "types.h"
 
 
-void FS_Dump_Ioctl(ipcmessage *message, s32 ret)
+static void __FS_Dump_Ioctl(ipcmessage *message, s32 ret)
 {
 //	u32 *inbuf = message->ioctl.buffer_in;
 #ifdef DEBUG
@@ -101,9 +101,15 @@ void FS_Dump_Ioctl(ipcmessage *message, s32 ret)
 		break;
 	}
 
-	/** Set mode **/
-	case IOCTL_ISFS_SETMODE: {
-		FS_printf("FS_SetMode: ret = %d\n", ret);
+	/** Set config **/
+	case IOCTL_ISFS_SETCONFIG: {
+		FS_printf("FS_SetConfig: ret = %d\n", ret);
+		break;
+	}
+
+	/** Set config **/
+	case IOCTL_ISFS_GETCONFIG: {
+		FS_printf("FS_GetConfig: ret = %d\n", ret);
 		break;
 	}
 
@@ -113,7 +119,7 @@ void FS_Dump_Ioctl(ipcmessage *message, s32 ret)
 	}
 }
 
-void FS_Dump_Ioctlv(ipcmessage *message, s32 ret)
+static void __FS_Dump_Ioctlv(ipcmessage *message, s32 ret)
 {
 #ifdef DEBUG
 	ioctlv *vector = message->ioctlv.vector;
@@ -143,15 +149,23 @@ void FS_Dump_Ioctlv(ipcmessage *message, s32 ret)
 		break;
 	}
 
-	/** Set mode **/
-	case IOCTL_ISFS_SETMODE: {
-		FS_printf("FS_SetMode: ret = %d\n", ret);
+	/** Set config **/
+	case IOCTL_ISFS_SETCONFIG: {
+		FS_printf("FS_SetConfig: ret = %d\n", ret);
 		break;
 	}
 
-	/** Get mode **/
-	case IOCTL_ISFS_GETMODE: {
-		FS_printf("FS_GetMode: ret = %d\n", ret);
+	/** Mount USB or SD card **/
+	case IOCTL_ISFS_FAT_MOUNT_USB:
+	case IOCTL_ISFS_FAT_MOUNT_SD: {
+		FS_printf("FS_FatMount: ret = %d\n", ret);
+		break;
+	}
+
+	/** Unmount USB or SD card **/
+	case IOCTL_ISFS_FAT_UMOUNT_USB:
+	case IOCTL_ISFS_FAT_UMOUNT_SD: {
+		FS_printf("FS_FatUnmount: ret = %d\n", ret);
 		break;
 	}
 
@@ -167,11 +181,10 @@ void  FS_os_message_queue_ack(ipcmessage *message, s32 result)
 	case IOS_OPEN:
 
 #ifdef DEBUG
-#ifdef FILTER_OPENING_REQUESTS
-		if (strncmp("/dev", message->open.device, 4) || !strncmp("/dev/fs", message->open.device, 7)) {
+#ifdef DEBUG_FILTER_OPENING_REQUESTS
+		if (strncmp("/dev", message->open.device, 4) || !strncmp("/dev/fs", message->open.device, 7))
 #endif
 			FS_printf("FS_Open: ret = %d\n", result);
-		}
 #endif
 		break;
 
@@ -180,23 +193,29 @@ void  FS_os_message_queue_ack(ipcmessage *message, s32 result)
 		break;
 
 	case IOS_READ:
+#ifndef DEBUG_NO_READ_WRITE_SEEK
 		FS_printf("FS_Read: ret = %d\n", result);
+#endif
 		break;
 
 	case IOS_WRITE:
+#ifndef DEBUG_NO_READ_WRITE_SEEK
 		FS_printf("FS_Write: ret = %d\n", result);
+#endif
 		break;
 
 	case IOS_SEEK:
+#ifndef DEBUG_NO_READ_WRITE_SEEK
 		FS_printf("FS_Seek: ret = %d\n", result);
+#endif
 		break;
 
 	case IOS_IOCTL:
-		FS_Dump_Ioctl(message, result);
+		__FS_Dump_Ioctl(message, result);
 		break;
 
 	case IOS_IOCTLV:
-		FS_Dump_Ioctlv(message, result);
+		__FS_Dump_Ioctlv(message, result);
 		break;
 
 	default:

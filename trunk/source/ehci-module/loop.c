@@ -5,6 +5,7 @@
 	Copyright (C) 2009 kwiirk.
 	Copyright (C) 2009 Hermes.
 	Copyright (C) 2009 Waninkoko.
+	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -25,31 +26,31 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ehci_config.h"
+#include "ehci_irq.h"
 #include "ehci_types.h"
 #include "ehci.h"
 #include "ipc.h"
 #include "mem.h"
 #include "module.h"
+#include "sdhc_server.h"
 #include "stealth.h"
 #include "syscalls.h"
 #include "usbstorage.h"
 #include "utils.h"
-#include "wbfs.h"
+#include "watchdog.h"
+#include "wbfs_usb.h"
 
-/* Constants */
-#define WATCHDOG_TIMER		(1000 * 1000 * 10)
 
 /* Handlers */
 static u32 queuehandle;
-static u32 timerId;
 
 /* Variables */
 static u32 discovered = 0;
 static u32 ums_mode   = 0;
-static u32 watchdog   = 1;
 
 
-char *__EHCI_ParseHex(char *base, s32 *val)
+static char *__EHCI_ParseHex(char *base, s32 *val)
 {
 	s32 v = 0;
 
@@ -76,7 +77,7 @@ char *__EHCI_ParseHex(char *base, s32 *val)
 	return (ptr - 1);
 }
 
-s32 __EHCI_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen, s32 *ack)
+static s32 __EHCI_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen, s32 *ack)
 {
 	s32 ret = 0;
 
@@ -193,6 +194,7 @@ s32 __EHCI_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen, s32 *ac
 	}
 
 	case USB_IOCTL_UMS_READ_STRESS: {
+#if 0
 		void *buffer = vector[2].data;
 
 		u32   lba    = *(u32 *)vector[0].data;
@@ -200,6 +202,7 @@ s32 __EHCI_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen, s32 *ac
 
 		/* Read stress */
 		ret = !USBStorage_Read_Stress(lba, count, buffer);
+#endif
 
 		break;
 	}
@@ -210,10 +213,18 @@ s32 __EHCI_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen, s32 *ac
 	}
 
 	case USB_IOCTL_UMS_WATCHDOG: {
-		u32 value = *(u32 *)vector[0].data;
+		u32 secs = *(u32 *)vector[0].data;
 
-		/* Set watchdog */
-		watchdog = value;
+		/* Set watchdog timeout */
+		config.watchdogTimeout = secs * USECS_PER_SEC;
+
+		break;
+	}
+
+	case USB_IOCTL_UMS_SAVE_CONFIG: {
+
+		/* Save EHCI config */
+		EHCI_SaveConfig();
 
 		break;
 	}
@@ -222,7 +233,7 @@ s32 __EHCI_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen, s32 *ac
 		u8 *discid = (u8 *)vector[0].data;
 
 		/* Open WBFS disc */
-		ret = WBFS_OpenDisc(discid);
+		ret = WBFS_USB_OpenDisc(discid);
 
 		break;
 	}
@@ -234,7 +245,7 @@ s32 __EHCI_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen, s32 *ac
 		u32   len    = *(u32 *)vector[1].data;
 
 		/* Read WBFS disc */
-		ret = WBFS_Read(buffer, len, offset);
+		ret = WBFS_USB_Read(buffer, len, offset);
 
 		break;
 	}
@@ -250,7 +261,7 @@ s32 __EHCI_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen, s32 *ac
 	return ret;
 }
 
-s32 __EHCI_OpenDevice(char *devname, s32 fd)
+static s32 __EHCI_OpenDevice(char *devname, s32 fd)
 {
 	char *ptr = devname;
 
@@ -278,36 +289,8 @@ s32 __EHCI_OpenDevice(char *devname, s32 fd)
 	return ehci_open_device(vid, pid, fd);
 }
 
-void __EHCI_Watchdog(void)
-{
-	void *buffer = NULL;
-	u32   nbSectors, sectorSz;
 
-	/* UMS mode */
-	if (ums_mode) {
-		/* Get device info */
-		nbSectors = USBStorage_Get_Capacity(&sectorSz);
-
-		/* Device available */
-		if (nbSectors) {
-			/* Allocate buffer */
-			buffer = Mem_Alloc(sectorSz);
-			if (!buffer)
-				return;
-
-			/* Read random sector */
-			USBStorage_Read_Sectors(rand() % nbSectors, 1, buffer);
-
-			/* Free buffer */
-			Mem_Free(buffer);
-
-			/* Restart watchdog timer */
-			os_restart_timer(timerId, WATCHDOG_TIMER, 0);
-		}
-	}
-}
-
-s32 __EHCI_Init(u32 *queuehandle, u32 *timerId)
+static s32 __EHCI_Init(u32 *queuehandle)
 {
 	void *buffer = NULL;
 	s32   ret;
@@ -324,19 +307,24 @@ s32 __EHCI_Init(u32 *queuehandle, u32 *timerId)
 
 	/* Set queue handler */
 	*queuehandle = ret;
+	
+	/* Initialize interrupts */
+	ehci_irq_init();
 
-	/* Register device */
-	os_device_register(DEVICE, ret);
+	/* Set thread priority */
+	os_thread_set_priority(os_get_thread_id(), 0x78);
+
+	/* Register USB device */
+	os_device_register(DEVICE_USB_NO_SLASH, *queuehandle);
+	os_device_register(DEVICE_USB, *queuehandle);
+
+	/* Register SDHC device */
+	SDHC_RegisterDevice(*queuehandle);
 
 	/* Create watchdog timer */
-	ret = os_create_timer(WATCHDOG_TIMER, WATCHDOG_TIMER, ret, 0);
-	if (ret < 0)
-		return ret;
+	ret = WATCHDOG_CreateTimer(*queuehandle, 0);
 
-	/* Set timer handler */
-	*timerId = ret;
-
-	return 0;
+	return ret;
 }
 
 
@@ -345,7 +333,7 @@ s32 EHCI_Loop(void)
 	s32 ret;
 
 	/* Initialize module */
-	ret = __EHCI_Init(&queuehandle, &timerId);
+	ret = __EHCI_Init(&queuehandle);
 	if (ret < 0)
 		return ret;
 
@@ -355,34 +343,48 @@ s32 EHCI_Loop(void)
 		s32 ack = 1;
 
 		/* Wait for message */
-		os_message_queue_receive(queuehandle, (void *)&message, 0);
+		ret = os_message_queue_receive(queuehandle, (void *)&message, 0);
+		if (ret)
+			continue;
 
 		/* Stop watchdog timer */
-		os_stop_timer(timerId);
+		WATCHDOG_StopTimer();
 
-		/* Watchdog timer */
+		/* Watchdog message */
 		if (!message) {
-			/* Run watchdog */
-			__EHCI_Watchdog();
+			/* UMS mode */
+			if (ums_mode) {
+				/* Run watchdog */
+				WATCHDOG_Run();
 
+				/* Restart timer */
+				WATCHDOG_RestartTimer();
+			}
 			continue;
 		}
 
 		/* IPC command */
 		switch(message->command) {
 		case IOS_OPEN: {
-			char *devpath  = message->open.device;
-			s32   resultfd = message->open.resultfd;
-
-			/* Block opening request if a title is running */
-			ret = Stealth_CheckRunningTitle(NULL);
+			/* Block opening request not coming from ES when a title is running */
+			ret = Swi_GetRunningTitle() && !Swi_GetEsRequest();
 			if (ret) {
+				Stealth_Log(STEALTH_RUNNING_TITLE | STEALTH_ES_REQUEST, NULL);
 				ret = IPC_ENOENT;
 				break;
 			}
 
-			/* Module device */
-			if (!strcmp(devpath, DEVICE)) {
+			char *devpath  = message->open.device;
+			s32   resultfd = message->open.resultfd;
+
+			/* SDHC module device */
+			if (SDHC_CheckDevicePath(devpath)) {
+				ret = SDHC_FD;
+				break;
+			}
+
+			/* USB module device */
+			if (!strcmp(devpath, DEVICE_USB) || !strcmp(devpath, DEVICE_USB_NO_SLASH)) {
 				/* Discover devices */
 				if (!discovered)
 					ehci_discover();
@@ -396,11 +398,22 @@ s32 EHCI_Loop(void)
 			}
 
 			/* USB device */
-			if (!strncmp(devpath, DEVICE "/", sizeof(DEVICE)) && !ums_mode) {
-				/* Open USB device */
-				ret = __EHCI_OpenDevice(devpath + sizeof(DEVICE), resultfd);
+			if (!ums_mode) {
+				/* USB device specified through standard module name */
+				if (!strncmp(devpath, DEVICE_USB "/", sizeof(DEVICE_USB))) {
+					/* Open USB device */
+					ret = __EHCI_OpenDevice(devpath + sizeof(DEVICE_USB), resultfd);
 
-				break;
+					break;
+				}
+
+				/* USB device specified through module name whit no initial slash  */
+				if (!strncmp(devpath, DEVICE_USB_NO_SLASH "/", sizeof(DEVICE_USB_NO_SLASH))) {
+					/* Open USB device */
+					ret = __EHCI_OpenDevice(devpath + sizeof(DEVICE_USB_NO_SLASH), resultfd);
+
+					break;
+				}
 			}
 
 			/* Wrong device */
@@ -410,7 +423,13 @@ s32 EHCI_Loop(void)
 		}
 
 		case IOS_CLOSE: {
-			/* Close device */
+			/* Close SDHC device */
+			if(message->fd == SDHC_FD) {
+				ret = SDHC_Close();
+				break;
+			}
+
+			/* Close USB device */
 			if(ums_mode != message->fd)
 				ehci_close_device(ehci_fd_to_dev(message->fd));
 			else
@@ -429,7 +448,10 @@ s32 EHCI_Loop(void)
 			u32     cmd    = message->ioctlv.command;
 
 			/* Parse IOCTLV command */
-			ret = __EHCI_Ioctlv(message->fd, cmd, vector, inlen, iolen, &ack);
+			if (message->fd == SDHC_FD)
+				ret = SDHC_Ioctlv(cmd, vector, inlen, iolen);
+			else
+				ret = __EHCI_Ioctlv(message->fd, cmd, vector, inlen, iolen, &ack);
 
 			break;
 		}
@@ -439,9 +461,8 @@ s32 EHCI_Loop(void)
 			ret = IPC_EINVAL;
 		}
 
-
 		/* Restart watchdog timer */
-		os_restart_timer(timerId, WATCHDOG_TIMER, 0);
+		WATCHDOG_RestartTimer();
 
 		/* Acknowledge message */
 		if (ack)

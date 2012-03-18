@@ -26,10 +26,7 @@ TARGET	=	mload-module
 # Objects
 OBJS	=	debug.o		\
 		detect.o	\
-		di.o		\
-		es.o		\
 		elf.o		\
-		epic.o		\
 		gecko.o		\
 		gpio.o		\
 		main.o		\

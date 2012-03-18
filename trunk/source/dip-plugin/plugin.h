@@ -88,18 +88,6 @@ struct dipConfigState {
 	u32 frag_size;
 };
 
-/* FFS config state */
-struct ffsConfigState {
-	/* FFS mode */
-	u32 mode;
-
-	/* FFS partition */
-	u32 partition;
-
-	/* FFS path */
-	char path[ISFS_MAXPATH];
-};
-
 /* IOCTL structure */
 typedef struct {
 	u32 command;

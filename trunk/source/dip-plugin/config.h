@@ -20,14 +20,15 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
-#include "types.h"
+#include "isfs.h"
 #include "plugin.h"
+#include "types.h"
 
 /* Prototypes */
 s32 DI_Config_Load(struct dipConfigState *cfg);
 s32 DI_Config_Save(struct dipConfigState *cfg);
-s32 FFS_Config_Load(struct ffsConfigState *cfg);
-s32 FFS_Config_Save(struct ffsConfigState *cfg);
+s32 FFS_Config_Load(fsconfig *cfg);
+s32 FFS_Config_Save(fsconfig *cfg);
 
 #endif
 

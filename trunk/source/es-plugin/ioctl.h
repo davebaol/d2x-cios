@@ -11,7 +11,6 @@
 /* Custom IOCTL commands */
 #define IOCTL_ES_SET_FAKE_IOS_LAUNCH   0xA0
 #define IOCTL_ES_SET_FAKE_SM_LAUNCH    0xA1
-#define IOCTL_ES_LAUNCHMIOS            0x1337
 
 #endif
 

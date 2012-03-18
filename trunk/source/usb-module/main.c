@@ -4,6 +4,7 @@
 	Copyright (C) 2008 neimod.
 	Copyright (C) 2009 WiiGator.
 	Copyright (C) 2009 Waninkoko.
+	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -25,6 +26,7 @@
 #include "ipc.h"
 #include "mem.h"
 #include "module.h"
+#include "sdhc_server.h"
 #include "stealth.h"
 #include "syscalls.h"
 #include "timer.h"
@@ -35,7 +37,7 @@
 
 
 /* Variables */
-char *moduleName = "USBS";
+char *moduleName = "USBS/SDHC";
 s32 queuehandle = -1;
 
 /* Async replies */
@@ -207,11 +209,15 @@ s32 __USB_Initialize(void)
 	if (ret < 0)
 		return ret;
 
-	/* Register devices */
-	os_device_register(DEVICE_NAME, ret);
-
 	/* Copy queue handler */
 	queuehandle = ret;
+
+	/* Register USB devices */
+	os_device_register(DEVICE_USB_NO_SLASH, queuehandle);
+	os_device_register(DEVICE_USB, queuehandle);
+
+	/* Register SDHC device */
+	SDHC_RegisterDevice(queuehandle);
 
 	return 0;
 }
@@ -251,18 +257,34 @@ int main(void)
 				break;
 			}
 
-			/* Check device path */
-			if (!strcmp(message->open.device, DEVICE_NAME))
+			char *devpath = message->open.device;
+
+			/* Check USB device path */
+			if (!strcmp(devpath, DEVICE_USB) || !strcmp(devpath, DEVICE_USB_NO_SLASH)) {
 				ret = message->open.resultfd;
-			else
-				ret = IPC_ENOENT;
+				break;
+			}
+
+			/* SDHC module device */
+			if (SDHC_CheckDevicePath(devpath)) {
+				ret = SDHC_FD;
+				break;
+			}
+
+			/* Wrong device */
+			ret = IPC_ENOENT;
 
 			break;
 		}
 
 		case IOS_CLOSE: {
-			/* Do nothing */
-			ret = 0;
+			if (message->fd == SDHC_FD) {
+				/* Close SDHC device */
+				ret = SDHC_Close();
+			} else {
+				/* Do nothing */
+				ret = 0;
+			}
 			break;
 		}
 
@@ -273,7 +295,10 @@ int main(void)
 			u32     cmd    = message->ioctlv.command;
 
 			/* Parse IOCTLV message */
-			ret = __USB_Ioctlv(cmd, vector, inlen, iolen);
+			if (message->fd == SDHC_FD)
+				ret = SDHC_Ioctlv(cmd, vector, inlen, iolen);
+			else
+				ret = __USB_Ioctlv(cmd, vector, inlen, iolen);
 
 			break;
 		}

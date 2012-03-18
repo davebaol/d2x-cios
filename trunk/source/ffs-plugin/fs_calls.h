@@ -24,7 +24,8 @@
 #include "types.h"
 
 //#define DEBUG
-#define FILTER_OPENING_REQUESTS
+#define DEBUG_FILTER_OPENING_REQUESTS
+#define DEBUG_NO_READ_WRITE_SEEK
 
 
 /* Debug */
@@ -33,6 +34,8 @@ s32 (*FS_printf)(const char * fmt, ...);
 #else
 #define FS_printf(fmt, ...)     do {} while (0)
 #endif
+
+s32 (*FS_snprintf)(char *str, u32 size, const char *fmt, ...);
 
 /* FFS handlers */
 s32 fs_unk   (void *data);

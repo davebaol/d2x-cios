@@ -31,8 +31,12 @@
 #define DEBUG_BUFFER	1
 #define DEBUG_GECKO	2
 
+#define NO_DEBUG_BUFFER
+
 /* Prototypes */
 s32 Debug_SetMode(u8 mode);
+#ifndef NO_DEBUG_BUFFER
 s32 Debug_GetBuffer(char *outbuf, u32 len);
+#endif
 
 #endif

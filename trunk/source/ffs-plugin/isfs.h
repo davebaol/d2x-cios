@@ -21,6 +21,7 @@
 #ifndef _ISFS_H_
 #define _ISFS_H_
 
+#include "ipc.h"
 #include "types.h"
 
 /* Constants */
@@ -29,6 +30,27 @@
 #define ISFS_OPEN_READ		0x01
 #define ISFS_OPEN_WRITE		0x02
 #define ISFS_OPEN_RW		(ISFS_OPEN_READ | ISFS_OPEN_WRITE)
+
+/* Mode codes */
+#define FS_MODE_NAND  0x00
+#define FS_MODE_SDHC  0x01
+#define FS_MODE_USB   0x02
+#define FS_MODE_FULL  0x100
+#define FS_MODE_LED   0x200
+
+/* Macros */
+#define FS_GetDevice(M)  ((M) & (FS_MODE_SDHC | FS_MODE_USB))
+
+/* FS error codes */
+#define FS_SUCCESS         0
+#define FS_EINVAL         -4
+#define FS_EFATAL       -101
+#define FS_EACCESS      -102
+#define FS_EEXIST       -105
+#define FS_ENOENT       -106
+#define FS_ENFILE       -107
+#define FS_ENAMETOOLONG -110
+#define FS_ENOTEMPTY    -115
 
 
 /* ISFS structures */
@@ -75,6 +97,12 @@ typedef struct {
 	u32 length;
 	u32 pos;
 } fsfilestats;
+
+typedef struct {
+	u32  mode;
+	s32  partition;
+	char nandpath[ISFS_MAXPATH];
+} fsconfig;
 
 #endif
 

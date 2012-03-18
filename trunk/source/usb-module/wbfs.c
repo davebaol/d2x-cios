@@ -69,11 +69,11 @@ s32 WBFS_OpenDisc(u8 *discid)
 	if (disc)
 		wbfs_close_disc(disc);
 
-	/* Close SD */
+	/* Close device */
 	if (hdd)
 		wbfs_close(hdd);
 
-	/* Open SD */
+	/* Open device */
 	hdd = wbfs_open_hd(__WBFS_ReadSector, NULL, NULL, sectorSz, 0, 0);
 	if (!hdd)
 		return 3;

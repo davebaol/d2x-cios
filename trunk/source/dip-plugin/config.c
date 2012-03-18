@@ -25,11 +25,11 @@
 #include "frag.h"
 
 /* Constants */
-#define DIP_CFG_FILENAME	"/sys/dip.cfg"
-#define FFS_CFG_FILENAME	"/sys/ffs.cfg"
+static const char* __dip_cfg_filename = "/sys/dip.cfg";
+static const char* __ffs_cfg_filename = "/sys/ffs.cfg";
 
 
-static s32 __Config_Create(char *filename)
+static s32 __Config_Create(const char *filename)
 {
 	s32 ret;
 
@@ -47,7 +47,7 @@ static s32 __Config_Create(char *filename)
 	return ret;
 }
 
-static s32 __Config_Delete(char *filename)
+static s32 __Config_Delete(const char *filename)
 {
 	s32 ret;
 
@@ -70,14 +70,17 @@ s32 DI_Config_Load(struct dipConfigState *cfg)
 	s32 fd, ret;
 
 #ifdef DEBUG
-	svc_write("DIP: Config_Load(): Loading config file "DIP_CFG_FILENAME"\n");
+	svc_write("DIP: Config_Load(): Loading config file ");
+	svc_write(__dip_cfg_filename);
+	svc_write("\n");
 #endif
 
 	/* Open config file */
-	fd = os_open(DIP_CFG_FILENAME, ISFS_OPEN_READ);
+	fd = os_open(__dip_cfg_filename, ISFS_OPEN_READ);
 
 #ifdef DEBUG
-	svc_write("DIP: Config_Load(): Config file ");svc_write(fd<0? "NOT found\n": "found\n");
+	svc_write("DIP: Config_Load(): Config file ");
+	svc_write(fd < 0 ? "NOT found\n" : "found\n");
 #endif
 
 	if (fd < 0)
@@ -108,7 +111,7 @@ s32 DI_Config_Load(struct dipConfigState *cfg)
 	os_close(fd);
 
 	/* Delete config file */
-	__Config_Delete(DIP_CFG_FILENAME);
+	__Config_Delete(__dip_cfg_filename);
 
 #ifdef DEBUG
 	if (ret < 0)
@@ -123,10 +126,10 @@ s32 DI_Config_Save(struct dipConfigState *cfg)
 	s32 fd, ret;
 
 	/* Create config file */
-	__Config_Create(DIP_CFG_FILENAME);
+	__Config_Create(__dip_cfg_filename);
 
 	/* Open config file */
-	fd = os_open(DIP_CFG_FILENAME, ISFS_OPEN_WRITE);
+	fd = os_open(__dip_cfg_filename, ISFS_OPEN_WRITE);
 	if (fd < 0)
 		return fd;
 
@@ -150,27 +153,30 @@ s32 DI_Config_Save(struct dipConfigState *cfg)
 	return ret;
 }
 
-s32 FFS_Config_Load(struct ffsConfigState *cfg)
+s32 FFS_Config_Load(fsconfig *cfg)
 {
 	s32 fd, ret;
 
 #ifdef DEBUG
-	svc_write("DIP: Config_Load(): Loading config file "FFS_CFG_FILENAME"\n");
+	svc_write("DIP: Config_Load(): Loading config file ");
+	svc_write(__ffs_cfg_filename);
+	svc_write("\n");
 #endif
 
 	/* Open config file */
-	fd = os_open(FFS_CFG_FILENAME, ISFS_OPEN_READ);
+	fd = os_open(__ffs_cfg_filename, ISFS_OPEN_READ);
 
 #ifdef DEBUG
-	svc_write("DIP: Config_Load(): Config file ");svc_write(fd<0? "NOT found\n": "found\n");
+	svc_write("DIP: Config_Load(): Config file ");
+	svc_write(fd < 0 ? "NOT found\n" : "found\n");
 #endif
 
 	if (fd < 0)
 		return fd;
                     
 	/* Read config */
-	ret = os_read(fd, cfg, sizeof(struct ffsConfigState));
-	if (ret != sizeof(struct ffsConfigState)) {
+	ret = os_read(fd, cfg, sizeof(fsconfig));
+	if (ret != sizeof(fsconfig)) {
 #ifdef DEBUG
 		svc_write("DIP: Config_Load(): Config file has unexpected size!!!\n");
 #endif
@@ -181,26 +187,26 @@ s32 FFS_Config_Load(struct ffsConfigState *cfg)
 	os_close(fd);
 
 	/* Delete config file */
-	__Config_Delete(FFS_CFG_FILENAME);
+	__Config_Delete(__ffs_cfg_filename);
 
 	return ret;
 }
 
-s32 FFS_Config_Save(struct ffsConfigState *cfg)
+s32 FFS_Config_Save(fsconfig *cfg)
 {
 	s32 fd, ret;
 
 	/* Create config file */
-	__Config_Create(FFS_CFG_FILENAME);
+	__Config_Create(__ffs_cfg_filename);
 
 	/* Open config file */
-	fd = os_open(FFS_CFG_FILENAME, ISFS_OPEN_WRITE);
+	fd = os_open(__ffs_cfg_filename, ISFS_OPEN_WRITE);
 	if (fd < 0)
 		return fd;
 
 	/* Write config */
-	ret = os_write(fd, cfg, sizeof(*cfg));
-	if (ret != sizeof(*cfg))
+	ret = os_write(fd, cfg, sizeof(fsconfig));
+	if (ret != sizeof(fsconfig))
 		ret = -1;
 
 	/* Close config */

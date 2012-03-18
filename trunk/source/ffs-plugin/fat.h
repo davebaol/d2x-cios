@@ -21,7 +21,13 @@
 #ifndef _FAT_H_
 #define _FAT_H_
 
+#include "ff.h"
 #include "types.h"
+
+/* Constants */
+#define MAX_FILE        20
+#define FAT_MAXPATH     256
+
 
 /* Stats structure */
 struct stats {
@@ -46,30 +52,24 @@ struct fstats {
 	u32 pos;
 };
 
-/* Constants */
-#define FAT_MAXPATH	256
-
-/* Attributes */
-#define	AM_RDO	0x01	/* Read only */
-#define	AM_HID	0x02	/* Hidden */
-#define	AM_SYS	0x04	/* System */
-#define	AM_VOL	0x08	/* Volume label */
-#define AM_LFN	0x0F	/* LFN entry */
-#define AM_DIR	0x10	/* Directory */
-#define AM_ARC	0x20	/* Archive */
-#define AM_MASK	0x3F	/* Mask of defined bits */
-
-
 /* Prototypes */
-s32 FAT_Init(const char *nandpath);
+void FAT_GeneratePath(const char *fspath, char *fatpath);
+s32 FAT_Initialize();
+s32 FAT_Mount(u8 device, s32 partition);
+s32 FAT_Unmount(u8 dev);
+s32 FAT_Open(FIL *fil, const char *path, u32 mode);
+s32 FAT_Close(FIL *fil);
+s32 FAT_Read(FIL *fil, void *buffer, u32 len);
+s32 FAT_Write(FIL *fil, void *buffer, u32 len);
+s32 FAT_Seek(FIL *fil, s32 where, s32 whence);
 s32 FAT_CreateDir(const char *dirpath);
 s32 FAT_CreateFile(const char *filepath);
-s32 FAT_ReadDir(const char *dirpath, void *outbuf, u32 *entries);
+s32 FAT_ReadDir(const char *dirpath, char *outbuf, u32 buflen, u32 *outlen, u32 entries);
 s32 FAT_Delete(const char *path);
 s32 FAT_DeleteDir(const char *dirpath);
-s32 FAT_Rename(const char *oldpath, const char *newpath);
+s32 FAT_Rename(const char *oldname, const char *newname);
 s32 FAT_GetStats(const char *path, struct stats *stats);
 s32 FAT_GetUsage(const char *path, u32 *blocks, u32 *inodes);
-s32 FAT_GetFileStats(s32 fd, struct fstats *stats);
+s32 FAT_GetFileStats(FIL *fil, struct fstats *stats);
 
 #endif

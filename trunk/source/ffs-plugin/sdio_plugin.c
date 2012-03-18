@@ -1,7 +1,6 @@
 /*
  * FFS plugin for Custom IOS.
  *
- * Copyright (C) 2009-2010 Waninkoko.
  * Copyright (C) 2011 davebaol.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,13 +17,36 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _IOP_H_
-#define _IOP_H_
+#include <string.h>
 
+#include "ipc.h"
+#include "swi_mload.h"
+#include "syscalls.h"
 #include "types.h"
 
+s32 SDI_CheckSlot(const char *path, const char *slot, u32 n)
+{
+	s32 ret;
 
-/* Prototypes */
-void IOP_Init(void);
+	/* Check official slot name */
+	ret = strncmp(path, slot, n);
 
-#endif
+	/* Official slot name not matched */
+	if (ret) {
+		/* Check alternative slot name without the initial slash */
+		ret = strncmp(path, slot + 1, n - 1);
+
+		/* Alternative slot name matched */
+		if(!ret) {
+			/* Alternative name is hidden when a title is running */
+			if (Swi_GetRunningTitle()) {
+				svc_write("SDI: Title identified. Blocking opening request for custom path ");
+				svc_write(path);
+				svc_write("\n");
+				return IPC_ENOENT;
+			}
+		}
+	}
+
+	return ret;
+}

@@ -33,6 +33,7 @@
 #define IOS_ERROR_ES  -2
 #define IOS_ERROR_FFS -3
 #define IOS_ERROR_IOP -4
+#define IOS_ERROR_SDI -5
 
 /* IOS info structure */
 typedef struct {
@@ -44,6 +45,7 @@ typedef struct {
 	u32 esVersion;
 	u32 ffsVersion;
 	u32 iopVersion;
+	u32 sdiVersion;
 } iosInfo;
 
 /* Module patcher function */

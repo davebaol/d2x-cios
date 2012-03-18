@@ -18,12 +18,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
 #include <string.h>
 
-#include "config.h"
 #include "di.h"
 #include "es_calls.h"
+#include "es_config.h"
 #include "ioctl.h"
 #include "isfs.h"
 #include "ipc.h"
@@ -135,9 +134,30 @@ typedef struct {
 /* Disc-based games have title IDs of 00010000xxxxxxxx and 00010004xxxxxxxx */
 #define IS_DISC_BASED_GAME(TID) ((TID) >> 32 == 0x00010000 || (TID) >> 32 == 0x00010004) 
 
+/* EHCI IOCTL commands */
+#define UMS_BASE			(('U'<<24) | ('M'<<16) | ('S'<<8))
+#define USB_IOCTL_UMS_SAVE_CONFIG	(UMS_BASE + 0x90)
 
 /* Global config */
 struct esConfig config = { 0, 0, 0, 0 };
+
+
+static s32 __ES_SaveEhciConfig(void)
+{
+	s32 ret, fd;
+
+	/* Open USB device */
+	fd = os_open("/dev/usb2", 0);
+	if (fd < 0)
+		return fd;
+
+	/* Save config */
+	ret = os_ioctlv(fd, USB_IOCTL_UMS_SAVE_CONFIG, 0, 0, NULL);
+
+	os_close(fd);
+
+	return ret;
+}
 
 static s32 __ES_GetTitleID(u64 *tid)
 {
@@ -199,7 +219,7 @@ static s32 __ES_GetTicketView(u32 tidh, u32 tidl, u8 *view)
 		return ret;
 
 	/* Generate ticket view */
-	*(u32 *)  (view + 0x00) = (*(u32 *) (buffer + 0x1BC)) & 0xFF000000;
+	*(u32 *) (view + 0x00) = (*(u32 *) (buffer + 0x1BC)) & 0xFF000000;
 	ES_memcpy(view + 0x04, buffer + 0x1D0, sizeof(tikview) - 0x04);
 	*(u16 *) (view + 0x96) = 0;
 
@@ -442,7 +462,7 @@ s32 ES_EmulateIoctlv(ipcmessage *message)
 				Swi_SetEsRequest(1);
 
 				/* Disable NAND emulation */
-				ISFS_SetMode(ISFS_MODE_NAND, "");
+				ISFS_SetConfig(ISFS_MODE_NAND, 0, "");
 
 				/* Clear ES status for stealth mode */
 				Swi_SetEsRequest(0);
@@ -469,11 +489,14 @@ s32 ES_EmulateIoctlv(ipcmessage *message)
 						/* Save DI and FFS config after disabling nand emulation */
 						DI_Config_Save();
 
+						/* Save EHCI config */
+						__ES_SaveEhciConfig();
+
 						/* Clear ES status for stealth mode */
 						Swi_SetEsRequest(0);
 
 						/* Save ES config */
-						Config_Save(&config, sizeof(config));
+						ES_SaveConfig();
 
 						/* Launch title (fake ID) */
 						return __ES_CustomLaunch(tidh, config.ios);
@@ -522,18 +545,6 @@ s32 ES_EmulateIoctlv(ipcmessage *message)
 		config.sm_title_id = sm_title_id;
 
 		return 0;
-	}
-
-	case IOCTL_ES_LAUNCHMIOS: {
-		ES_printf("__ES_Ioctlv: LanchMIOS()\n");
-
-		/* Block custom command if a title is running */
-		ret = Stealth_CheckRunningTitle("IOCTL_ES_LAUNCHMIOS");
-		if (ret)
-			return IPC_ENOENT;
-
-		/* Launch MIOS */
-		return __ES_CustomLaunch(1, 257);
 	}
 
 	default:

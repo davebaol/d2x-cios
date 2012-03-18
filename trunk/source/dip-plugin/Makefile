@@ -25,7 +25,6 @@ OBJS	=	config.o		\
 		dip.o			\
 		dip_calls.o		\
 		dma.o			\
-		fat.o			\
 		frag.o			\
 		main.o			\
 		patches.o		\
