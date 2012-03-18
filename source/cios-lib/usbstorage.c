@@ -40,8 +40,14 @@
 /* Constants */
 #define USB_MAX_SECTORS			64
 
-/* Device */
-static char fs[] ATTRIBUTE_ALIGN(32) = "/dev/usb2";
+/* Device path
+ *
+ * NOTE: The custom name without the starting slash is required to avoid deadlock
+ * when you have to open the usb device from inside fs.
+ * In fact a message is sent to fs queue each time you open a path starting
+ * with slash.
+ */
+static char fs[] ATTRIBUTE_ALIGN(32) = "dev/usb2";
 
 /* Descriptor */
 static s32  fd = -1;

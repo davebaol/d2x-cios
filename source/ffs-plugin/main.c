@@ -18,7 +18,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "iop.h"
 #include "ios.h"
 #include "patches.h"
 #include "syscalls.h"
@@ -32,14 +31,12 @@ int main(void)
 	/* System patchers */
 	static patcher patchers[] = {
 		{Patch_FfsModule, 0},
-		{Patch_IopModule, 0}
+		{Patch_IopModule, 0},
+		{Patch_SdiModule, 0}
 	};
 
 	/* Print info */
 	svc_write("$IOSVersion: FFSP: " __DATE__ " " __TIME__ " 64M$\n");
-
-	/* Initialize IOP */
-	IOP_Init();
 
 	/* Initialize plugin */
 	IOS_InitSystem(patchers, sizeof(patchers));

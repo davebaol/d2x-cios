@@ -28,7 +28,7 @@
 #include "syscalls.h"
 
 /* Variables */
-static s32 hid = -1;
+static s32 hid       = -1;
 
 
 s32 Mem_Init(u32 *heapspace, u32 heapspaceSize)
@@ -41,7 +41,7 @@ s32 Mem_Init(u32 *heapspace, u32 heapspaceSize)
 	hid = os_heap_create(heapspace, heapspaceSize);
 
 	return (hid < 0) ? hid : 0;
-} 
+}
 
 void *Mem_Alloc(u32 size)
 {
@@ -54,8 +54,13 @@ void *Mem_Alloc_Debug(u32 size, const char* func, u32 line)
 {
 	void *p;
 
+	if (hid < 0) {
+		LOG_Write("Mem subsystem not initialized.\n", func, line);
+		return NULL;
+	}
+
 	/* Allocate memory */
-	p = os_heap_alloc_aligned(hid, size, 32);
+	p = Mem_Alloc(size);
 
 	if (p == NULL)
 		LOG_Write("Can't allocate memory.\n", func, line);

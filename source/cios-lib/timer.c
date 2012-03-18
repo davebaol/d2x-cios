@@ -22,6 +22,7 @@
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#include "ios.h"
 #include "mem.h"
 #include "syscalls.h"
 #include "types.h"
@@ -72,6 +73,13 @@ s32 Timer_Init(void)
 void Timer_Sleep(u32 time)
 {
 	u32 message;
+
+#ifdef CIOSLIB_DEBUG
+	if (queuehandle == -1 || timerId == -1) {
+		svc_write(moduleName);
+		svc_write(": Timer susbsystem not initialized.\n");
+	}
+#endif
 
 	/* Send message */
 	os_message_queue_send(queuehandle, 0x555, 0);

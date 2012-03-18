@@ -43,8 +43,6 @@ if /i "%wadname:~0,17%" EQU "cIOS250[80]-d2x-v" set md5=ac0ffee1eddad70defec8100
 ::save any of the following beta files to the following directory
 ::if any of the following is not found, the standard d2x module used in the previous ModMii release will continue to be used
 ::modules\More-cIOSs\{ANY FOLDER NAME}\mload.app
-::modules\More-cIOSs\{ANY FOLDER NAME}\FAT.app
-::modules\More-cIOSs\{ANY FOLDER NAME}\SDHC.app
 ::modules\More-cIOSs\{ANY FOLDER NAME}\EHCI.app
 ::modules\More-cIOSs\{ANY FOLDER NAME}\USBS.app
 ::modules\More-cIOSs\{ANY FOLDER NAME}\DIPP.app

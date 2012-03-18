@@ -5,6 +5,7 @@
 	Copyright (C) 2009 kwiirk.
 	Copyright (C) 2009 Hermes.
 	Copyright (C) 2009 Waninkoko.
+	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -36,7 +37,7 @@ static wbfs_disc_t *disc = NULL;
 static u32 nbSector, sectorSize;
 
 
-static int __WBFS_ReadSector(void *cbdata, u32 lba, u32 count, void *buffer)
+static int __WBFS_USB_ReadSector(void *cbdata, u32 lba, u32 count, void *buffer)
 {
 	s32 ret;
 
@@ -52,7 +53,7 @@ static int __WBFS_ReadSector(void *cbdata, u32 lba, u32 count, void *buffer)
 }
 
 
-s32 WBFS_OpenDisc(u8 *discid)
+s32 WBFS_USB_OpenDisc(u8 *discid)
 {
 	s32 ret;
 
@@ -66,14 +67,16 @@ s32 WBFS_OpenDisc(u8 *discid)
 	if (!nbSector)
 		return 2;
 
-	/* Close disc/device */
+	/* Close disc */
 	if (disc)
 		wbfs_close_disc(disc);
+
+	/* Close device */
 	if (hdd)
 		wbfs_close(hdd);
 
 	/* Open device */
-	hdd = wbfs_open_hd(__WBFS_ReadSector, NULL, NULL, sectorSize, nbSector, 0);
+	hdd = wbfs_open_hd(__WBFS_USB_ReadSector, NULL, NULL, sectorSize, nbSector, 0);
 	if (!hdd)
 		return 3;
 
@@ -85,7 +88,7 @@ s32 WBFS_OpenDisc(u8 *discid)
 	return 0;
 }
 
-s32 WBFS_Read(void *buffer, u32 len, u32 offset)
+s32 WBFS_USB_Read(void *buffer, u32 len, u32 offset)
 {
 	/* No disc opened */
 	if (!disc)

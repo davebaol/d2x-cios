@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include "es_config.h"
 #include "ios.h"
 #include "ipc.h"
 #include "patches.h"
@@ -39,7 +39,7 @@ int main(void)
 	svc_write("$IOSVersion: ESP: " __DATE__ " " __TIME__ " 64M$\n");
 
 	/* Load config */
-	Config_Load(&config, sizeof(config));
+	ES_LoadConfig();
 
 	/* Initialize plugin */
 	IOS_InitSystem(patchers, sizeof(patchers));

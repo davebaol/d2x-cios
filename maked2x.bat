@@ -59,10 +59,8 @@ call :make cios-lib     ""                %clean%
 call :make dip-plugin   %d2x_build%\DIPP  %clean% 
 call :make ehci-module  %d2x_build%\EHCI  %clean% 
 call :make es-plugin    %d2x_build%\ES    %clean% 
-call :make fat-module   %d2x_build%\FAT   %clean% 
 call :make ffs-plugin   %d2x_build%\FFSP  %clean% 
 call :make mload-module %d2x_build%\MLOAD %clean% 
-call :make sdhc-module  %d2x_build%\SDHC  %clean% 
 call :make usb-module   %d2x_build%\USBS  %clean% 
 
 if "%clean%"=="clean" goto :done

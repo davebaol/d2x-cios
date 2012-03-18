@@ -31,5 +31,6 @@ s32 Detect_DipModule(void);
 s32 Detect_EsModule(void);
 s32 Detect_FfsModule(void);
 s32 Detect_IopModule(void);
+s32 Detect_SdiModule(void);
 
 #endif

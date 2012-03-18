@@ -20,9 +20,8 @@
 
 #include <string.h>
 
-#include "fat_tools.h"
-#include "fs_tools.h"
 #include "fat.h"
+#include "fs_tools.h"
 #include "plugin.h"
 #include "types.h"
 
@@ -52,7 +51,7 @@ u32 FS_CheckRealPath(const char *path)
 		/*
 		 * Full emulation
 		 */
-		if (config.mode & MODE_FULL) {
+		if (config.mode & FS_MODE_FULL) {
 	
 			/* Don't emulate paths starting with '/dev', i.e. virtual devices */
 			if (!strncmp(path, "/dev", 4)) return 1;
@@ -121,57 +120,6 @@ u32 FS_MatchPath(char *path, const char *pattern, s32 strict)
 		path++;
 		pattern++;
 	}
-
-	return 1;
-}
-
-/*
- * NOTE:
- * - Absolute paths are typically used to work on FAT files through ioctl commands.
- * - Only the invalid FAT characters after the nand folder are escaped.
- */
-void FS_GenerateAbsolutePath(const char *fspath, char *fatpath)
-{
-	u32 device = config.mode & (MODE_SDHC | MODE_USB);
-
-	/* Copy device prefix */
-	switch (device) {
-	case MODE_SDHC:
-		strcpy(fatpath, "0:");
-		fatpath += 2;
-		break;
-
-	case MODE_USB:
-		strcpy(fatpath, "1:");
-		fatpath += 2;
-		break;
-	}
-
-	/* Append nand folder */
-	strcpy(fatpath, config.path);
-
-	/* Append escaped path */
-	FAT_Escape(fatpath + config.pathlen, fspath);
-}
-
-/*
- * NOTES:
- * - Relative paths can be used used only to open FAT files inside the nand folder.
- * - Relative paths always start with '$' which must NOT be followed by '/'.
- * - Invalid fat characters inside a relative path are NOT escaped.
- * - Cunnings above allow you not to waste any character of the 64 allowed
- *   by IOS on opening requests.
- */
-s32 FS_GenerateRelativePath(const char *fspath, char *fatpath)
-{
-	if (*fspath != '/')
-		return 0;
-
-	/* Copy path */
-	strcpy(fatpath, fspath);
-
-	/* Replace first char */
-	*fatpath = '$';
 
 	return 1;
 }

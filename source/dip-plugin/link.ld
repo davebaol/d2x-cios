@@ -5,12 +5,12 @@ ENTRY(_start)
 /* Sections area */ 
 MEMORY {
 	table		: ORIGIN = 0x0, LENGTH = 0x4000
-	exe(rwx)	: ORIGIN = 0x13800000, LENGTH = 0x2000
-	ram(rw)		: ORIGIN = 0x13802000, LENGTH = 0x40000
+	exe(rwx)	: ORIGIN = 0x137be000, LENGTH = 0x2000
+	ram(rw)		: ORIGIN = 0x137c0000, LENGTH = 0x40000
 }
 
-__exe_start_phys__		= 0x13800000;
-__ram_start_phys__		= 0x13802000;
+__exe_start_phys__		= 0x137be000;
+__ram_start_phys__		= 0x137c0000;
 
 SECTIONS {
 	.ios_info_table : {

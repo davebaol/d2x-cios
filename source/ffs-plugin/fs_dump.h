@@ -21,7 +21,7 @@
 #ifndef _FS_DUMP_H_
 #define _FS_DUMP_H_
 
-//#define DUMP
+#define DUMP
 
 #include "ipc.h"
 #include "types.h"

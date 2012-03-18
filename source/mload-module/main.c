@@ -27,8 +27,6 @@
 #include "debug.h"
 #include "detect.h"
 #include "elf.h"
-#include "epic.h"
-#include "es.h"
 #include "ios.h"
 #include "ipc.h"
 #include "mem.h"
@@ -167,11 +165,15 @@ static s32 __MLoad_Ioctlv(u32 cmd, ioctlv *vector, u32 inlen, u32 iolen)
 	}
 
 	case MLOAD_GET_LOG_BUFFER: {
+#ifndef NO_DEBUG_BUFFER
 		char *buffer = (char *)vector[0].data;
 		u32   len    = *(u32 *)vector[0].len;
 
 		/* Get debug buffer */
 		ret = Debug_GetBuffer(buffer, len-1);
+#else
+		ret = 0;
+#endif
 
 		break;
 	}
@@ -208,10 +210,11 @@ static s32 __MLoad_DisableMem2Protection(void)
 /* System detectors and patchers */
 static patcher moduleDetectors[] = {
 	{Detect_DipModule, 0},
-	{Detect_EsModule, 0},
+	{Detect_EsModule,  0},
 	{Detect_FfsModule, 0},
 	{Detect_IopModule, 0},
-	{Patch_IopModule, 0}  // We want to patch swi vector asap
+	{Detect_SdiModule, 0},
+	{Patch_IopModule,  0}  // We want to patch swi vector asap
 };
 
 s32 __MLoad_System(void)
@@ -297,9 +300,6 @@ int main(void)
 	if (ret < 0)
 		return ret;
 
-	/* Initialize stuff */
-	Epic_Init(queuehandle);
-
 	/* Main loop */
 	while (1) {
 		ipcmessage *message = NULL;
@@ -308,12 +308,6 @@ int main(void)
 		ret = os_message_queue_receive(queuehandle, (void *)&message, 0);
 		if (ret)
 			continue;
-
-		/* Epic stuff */
-		if ((u32)message == EPIC_MESSAGE) {
-			Epic_Main();
-			continue;
-		}
 
 		/* Parse command */
 		switch (message->command) {

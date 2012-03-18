@@ -126,26 +126,19 @@ typedef struct _usbdevdesc
 
 struct ehci_device;
 
-s32 USB_OpenDevice(const char *device,u16 vid,u16 pid,struct ehci_device **fd);
-s32 USB_CloseDevice(struct ehci_device **fd);
+
 
 s32 USB_GetDescriptors(struct ehci_device *fd, usb_devdesc *udd);
 void USB_FreeDescriptors(usb_devdesc *udd);
 
-s32 USB_GetDeviceDescription(struct ehci_device *fd,usb_devdesc *devdesc);
 
-void USB_SuspendDevice(struct ehci_device *fd);
-void USB_ResumeDevice(struct ehci_device *fd);
-
-s32 USB_ReadIntrMsg(struct ehci_device *fd,u8 bEndpoint,u16 wLength,void *rpData);
 
 s32 USB_ReadBlkMsg(struct ehci_device *fd,u8 bEndpoint,u16 wLength,void *rpData);
 
 s32 USB_ReadCtrlMsg(struct ehci_device *fd,u8 bmRequestType,u8 bmRequest,u16 wValue,u16 wIndex,u16 wLength,void *rpData);
 
-s32 USB_WriteIntrMsg(struct ehci_device *fd,u8 bEndpoint,u16 wLength,void *rpData);
 
-s32 USB_WriteBlkMsg(struct ehci_device *fd,u8 bEndpoint,u16 wLength,void *rpData);
+s32 USB_WriteBlkMsg(struct ehci_device *fd,u8 bEndpoint,u32 wLength,void *rpData);
 
 s32 USB_WriteCtrlMsg(struct ehci_device *fd,u8 bmRequestType,u8 bmRequest,u16 wValue,u16 wIndex,u16 wLength,void *rpData);
 
@@ -154,10 +147,6 @@ s32 USB_SetConfiguration(struct ehci_device *fd, u8 configuration);
 s32 USB_SetAlternativeInterface(struct ehci_device *fd, u8 interface, u8 alternateSetting);
 s32 USB_ClearHalt(struct ehci_device *fd, u8 endpointAddress);
 s32 USB_GetDeviceList(const char *devpath,void *descr_buffer,u8 num_descr,u8 b0,u8 *cnt_descr);
-
-/* alloc memory from the USB subsystem */
-void * USB_Alloc(int size);
-void USB_Free(void *ptr);
 
 #ifdef __cplusplus
    }

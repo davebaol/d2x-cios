@@ -8,15 +8,17 @@
 #include <string.h>
 
 #include "diskio.h"
+#include "isfs.h"
 #include "mem.h"
+#include "plugin.h"
 #include "sdio.h"
 #include "syscalls.h"
 #include "types.h"
 #include "usbstorage.h"
 
 /* Disk drives */
-#define DRIVE_SDHC	0
-#define DRIVE_EHCI	1
+#define DRIVE_SDHC	(FS_MODE_SDHC - 1)
+#define DRIVE_EHCI	(FS_MODE_USB - 1)
 
 /* Disk constants */
 #define SECTOR_SZ(drv)		((drv)==DRIVE_SDHC ? 512 :	\
@@ -26,16 +28,7 @@
 DSTATUS disk_initialize(BYTE drv)
 {
 	/* Initialize drive */
-	switch (drv) {
-	case DRIVE_SDHC:
-	case DRIVE_EHCI:
-		break;
-
-	default:
-		return RES_PARERR;
-	}
-
-	return RES_OK;
+	return drv == DRIVE_SDHC || drv == DRIVE_EHCI ? RES_OK : RES_PARERR;
 }
 
 DSTATUS disk_status(BYTE drv)
@@ -106,6 +99,39 @@ DRESULT disk_read(BYTE drv, BYTE *buff, DWORD sector, BYTE count)
 }
 
 #if _READONLY == 0
+
+#include "hollywood.h"
+#include "swi_mload.h"
+
+#define get_timer()  (*((vu32*)HW_TIMER))
+
+#define TICKS_PER_MILLISEC         2048
+#define MINIMUM_TIME_IN_MILLISECS  (100 * TICKS_PER_MILLISEC) 
+
+static u32 ticks  = 0; 
+static u32 led_on = 0; 
+
+static void __LED_On(void)
+{
+	if (config.mode & FS_MODE_LED) {
+		led_on = (get_timer() - ticks > MINIMUM_TIME_IN_MILLISECS);
+
+		if (led_on)
+			Swi_LedOn();
+	}
+	else
+		led_on = 0;
+}
+
+static void __LED_Off(void)
+{
+	if (led_on) {
+		Swi_LedOff();
+		
+		ticks = get_timer();
+	}
+}
+
 DRESULT disk_write(BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
 {
 	void *buffer;
@@ -131,6 +157,9 @@ DRESULT disk_write(BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
 	else
 		buffer = (void *)buff;
 
+	/* Set led on */
+	__LED_On();
+
 	/* Write sectors */
 	switch (drv) {
 	case DRIVE_SDHC:
@@ -143,6 +172,9 @@ DRESULT disk_write(BYTE drv, const BYTE *buff, DWORD sector, BYTE count)
 		ret = usbstorage_WriteSectors(sector, count, buffer);
 		break;
 	}
+
+	/* Set led off */
+	__LED_Off();
 
 	if (buffer != buff) {
 		/* Free buffer */
