@@ -10,11 +10,11 @@ This is a guide which helps you to compile d2x-cios correctly.
 *REQUIREMENTS*:
   * !DevkitPro environment, get it with the [http://www.sourceforge.net/projects/devkitpro/files/latest/download devkitpro installer].
 
-  * [http://sourceforge.net/projects/devkitpro/files/devkitARM/previous/devkitARM_r32-win32.exe/download devkitARM r32].
+  * [http://mirror.transact.net.au/pub/sourceforge/d/project/de/devkitpro/devkitARM/previous/devkitARM_r32-win32.exe devkitARM r32].
 
-  * A Subversion Client like [http://www.sliksvn.com/en/download SlikSVN].
+  * A Subversion Client like [http://www.sliksvn.com/en/download SlikSVN] or [http://tortoisesvn.net/downloads.html TortoiseSVN].
 
-  * Stripios from [http://usbloader-gui.googlecode.com/svn/branches/ehcmodule_rodries/stripios/stripios.exe here].
+  * Stripios from [http://usbloader-gui.googlecode.com/svn/branches/ehcmodule_rodries/stripios/stripios.exe here] or compile it by yourself (see the utils folder into svn repository).
 
   * Gawk from [http://gnuwin32.sourceforge.net/packages/gawk.htm here].
 
@@ -30,13 +30,11 @@ Then it should compile d2x v6 final. The compiled files can be found in the "bui
 
 = Linux =
 *REQUIREMENTS*:
-  * [http://sourceforge.net/projects/devkitpro/files/devkitARM/previous/devkitARM_r32-i686-linux.tar.bz2/download devkitARM r32 x86] or [http://sourceforge.net/projects/devkitpro/files/devkitARM/previous/devkitARM_r32-x86_64-linux.tar.bz2/download devkitARM r32 x64].
+  * [http://mirror.transact.net.au/pub/sourceforge/d/project/de/devkitpro/devkitARM/previous/devkitARM_r32-i686-linux.tar.bz2 devkitARM r32 x86].
 
-  * Stripios from [http://www.multiupload.com/AW7S2SAMJX here].
+  * Stripios from [http://www.multiupload.com/AW7S2SAMJX here] or compile it by yourself (see the utils folder into svn repository).
 
   * Gawk using "sudo apt-get install gawk".
-
-  * [http://www.mediafire.com/?qg5myw4b63xj8d1 This Makefile].
 
 *PREPARATION*:
 Create a "devkitpro" folder on your linux drive root and extract the
@@ -50,10 +48,6 @@ Save the file.
 Open a terminal and type in "source ~/.bashrc" then "svn checkout http://d2x-cios.googlecode.com/svn/trunk/ d2x-cios-read-only". Go into the "d2x-cios-read-only" folder, extract the "Makefile" and "stripios" file into it, and make the "stripios" executable using a terminal and the command "chmod +x stripios".
 
 *COMPILE*:
-At first you need to edit the Makefile to the d2x version you want, 
-open it in a text editor, change the major_ver and minor_ver variables 
-to the one you want and save. Then just open a terminal in the 
-"d2x-cios-read-only" folder and run "make" to compile it and "make 
-install" to pack it into a "build" folder together with the files 
-needed to install the cios. If you want to clean up everything just run 
-"make clean" and delete the "build" folder if you want.
+Open a terminal in the "d2x-cios-read-only" folder and type "maked2x.sh -h" to see the help.
+If the source version is for example v6 final type "maked2x.sh 6 final".
+Then it should compile d2x v6 final. The compiled files can be found in the "build" folder.

@@ -1020,14 +1020,20 @@ s32 USBStorage_Inquiry(usbstorage_handle *dev, u8 lun)
 s32 USBStorage_ReadCapacity(usbstorage_handle *dev, u8 lun, u32 *sector_size, u32 *n_sectors)
 {
 	s32 retval;
-	u8 cmd[] = {SCSI_READ_CAPACITY, lun << 5};
+
+	// FIX by digicroxx
+	// Specifications state that SCSI_READ_CAPACITY has a 10 byte long Command Descriptor Block.
+	// See page 32 at http://www.usb.org/developers/devclass_docs/usbmass-ufi10.pdf 
+	// and http://en.wikipedia.org/wiki/SCSI_Read_Capacity_Command
+	// Certain devices strictly require this command lenght.
+	u8 cmd[] = {SCSI_READ_CAPACITY, lun << 5, 0, 0, 0, 0, 0, 0, 0, 0}; 
 	u8 *response = USB_Alloc(8);
 	u32 val;
 
 	if (!response)
 		return -ENOMEM;
 
-	retval = __cycle(dev, lun, response, 8, cmd, 2, 0, NULL, NULL, USBSTORAGE_CYCLE_RETRIES);
+	retval = __cycle(dev, lun, response, 8, cmd, sizeof(cmd), 0, NULL, NULL, USBSTORAGE_CYCLE_RETRIES); 
 
 	if (retval >= 0) {
 	        memcpy(&val, response, 4);
@@ -1299,6 +1305,17 @@ void USBStorage_Umount(void)
 */	
 }
 
+static void __USBStorage_DisablePortChangesDetection(void)
+{
+	ehci_writel(0, &ehci->regs->intr_enable);
+	ehci_irq_passive_callback(NULL);
+}
+
+static void __USBStorage_EnablePortChangesDetection(void)
+{
+	ehci_irq_passive_callback(passive_callback_hand);
+	ehci_writel(STS_PCD, &ehci->regs->intr_enable);
+}
 
 s32 USBStorage_Init()
 {
@@ -1308,8 +1325,7 @@ s32 USBStorage_Init()
 	if (ums_init_done[current_port] == 1)
 		return 0;
 
-	ehci_writel(0, &ehci->regs->intr_enable);
-	ehci_irq_passive_callback(NULL);  // interrupt port changes detection
+	__USBStorage_DisablePortChangesDetection();
 
 	try_status = -100; 
 
@@ -1395,8 +1411,7 @@ s32 USBStorage_Init()
 			ehci_release_port(current_port);
 	}
 
-	ehci_irq_passive_callback(passive_callback_hand);  // interrupt port changes detection
-	ehci_writel(STS_PCD, &ehci->regs->intr_enable);
+	__USBStorage_EnablePortChangesDetection();
 
 	if (ret == 1)
 		try_status = 0; 
@@ -1552,8 +1567,7 @@ s32 unplug_procedure(void)
 		if (!(status & 1))
 			return 1;
 
-		ehci_writel(0, &ehci->regs->intr_enable); // disable interrupts
-		ehci_irq_passive_callback(NULL);
+		__USBStorage_DisablePortChangesDetection();
 
 		ret = ehci_reset_port2(current_port);
 		//if(ret<0) ehci_reset_port(current_port);
@@ -1581,8 +1595,6 @@ s32 unplug_procedure(void)
 				retval = 0;
 				unplug_device[current_port] = 0;
 				__mounted[current_port] = 1;
-				ehci_irq_passive_callback(passive_callback_hand);  // interrupt port changes detection
-				ehci_writel (STS_PCD, &ehci->regs->intr_enable);
 			}
 			else {
 				unplug_device[current_port] = 1;
@@ -1592,9 +1604,9 @@ s32 unplug_procedure(void)
 				__mounted[current_port] = 0;
 				retval = 1; 
 				ehci_msleep(100);
-				ehci_irq_passive_callback(passive_callback_hand);
-				ehci_writel (STS_PCD, &ehci->regs->intr_enable);
 			}
+
+			__USBStorage_EnablePortChangesDetection();
 
 			//if(USBStorage_Try_Device(&ehci->devices[0])==0) {retval=0;unplug_device=0;} else unplug_device=1;
 
@@ -1669,13 +1681,11 @@ s32 USBStorage_Read_Sectors(u32 sector, u32 numSectors, void *buffer)
 
 		if (retval >= 0) {
 
-			ehci_writel(0, &ehci->regs->intr_enable);
-			ehci_irq_passive_callback(NULL);
+			__USBStorage_DisablePortChangesDetection();
 
 			retval = USBStorage_Read(&__usbfd[current_port], __lun[current_port], sector, numSectors, buffer);
 
-			ehci_irq_passive_callback(passive_callback_hand);
-			ehci_writel (STS_PCD, &ehci->regs->intr_enable);
+			__USBStorage_EnablePortChangesDetection();
 		}
 
 		usb_timeout = 500*1000;
@@ -1718,13 +1728,11 @@ s32 USBStorage_Write_Sectors(u32 sector, u32 numSectors, const void *buffer)
 		usb_timeout = 1000*1000;
 
 		if (retval >= 0) {
-			ehci_writel(0, &ehci->regs->intr_enable);
-			ehci_irq_passive_callback(NULL);
+			__USBStorage_DisablePortChangesDetection();
 
 			retval = USBStorage_Write(&__usbfd[current_port], __lun[current_port], sector, numSectors, buffer);
 
-			ehci_irq_passive_callback(passive_callback_hand);
-			ehci_writel(STS_PCD, &ehci->regs->intr_enable);
+			__USBStorage_EnablePortChangesDetection();
 		}
 
 		usb_timeout = 500*1000;

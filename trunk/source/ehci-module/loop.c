@@ -31,6 +31,7 @@
 #include "ehci_types.h"
 #include "ehci.h"
 #include "ipc.h"
+#include "loop.h"
 #include "mem.h"
 #include "module.h"
 #include "sdhc_server.h"
@@ -221,6 +222,18 @@ static s32 __EHCI_Ioctlv(s32 fd, u32 cmd, ioctlv *vector, u32 inlen, u32 iolen, 
 		break;
 	}
 
+	case USB_IOCTL_UMS_SET_PORT: {
+		u32 port = *(u32 *)vector[0].data;
+
+		/* Set current USB port */
+		if (port > 1)
+			ret = -1;
+		else
+			ret = current_port = config.useUsbPort1 = port;
+
+		break;
+	}
+
 	case USB_IOCTL_UMS_SAVE_CONFIG: {
 
 		/* Save EHCI config */
@@ -407,7 +420,7 @@ s32 EHCI_Loop(void)
 					break;
 				}
 
-				/* USB device specified through module name whit no initial slash  */
+				/* USB device specified through module name with no initial slash */
 				if (!strncmp(devpath, DEVICE_USB_NO_SLASH "/", sizeof(DEVICE_USB_NO_SLASH))) {
 					/* Open USB device */
 					ret = __EHCI_OpenDevice(devpath + sizeof(DEVICE_USB_NO_SLASH), resultfd);

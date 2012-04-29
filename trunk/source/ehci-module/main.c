@@ -26,6 +26,7 @@
 #include "ehci_config.h"
 #include "ehci_types.h"
 #include "ios.h"
+#include "loop.h"
 #include "mem.h"
 #include "patches.h"
 #include "swi_mload.h"
@@ -39,8 +40,6 @@
 
 
 char *moduleName = "EHCI/SDHC";
-
-extern u32 current_port;
 
 static void __Wait_MLoad(void)
 {
@@ -104,7 +103,10 @@ int main(void)
 	
 	/* Initialize TinyEhci (stage 2) */
 	EHCI_InitStage2();
-		
+
+	/* Make sure EHCI config file is deleted */
+	EHCI_DeleteConfig();
+
 	/* Main loop */
 	EHCI_Loop();
 

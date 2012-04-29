@@ -18,7 +18,7 @@ if "%wadname%"=="" goto:endofd2xbat
 ::------------------------Section to update (below)--------------------
 ::here you should enter the new beta cIOS hashes (under the OLD non-beta "wadname")
 if /i "%wadname:~0,17%" EQU "cIOS249[37]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
-if /i "%wadname:~0,17%" EQU "cIOS250[37]-d2x-v" set md5=ac0ffee1eddad70defeca7eadeadbeef
+if /i "%wadname:~0,17%" EQU "cIOS250[37]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
 if /i "%wadname:~0,17%" EQU "cIOS249[38]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
 if /i "%wadname:~0,17%" EQU "cIOS250[38]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015
 if /i "%wadname:~0,17%" EQU "cIOS249[53]-d2x-v" set md5=ac0ffee1eddad70defec81005e570015

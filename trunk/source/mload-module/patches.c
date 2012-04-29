@@ -38,9 +38,9 @@ typedef struct {
 	u32 readContentPerm;
 	u32 closeContentPerm;
 	u32 setUidCheck;
-	u32 titleVersionChek;
-	u32 titleDeleteChek;
-	u32 decryptChek;
+	u32 titleVersionCheck;
+	u32 titleDeleteCheck;
+	u32 decryptCheck;
 } esAddrInfo;
 
 static void __Patch_EsModule(esAddrInfo *aInfo)
@@ -73,14 +73,14 @@ static void __Patch_EsModule(esAddrInfo *aInfo)
 	DCWrite16(aInfo->setUidCheck, 0x46C0);
 
 	/* Title version check */
-	DCWrite8(aInfo->titleVersionChek, 0xE0);
+	DCWrite8(aInfo->titleVersionCheck, 0xE0);
 
 	/* Title delete check */
-	DCWrite8(aInfo->titleDeleteChek, 0xE0);
+	DCWrite8(aInfo->titleDeleteCheck, 0xE0);
 
 	/* Decrypt check */
-	if (aInfo->decryptChek)		// Missing in base 36 and 38
-		DCWrite8(aInfo->decryptChek, 0xE0);
+	if (aInfo->decryptCheck)		// Missing in base 36 and 38
+		DCWrite8(aInfo->decryptCheck, 0xE0);
 }
 
 s32 Patch_DipModule(void)
@@ -133,9 +133,9 @@ s32 Patch_EsModule(void)
 			0x201053FC,	// readContentPerm
 			0x20105498,	// closeContentPerm
 			0x2010576A,	// setUidCheck
-			0x20102C74,	// titleVersionChek
-			0x2010849A,	// titleDeleteChek
-			0x2010650C	// decryptChek
+			0x20102C74,	// titleVersionCheck
+			0x2010849A,	// titleDeleteCheck
+			0x2010650C	// decryptCheck
 		};
 
 		__Patch_EsModule(&addrInfo);
@@ -156,9 +156,9 @@ s32 Patch_EsModule(void)
 			0x20104ECC,	// readContentPerm
 			0x20104F68,	// closeContentPerm
 			0x2010523A,	// setUidCheck
-			0x20102800,	// titleVersionChek
-			0x20107B32,	// titleDeleteChek
-			0x20105FD0	// decryptChek
+			0x20102800,	// titleVersionCheck
+			0x20107B32,	// titleDeleteCheck
+			0x20105FD0	// decryptCheck
 		};
 
 		__Patch_EsModule(&addrInfo);
@@ -169,7 +169,7 @@ s32 Patch_EsModule(void)
 	/** 03/03/10 10:40:14 **/
 	case 0x4B8E90EE: {	// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
 		static esAddrInfo addrInfo = {
-			0x13A7547A,	// signatureCheck1  (added in d2x v8 r42)
+			0x13A7547A,	// signatureCheck1   (added in d2x v8 r42)
 			0x13A75626,	// signatureCheck2
 			0x20100E74,	// identifyCheck1
 			0x20100EEC,	// identifyCheck2
@@ -179,9 +179,9 @@ s32 Patch_EsModule(void)
 			0x20105450,	// readContentPerm
 			0x201054A0,	// closeContentPerm
 			0x201057BE,	// setUidCheck
-			0x20102CB8,	// titleVersionChek
-			0x20108562,	// titleDeleteChek
-			0x20106560	// decryptChek      (added in d2x v8 r42)
+			0x20102CB8,	// titleVersionCheck
+			0x20108562,	// titleDeleteCheck
+			0x20106560	// decryptCheck      (added in d2x v8 r42)
 		};
 
 		__Patch_EsModule(&addrInfo);
@@ -192,7 +192,7 @@ s32 Patch_EsModule(void)
 	/** 03/01/10 03:26:03 **/
 	case 0x4B8B882B: {	// IOS: 37v5662, 53v5662, 55v5662
 		static esAddrInfo addrInfo = {
-			0x13A750DE,	// signatureCheck1  (added in d2x v8 r42)
+			0x13A750DE,	// signatureCheck1   (added in d2x v8 r42)
 			0x13A752E6,	// signatureCheck2
 			0x20100D46,	// identifyCheck1
 			0x20100DBE,	// identifyCheck2
@@ -202,9 +202,9 @@ s32 Patch_EsModule(void)
 			0x20104F38,	// readContentPerm
 			0x20104F88,	// closeContentPerm
 			0x201052A6,	// setUidCheck
-			0x20102818,	// titleVersionChek
-			0x20107BAA,	// titleDeleteChek
-			0x20106048	// decryptChek      (added in d2x v8 r42)
+			0x20102818,	// titleVersionCheck
+			0x20107BAA,	// titleDeleteCheck
+			0x20106048	// decryptCheck      (added in d2x v8 r42)
 		};
 
 		__Patch_EsModule(&addrInfo);
@@ -215,7 +215,7 @@ s32 Patch_EsModule(void)
 	/** 03/01/10 03:18:58 **/
 	case 0x4B8B8682: {	// IOS: 36v3607, 38v4123
 		static esAddrInfo addrInfo = {
-			0x13A750DE,	// signatureCheck1  (added in d2x v8 r42)
+			0x13A750DE,	// signatureCheck1   (added in d2x v8 r42)
 			0x13A75266,	// signatureCheck2
 			0x20100CC4,	// identifyCheck1
 			0x20100D3C,	// identifyCheck2
@@ -225,9 +225,9 @@ s32 Patch_EsModule(void)
 			0x20104C3C,	// readContentPerm
 			0x20104C8C,	// closeContentPerm
 			0x20104FAA,	// setUidCheck
-			0x201026CC,	// titleVersionChek
-			0x20107642,	// titleDeleteChek
-			0x0		// decryptChek
+			0x201026CC,	// titleVersionCheck
+			0x20107642,	// titleDeleteCheck
+			0x0		// decryptCheck
 		};
 
 		__Patch_EsModule(&addrInfo);
