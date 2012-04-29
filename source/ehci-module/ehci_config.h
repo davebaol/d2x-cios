@@ -35,6 +35,7 @@ extern ehciConfig config;
 /* Prototypes */
 s32 EHCI_LoadConfig(void);
 s32 EHCI_SaveConfig(void);
+s32 EHCI_DeleteConfig(void);
 
 #endif
 

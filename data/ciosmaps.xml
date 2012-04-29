@@ -423,7 +423,7 @@
 				<patch offset="0x775" size="1" originalbytes="0x01" newbytes="0x00"/>
 			</content>
 			<content id="0x2" />
-			<content id="0x12" />
+			<content id="0x3" />
 			<content id="0x4" patchscount="1">
 				<!-- Register alternative SDI module name without the initial slash -->
 				<patch offset="0x2130" size="40" 
@@ -455,11 +455,11 @@
 				<!-- Korean key -->
 				<patch offset="0x28294" size="16" originalbytes="0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00" newbytes="0x63,0xB8,0x2B,0xB4,0xF4,0x61,0x4E,0x2E,0x13,0xF2,0xFE,0xFB,0xBA,0x4C,0x9B,0x7E"/>
 			</content>
-			<content id="0xf" module="MLOAD" tmdmoduleid="-1"/>
-			<content id="0x3" module="EHCI" tmdmoduleid="3"/>
-			<content id="0x10" module="DIPP" tmdmoduleid="-1"/>
-			<content id="0x13" module="ES" tmdmoduleid="-1"/>
-			<content id="0x14" module="FFSP" tmdmoduleid="-1"/>
+			<content id="0xf"  module="MLOAD" tmdmoduleid="-1"/>
+			<content id="0x12" module="EHCI"  tmdmoduleid="3"/>
+			<content id="0x10" module="DIPP"  tmdmoduleid="-1"/>
+			<content id="0x13" module="ES"    tmdmoduleid="-1"/>
+			<content id="0x14" module="FFSP"  tmdmoduleid="-1"/>
 		</base>
 		<base ios="70" version="6687" contentscount="20" modulescount="5">
 			<content id="0x0" patchscount="7">
@@ -478,7 +478,7 @@
 				<patch offset="0x775" size="1" originalbytes="0x01" newbytes="0x00"/>
 			</content>
 			<content id="0x2" />
-			<content id="0x12" />
+			<content id="0x3" />
 			<content id="0x4" patchscount="1">
 				<!-- Register alternative SDI module name without the initial slash -->
 				<patch offset="0x2130" size="40" 
@@ -510,11 +510,11 @@
 				<!-- Korean key -->
 				<patch offset="0x28F5C" size="16" originalbytes="0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00" newbytes="0x63,0xB8,0x2B,0xB4,0xF4,0x61,0x4E,0x2E,0x13,0xF2,0xFE,0xFB,0xBA,0x4C,0x9B,0x7E"/>
 			</content>
-			<content id="0xf" module="MLOAD" tmdmoduleid="-1"/>
-			<content id="0x3" module="EHCI" tmdmoduleid="3"/>
-			<content id="0x10" module="DIPP" tmdmoduleid="-1"/>
-			<content id="0x13" module="ES" tmdmoduleid="-1"/>
-			<content id="0x14" module="FFSP" tmdmoduleid="-1"/>
+			<content id="0xf"  module="MLOAD" tmdmoduleid="-1"/>
+			<content id="0x12" module="EHCI"  tmdmoduleid="3"/>
+			<content id="0x10" module="DIPP"  tmdmoduleid="-1"/>
+			<content id="0x13" module="ES"    tmdmoduleid="-1"/>
+			<content id="0x14" module="FFSP"  tmdmoduleid="-1"/>
 		</base>
 		<base ios="80" version="6943" contentscount="20" modulescount="5">
 			<content id="0x0" patchscount="7">
@@ -533,7 +533,7 @@
 				<patch offset="0x775" size="1" originalbytes="0x01" newbytes="0x00"/>
 			</content>
 			<content id="0x2" />
-			<content id="0x12" />
+			<content id="0x3" />
 			<content id="0x4" patchscount="1">
 				<!-- Register alternative SDI module name without the initial slash -->
 				<patch offset="0x2138" size="40" 
@@ -566,10 +566,10 @@
 				<patch offset="0x29078" size="16" originalbytes="0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00" newbytes="0x63,0xB8,0x2B,0xB4,0xF4,0x61,0x4E,0x2E,0x13,0xF2,0xFE,0xFB,0xBA,0x4C,0x9B,0x7E"/>
 			</content>
 			<content id="0xf"  module="MLOAD" tmdmoduleid="-1"/>
-			<content id="0x3"  module="EHCI" tmdmoduleid="3"/>
-			<content id="0x10"  module="DIPP" tmdmoduleid="-1"/>
-			<content id="0x13" module="ES" tmdmoduleid="-1"/>
-			<content id="0x14" module="FFSP" tmdmoduleid="-1"/>
+			<content id="0x12" module="EHCI"  tmdmoduleid="3"/>
+			<content id="0x10" module="DIPP"  tmdmoduleid="-1"/>
+			<content id="0x13" module="ES"    tmdmoduleid="-1"/>
+			<content id="0x14" module="FFSP"  tmdmoduleid="-1"/>
 		</base>
 	</ciosgroup>
 </ciosmaps>

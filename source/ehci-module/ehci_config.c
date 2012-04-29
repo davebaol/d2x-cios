@@ -38,3 +38,21 @@ s32 EHCI_SaveConfig(void)
 {
 	return Config_Save(filename, &config, sizeof(config));
 }
+
+s32 EHCI_DeleteConfig(void)
+{
+	s32 ret;
+
+	/* Open ISFS */
+	ret = ISFS_Open();
+	if (ret < 0)
+		return ret;
+
+	/* Delete file */
+	ret = ISFS_Delete(filename);
+
+	/* Close ISFS */
+	ISFS_Close();
+
+	return ret;
+}

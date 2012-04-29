@@ -13,13 +13,13 @@
 - Improved usb compatibility: some problematic hdd are now supported,
   shred skateboard controller is now supported, mics and usb instruments
   should work better than before (tnx to rodries for the great help).
-- Fixed an issue in ehci descriptors (tnx to rodries).
-- Fixed a slowdown issue when initializing the device. Now the device is not
+- Fixed an issue in EHCI descriptors (tnx to rodries).
+- Fixed an EHCI slowdown issue when initializing the device. Now the device is not
   unmounted anymore if it's mounted already (tnx to rodries).
 - Increased read/write sectors up to 64KB.
-- Fixed an issue when checking if a usb device is inserted (tnx to rodries).
+- Fixed an EHCI issue when checking if a usb device is inserted (tnx to rodries).
 - Old SDHC and FAT modules have been removed to prevent random freezing with
-  the new EHCI module. SDHC and FAT capabilities are now embedded rispectively
+  the new EHCI module. SDHC and FAT capabilities are now embedded respectively
   in EHCI/USBS module and FS plugin.
 - Patched Nintendo's SDI module to register a new device name without the
   initial slash, i.e. dev/sdio. This alternative name is required by nand
@@ -29,11 +29,19 @@
   dev/usb2 (same reason mentioned above).
 - Increased EHCI thread priority from 0x48 to 0x78.
 - Removed the easter egg introduced by Waninkoko in cios rev20.
-- Added to EHCI a ioctl command to set watchdog timout. This should fix the
+- Added an EHCI ioctl command to set watchdog timout. This should fix the
   issue which certain HDD that park their heads after less than 10 seconds of
   inactivity.
-- Added to EHCI a ioctl command to save module configuration. This command is
+- Added an EHCI ioctl command to save module configuration. This command is
   called by the ES plugin during ios reload block management.
+- Fixed an EHCI issue in ReadCapacity that prevented certain usb devices from
+  working (tnx to digicroxx).
+- Fixed an EHCI issue in GetDescriptors that prevented certain usb devices
+  from working (tnx to digicroxx). 
+- Added an EHCI ioctl command to specify the current usb port.
+- Fixed content id for bases 60/70/80 in ciosmaps.xml (tnx to dragbe).
+- Added maked2x.sh to build the cios on Linux (tnx to r-win).
+- Added stripios source to svn.
 
  
 [ d2x v8 ]

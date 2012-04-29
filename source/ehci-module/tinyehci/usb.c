@@ -117,8 +117,24 @@ s32 USB_GetDescriptors(struct ehci_device * fd, usb_devdesc *udd)
 			goto free_and_error;
 
 		ptr = buffer;
-		ptr += ucd->bLength;
-		size -= ucd->bLength;
+
+		// FIX by digicroxx
+		// Sometime OTG descritptor is present together with
+		// configuration descriptor before interface descriptors,
+		// and the following is not working...
+		//
+		//    ptr += ucd->bLength;
+		//    size -= ucd->bLength;
+		//
+		// ...so we have to skip configutation descriptor (and other
+		// descriptors if any) until we found interface descriptors 
+		// identified by bDescriptorType==4.
+		while (*(ptr+1) != 4 && size >= 9)
+		{
+			u8 bLength = *ptr;
+			ptr += bLength;
+			size -= bLength;
+		}		
 		
 		retval = -ENOMEM;
 		ucd->interfaces = USB_Alloc(ucd->bNumInterfaces* sizeof(*ucd->interfaces));
