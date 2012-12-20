@@ -1,5 +1,5 @@
 /*
- * Custom IOS Library.
+ * ES plugin for Custom IOS.
  *
  * Copyright (C) 2010 Waninkoko.
  * Copyright (C) 2011 davebaol.
@@ -19,12 +19,15 @@
  */
 
 #include "isfs.h"
-#include "ios.h"
 #include "syscalls.h"
 #include "types.h"
+#include "es_calls.h"
+
+/* Constants */
+#define FILENAME	"/sys/esp.cfg"
 
 
-static s32 __Config_Create(const char *filename)
+static s32 __Config_Create(void)
 {
 	s32 ret;
 
@@ -34,7 +37,7 @@ static s32 __Config_Create(const char *filename)
 		return ret;
 
 	/* Create file */
-	ret = ISFS_CreateFile(filename);
+	ret = ISFS_CreateFile(FILENAME);
 
 	/* Close ISFS */
 	ISFS_Close();
@@ -42,7 +45,7 @@ static s32 __Config_Create(const char *filename)
 	return ret;
 }
 
-static s32 __Config_Delete(const char *filename)
+static s32 __Config_Delete(void)
 {
 	s32 ret;
 
@@ -52,7 +55,7 @@ static s32 __Config_Delete(const char *filename)
 		return ret;
 
 	/* Delete file */
-	ret = ISFS_Delete(filename);
+	ret = ISFS_Delete(FILENAME);
 
 	/* Close ISFS */
 	ISFS_Close();
@@ -60,18 +63,23 @@ static s32 __Config_Delete(const char *filename)
 	return ret;
 }
 
-s32 Config_Load(const char *filename, void *cfg, u32 size)
+// NOTE:
+// This function is called by the main before patching Nintendo's ES module. 
+// Since this code is not running in ES thread don't use ES_printf for 
+// debugging purpose. Use svc_write instead.
+s32 Config_Load(void *cfg, u32 size)
 {
 	s32 fd, ret;
 
+#ifdef DEBUG
+	svc_write("ESP: Config_Load(): Loading config file "FILENAME"\n");
+#endif
+
 	/* Open config file */
-	fd = os_open(filename, ISFS_OPEN_READ);
-
-	svc_write(moduleName);
-	svc_write(": Config_Load(\"");
-	svc_write(filename);
-	svc_write(fd < 0? "\" -> NOT found\n": "\" -> found\n");
-
+	fd = os_open(FILENAME, ISFS_OPEN_READ);
+#ifdef DEBUG
+	svc_write("ESP: Config_Load(): Config file ");svc_write(fd<0? "NOT found\n": "found\n");
+#endif
 	if (fd < 0)
 		return fd;
 
@@ -82,20 +90,20 @@ s32 Config_Load(const char *filename, void *cfg, u32 size)
 	os_close(fd);
 
 	/* Delete config file */
-	__Config_Delete(filename);
+	__Config_Delete();
 
 	return ret;
 }
 
-s32 Config_Save(const char *filename, void *cfg, u32 size)
+s32 Config_Save(void *cfg, u32 size)
 {
 	s32 fd, ret;
 
 	/* Create config file */
-	__Config_Create(filename);
+	__Config_Create();
 
 	/* Open config file */
-	fd = os_open(filename, ISFS_OPEN_WRITE);
+	fd = os_open(FILENAME, ISFS_OPEN_WRITE);
 	if (fd < 0)
 		return fd;
 

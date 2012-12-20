@@ -27,24 +27,25 @@
 
 	.EQU	ios_thread_arg,		4
 
-	.EQU	ios_thread_priority,	0x78
+	// FIX d2x v2
+	// Thread priority decreased from 0x78 to 0x48, like it was in rev18 and below,
+	// to fix the lag on secondary usb port when the watchdog is reading.
+	.EQU	ios_thread_priority,	0x48
 
 	.EQU	ios_thread_stacksize,	0x3000
 
 
 	.global _start
 _start:
-	/* Execute main program */
 	mov	r0, #0		@ int argc
 	mov	r1, #0		@ char *argv[]
 	ldr	r3, =main
 	bx	r3
 
 
+
 /*
  * IOS bss
- *
- * This contains the module's thread stack
  */
 	.section ".ios_bss", "a", %nobits
 
@@ -53,16 +54,10 @@ ios_thread_stack_start:
 	.space	ios_thread_stacksize
 	.global ios_thread_stack	/* stack decrements from high address.. */
 ios_thread_stack:
-	.space 0x200
-	.global ehci_irq_stack		/* stack decrements from high address.. */
-ehci_irq_stack:
 
 
 /*
  * IOS info table
- *
- * This contains the module's loader information
- * The stripios tool will find this, and package it nicely for the IOS system
  */
 	.section ".ios_info_table", "ax", %progbits
 

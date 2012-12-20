@@ -28,9 +28,8 @@
 #define MESSAGE_ATTACH			(u32)&usbCb[1]
 #define MESSAGE_MOUNT			0x10000001
 
-/* USB device names */
-#define DEVICE_USB_NO_SLASH   "dev/usb2"
-#define DEVICE_USB            "/"DEVICE_USB_NO_SLASH
+/* Device name */
+#define DEVICE_NAME			"/dev/usb2"
 
 /* Externs */
 extern s32    queuehandle;

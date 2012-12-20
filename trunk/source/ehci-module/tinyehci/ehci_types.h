@@ -3,7 +3,7 @@
 /* linux kernel types needed by our code */
 #define __iomem
 
-//typedef unsigned long uint32_t;
+typedef unsigned int uint32_t;
 
 #include "types.h"
 
@@ -27,9 +27,6 @@ enum{
         ETIMEDOUT,
         EINVAL,
         ENOMEM,
-		EBADDATA,
-		ETRANSERR,
-		EPORTDOWN,
         
 };
 #define jiffies 0

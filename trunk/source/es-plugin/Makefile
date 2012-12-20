@@ -21,9 +21,9 @@ LIBS	=	../cios-lib/cios-lib.a
 TARGET	=	es-plugin
 
 # Objects
-OBJS	=	di.o			\
+OBJS	=	config.o		\
+		di.o			\
 		es_calls.o		\
-		es_config.o		\
 		main.o			\
 		patches.o		\
 		plugin.o		\

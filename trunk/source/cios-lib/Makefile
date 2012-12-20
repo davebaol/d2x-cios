@@ -21,14 +21,13 @@ LIBS	=
 TARGET	=	cios-lib
 
 # Objects
-OBJS	=	config.o		\
-		direct_syscalls.o	\
+OBJS	=	direct_syscalls.o	\
+		fat_tools.o		\
 		ios.o			\
 		ipc.o			\
 		isfs.o			\
 		log.o			\
 		mem.o			\
-		sdhc_server.o		\
 		sdio.o			\
 		stealth.o		\
 		str_utils.o		\

@@ -33,7 +33,7 @@
 #define getModuleVersion(ERR)   (((u32 *)(&ios))[-(ERR)])
 
 /* IOS information */
-iosInfo ios = { 0, 0, 0, 0, 0, 0 };
+iosInfo ios = { 0, 0, 0, 0, 0 };
 
 /* 
  * NOTE:

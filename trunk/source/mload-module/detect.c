@@ -85,7 +85,7 @@ s32 Detect_EsModule(void)
 		ios.esVersion = 0x4B8E90EE;
 		break;
 
-	case 0x2010142D:		// IOS: 37v5662, 53v5662, 55v5662
+	case 0x2010142D:		// IOS: 37v5662, 53v5662, 55v5662		
 		/* ES: 03/01/10 03:26:03 */
 		ios.esVersion = 0x4B8B882B;
 		break;
@@ -109,7 +109,7 @@ s32 Detect_FfsModule(void)
 
 	/* Set FFS version */
 	switch (ffsAddr) {
-	case 0x20005D89:		// IOS: 37v5662, 53v5662, 55v5662
+	case 0x20005D89:		// IOS: 37v5662, 53v5662, 55v5662	
 		/* FFS: 12/24/08 13:48:17 */
 		ios.ffsVersion = 0x49523DA1;
 		break;
@@ -119,7 +119,7 @@ s32 Detect_FfsModule(void)
 		ios.ffsVersion = 0x49511F3D;
 		break;
 
-	case 0x20006009:		// IOS: 56v5661, 57v5918, 58v6175, 60v6174, 61v5661, 70v6687, 80v6943
+	case 0x20006009:		// IOS: 56v5661, 57v5918, 58v6175, 60v6174, 61v5661, 70v6687, 80v6943 	
 		/* FFS: 11/24/08 15:36:10 */
 		ios.ffsVersion = 0x492AC9EA;
 		break;
@@ -189,47 +189,3 @@ s32 Detect_IopModule(void)
 	return 0;
 }
 
-s32 Detect_SdiModule(void)
-{
-	u32 sdiAddr = *(vu32 *)0x20400040;
-
-	/* Set SDI version */
-	switch (sdiAddr) {
-	case 0x2040263C:		// IOS: 36v3607, 38v4123, 37v5662, 53v5662, 55v5662
-		sdiAddr = *(vu16 *)0x20402662;
-
-		switch (sdiAddr) {
-		case 0x3239:		// IOS: 37v5662, 53v5662, 55v5662
-			/* SDI: 03/01/10 03:29:03 */
-			ios.sdiVersion = 0x4B8B347F;
-			break;
-
-		case 0x3133:		// IOS: 36v3607, 38v4123
-			/* SDI: 03/01/10 03:13:22 */
-			ios.sdiVersion = 0x4B8B30D2;
-			break;
-
-		default:
-			/* Unknown version */
-			return DETECT_ERROR;
-		}
-
-		break;
-
-	case 0x20402690:		// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
-		/* SDI: 03/03/10 10:43:23 */
-		ios.sdiVersion = 0x4B8E3D4B;
-		break;
-
-	case 0x20402688:		// IOS: 60v6174, 70v6687
-		/* SDI: 11/24/08 15:39:17 */
-		ios.sdiVersion = 0x492ACAA5;
-		break;
-
-	default:
-		/* Unknown version */
-		return DETECT_ERROR;
-	}
-
-	return 0;
-}

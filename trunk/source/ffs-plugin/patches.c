@@ -22,7 +22,6 @@
 #include "iop_calls.h"
 #include "fs_calls.h"
 #include "fs_dump.h"
-#include "sdio_plugin.h"
 #include "syscalls.h"
 #include "tools.h"
 
@@ -31,7 +30,6 @@ typedef struct {
 	u32 table;
 	u32 reentry;
 	u32 printf;
-	u32 snprintf;
 } ffsAddrInfo;
 
 /* FFS jump table */
@@ -53,9 +51,7 @@ u32 addrReentry = 0;
 u32 addrTable   = 0;
 
 /* Function pointers */
-s32 (*FS_printf)(const char *fmt, ...)                        = 0;
-s32 (*FS_snprintf)(char *str, u32 size, const char *fmt, ...) = 0;
-s32 (*SDI_printf)(const char *fmt, ...)                       = 0;
+s32 (*FS_printf)(const char * fmt, ...) = 0;
 
 #ifdef DEBUG
 
@@ -87,15 +83,14 @@ static void __PatchSyscall(u32 addr1, u32 addr2, u32 func)
 
 #endif
 
-static void __Patch_FfsModule(ffsAddrInfo *aInfo)
+void __Patch_FfsModule(ffsAddrInfo *aInfo)
 {
 	/* Set addresses */
 	addrTable   = *(u32 *)aInfo->table;
 	addrReentry = aInfo->reentry;
 
 	/* Set function pointers */
-	FS_printf   = (void *)aInfo->printf   + 1;
-	FS_snprintf = (void *)aInfo->snprintf + 1;
+	FS_printf = (void *)aInfo->printf + 1;
 
 	/* Patch command handler */
 	DCWrite32(aInfo->table, (u32)fsTable);
@@ -129,8 +124,7 @@ s32 Patch_FfsModule(void)
 		static ffsAddrInfo aInfo = {
 			0x20005F38,	// table
 			0x20005F0A,	// reentry
-			0x20006084,	// printf
-			0x2000652C	// snprintf
+			0x20006084	// printf
 		};
 		__Patch_FfsModule(&aInfo);
 		break;
@@ -141,8 +135,7 @@ s32 Patch_FfsModule(void)
 		static ffsAddrInfo aInfo = {
 			0x200021D0,	// table
 			0x2000219C,	// reentry
-			0x200060BC,	// printf
-			0x20006564	// snprintf
+			0x200060BC	// printf
 		};
 		__Patch_FfsModule(&aInfo);
 		break;
@@ -153,8 +146,7 @@ s32 Patch_FfsModule(void)
 		static ffsAddrInfo aInfo = {
 			0x200061B8,	// table
 			0x2000618A,	// reentry
-			0x20006304,	// printf
-			0x200067AC	// snprintf
+			0x20006304	// printf
 		};
 		__Patch_FfsModule(&aInfo);
 		break;
@@ -168,7 +160,7 @@ s32 Patch_FfsModule(void)
 	return 0;
 }
 
-static void __Patch_IopModule(u32 aSysOpen)
+void __Patch_IopModule(u32 aSysOpen)
 {
 	/* Set addresses */
 	addrSysOpen = aSysOpen + 12;
@@ -204,44 +196,6 @@ s32 Patch_IopModule(void)
 	default:
 		/* Unknown version */
 		return IOS_ERROR_IOP;
-	}
-
-	return 0;
-}
-
-static void __Patch_SdiModule(u32 aStrncmp, u32 aPrintf)
-{
-	/* Patch strncmp to check alternative slot name */
-	DCWrite32(aStrncmp,     0x4B004718);
-	DCWrite32(aStrncmp + 4, (u32)SDI_CheckSlot);
-
-	/* Set function pointers */
-	SDI_printf = (void *)aPrintf + 1;
-}
-
-s32 Patch_SdiModule(void)
-{               
-	switch (ios.sdiVersion) {
-	/** 03/01/10 03:13:22 **/
-	/** 03/01/10 03:29:03 **/
-	case 0x4B8B30D2:		// IOS: 36v3607, 38v4123
-	case 0x4B8B347F:		// IOS: 37v5662, 53v5662, 55v5662
-		__Patch_SdiModule(0x20401DB0, 0x204018F4);
-		break;
-
-	/** 03/03/10 10:43:23 **/
-	case 0x4B8E3D4B:		// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
-		__Patch_SdiModule(0x20401DFC, 0x20401940);
-		break;
-
-	/** 11/24/08 15:39:17 **/
-	case 0x492ACAA5:		// IOS: 60v6174, 70v6687
-		__Patch_SdiModule(0x20401DF4, 0x20401938);
-		break;
-
-	default:
-		/* Unknown version */
-		return IOS_ERROR_SDI;
 	}
 
 	return 0;

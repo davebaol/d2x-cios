@@ -41,25 +41,6 @@
 #define ISFS_MODE_USB		0x02
 #define ISFS_MODE_FULL		0x100
 
-/* Macros */
-#define ISFS_GetDevice(M)  ((M) & (ISFS_MODE_SDHC | ISFS_MODE_USB))
-
-/* FS error codes */
-#define FS_SUCCESS	 0
-#define FS_EINVAL	-4
-#define FS_EFATAL	-101
-#define FS_EACCESS	-102
-#define FS_EEXIST	-105
-#define FS_ENOENT	-106
-#define FS_ENFILE	-107
-#define FS_ENAMETOOLONG	-110
-#define FS_ENOTEMPTY	-115
-
-typedef struct {
-	u32  mode;
-	s32  partition;
-	char nandpath[ISFS_MAXPATH];
-} fsconfig;
 
 /* ISFS structure */
 struct isfs
@@ -100,16 +81,21 @@ struct isfs
 		} fsusage;
 
 		struct {
-			u32 block_size;
-			u32 free_blocks;
-			u32 used_blocks;
-			u32 unk3;
-			u32 unk4;
-			u32 free_inodes;
-			u32 unk5;
+			u32 a;
+			u32 b;
+			u32 c;
+			u32 d;
+			u32 e;
+			u32 f;
+			u32 g;
 		} fsstats;
 
-		fsconfig fsconfig;
+		struct {
+			ioctlv vector[4];
+			u32  mode;
+			u8   pad0[28];
+			char path[ISFS_MAXPATH];
+		} fsconfig;
 	};
 };
 
@@ -119,8 +105,8 @@ s32  ISFS_Open(void);
 void ISFS_Close(void);
 s32  ISFS_CreateFile(const char *filename);
 s32  ISFS_Delete(const char *filename);
-s32  ISFS_SetConfig(u32 mode, s32 partition, char *path);
-s32  ISFS_GetConfig(u32 *mode, s32 *partition, char *path);
+s32  ISFS_SetMode(u32 mode, char *path);
+s32  ISFS_GetMode(u32 *mode, char *path);
 
 #endif
 

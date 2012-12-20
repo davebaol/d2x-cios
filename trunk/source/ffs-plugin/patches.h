@@ -26,8 +26,6 @@
 /* Prototypes */
 s32 Patch_FfsModule(void);
 s32 Patch_IopModule(void);
-s32 Patch_SdiModule(void);
-
 
 #endif
 

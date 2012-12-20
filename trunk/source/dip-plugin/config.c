@@ -153,7 +153,7 @@ s32 DI_Config_Save(struct dipConfigState *cfg)
 	return ret;
 }
 
-s32 FFS_Config_Load(fsconfig *cfg)
+s32 FFS_Config_Load(struct ffsConfigState *cfg)
 {
 	s32 fd, ret;
 
@@ -175,8 +175,8 @@ s32 FFS_Config_Load(fsconfig *cfg)
 		return fd;
                     
 	/* Read config */
-	ret = os_read(fd, cfg, sizeof(fsconfig));
-	if (ret != sizeof(fsconfig)) {
+	ret = os_read(fd, cfg, sizeof(struct ffsConfigState));
+	if (ret != sizeof(struct ffsConfigState)) {
 #ifdef DEBUG
 		svc_write("DIP: Config_Load(): Config file has unexpected size!!!\n");
 #endif
@@ -192,7 +192,7 @@ s32 FFS_Config_Load(fsconfig *cfg)
 	return ret;
 }
 
-s32 FFS_Config_Save(fsconfig *cfg)
+s32 FFS_Config_Save(struct ffsConfigState *cfg)
 {
 	s32 fd, ret;
 
@@ -205,8 +205,8 @@ s32 FFS_Config_Save(fsconfig *cfg)
 		return fd;
 
 	/* Write config */
-	ret = os_write(fd, cfg, sizeof(fsconfig));
-	if (ret != sizeof(fsconfig))
+	ret = os_write(fd, cfg, sizeof(*cfg));
+	if (ret != sizeof(*cfg))
 		ret = -1;
 
 	/* Close config */

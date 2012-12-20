@@ -26,7 +26,6 @@
 #include "ipc.h"
 #include "mem.h"
 #include "module.h"
-#include "sdhc_server.h"
 #include "stealth.h"
 #include "syscalls.h"
 #include "timer.h"
@@ -37,7 +36,7 @@
 
 
 /* Variables */
-char *moduleName = "USBS/SDHC";
+char *moduleName = "USBS";
 s32 queuehandle = -1;
 
 /* Async replies */
@@ -209,15 +208,11 @@ s32 __USB_Initialize(void)
 	if (ret < 0)
 		return ret;
 
+	/* Register devices */
+	os_device_register(DEVICE_NAME, ret);
+
 	/* Copy queue handler */
 	queuehandle = ret;
-
-	/* Register USB devices */
-	os_device_register(DEVICE_USB_NO_SLASH, queuehandle);
-	os_device_register(DEVICE_USB, queuehandle);
-
-	/* Register SDHC device */
-	SDHC_RegisterDevice(queuehandle);
 
 	return 0;
 }
@@ -257,34 +252,18 @@ int main(void)
 				break;
 			}
 
-			char *devpath = message->open.device;
-
-			/* Check USB device path */
-			if (!strcmp(devpath, DEVICE_USB) || !strcmp(devpath, DEVICE_USB_NO_SLASH)) {
+			/* Check device path */
+			if (!strcmp(message->open.device, DEVICE_NAME))
 				ret = message->open.resultfd;
-				break;
-			}
-
-			/* SDHC module device */
-			if (SDHC_CheckDevicePath(devpath)) {
-				ret = SDHC_FD;
-				break;
-			}
-
-			/* Wrong device */
-			ret = IPC_ENOENT;
+			else
+				ret = IPC_ENOENT;
 
 			break;
 		}
 
 		case IOS_CLOSE: {
-			if (message->fd == SDHC_FD) {
-				/* Close SDHC device */
-				ret = SDHC_Close();
-			} else {
-				/* Do nothing */
-				ret = 0;
-			}
+			/* Do nothing */
+			ret = 0;
 			break;
 		}
 
@@ -295,10 +274,7 @@ int main(void)
 			u32     cmd    = message->ioctlv.command;
 
 			/* Parse IOCTLV message */
-			if (message->fd == SDHC_FD)
-				ret = SDHC_Ioctlv(cmd, vector, inlen, iolen);
-			else
-				ret = __USB_Ioctlv(cmd, vector, inlen, iolen);
+			ret = __USB_Ioctlv(cmd, vector, inlen, iolen);
 
 			break;
 		}
