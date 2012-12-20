@@ -2,48 +2,24 @@
 | CHANGELOG |
 +-----------+
 
+[ d2x v10 ]
+- Reverted to r43, i.e. last v8 revision. Also ported some useful fixes and
+  features from r49, i.e. last v9 revision, especially:    
+  * Removed from ciosmaps.xml the patch to skip the process id check inside
+    os_software_IRQ(4).
+  * Fixed content id for bases 60/70/80 in ciosmaps.xml (tnx to dragbe).
+  * Added maked2x.sh to build the cios on Linux (tnx to r-win).
+  * Added stripios source to svn.
+  * Removed the easter egg introduced by Waninkoko in cios rev20.
+  * Fixed an EHCI issue in ReadCapacity that prevented certain usb devices from
+    working (tnx to digicroxx).
+  * Fixed an EHCI issue in GetDescriptors that prevented certain usb devices
+    from working (tnx to digicroxx). 
+  * Minor changes and code clean up.
 
 [ d2x v9 ]
+- Switched to d2x-alt branch
 
-- ModMii 6.0.6 or higher is required to build d2x wads. The d2x-cios-installer
-  doesn't need to be updated instead.
-- EHCI module enhanced with interrupt callback to detect usb port status
-  changes. Now usb instruments are plug&play just like they are when playing
-  the original dvd through the disc channel (tnx to hermes cios source).
-- Improved usb compatibility: some problematic hdd are now supported,
-  shred skateboard controller is now supported, mics and usb instruments
-  should work better than before (tnx to rodries for the great help).
-- Fixed an issue in EHCI descriptors (tnx to rodries).
-- Fixed an EHCI slowdown issue when initializing the device. Now the device is not
-  unmounted anymore if it's mounted already (tnx to rodries).
-- Increased read/write sectors up to 64KB.
-- Fixed an EHCI issue when checking if a usb device is inserted (tnx to rodries).
-- Old SDHC and FAT modules have been removed to prevent random freezing with
-  the new EHCI module. SDHC and FAT capabilities are now embedded respectively
-  in EHCI/USBS module and FS plugin.
-- Patched Nintendo's SDI module to register a new device name without the
-  initial slash, i.e. dev/sdio. This alternative name is required by nand
-  emulation to prevent deadlock since we have to open the sd card from inside
-  the fs-plugin.
-- Registered an alternative device name for EHCI and USBS modules, i.e. 
-  dev/usb2 (same reason mentioned above).
-- Increased EHCI thread priority from 0x48 to 0x78.
-- Removed the easter egg introduced by Waninkoko in cios rev20.
-- Added an EHCI ioctl command to set watchdog timout. This should fix the
-  issue which certain HDD that park their heads after less than 10 seconds of
-  inactivity.
-- Added an EHCI ioctl command to save module configuration. This command is
-  called by the ES plugin during ios reload block management.
-- Fixed an EHCI issue in ReadCapacity that prevented certain usb devices from
-  working (tnx to digicroxx).
-- Fixed an EHCI issue in GetDescriptors that prevented certain usb devices
-  from working (tnx to digicroxx). 
-- Added an EHCI ioctl command to specify the current usb port.
-- Fixed content id for bases 60/70/80 in ciosmaps.xml (tnx to dragbe).
-- Added maked2x.sh to build the cios on Linux (tnx to r-win).
-- Added stripios source to svn.
-
- 
 [ d2x v8 ]
 
 - Enhanced stealth mode to prevent cios detection.

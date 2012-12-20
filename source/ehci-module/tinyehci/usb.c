@@ -44,36 +44,9 @@ s32 USB_GetDescriptors(struct ehci_device * fd, usb_devdesc *udd)
 		goto free_and_error;
 	}
 
-	ehci_msleep(10);
-
 	retval = __usb_getdesc(fd, buffer, USB_DT_DEVICE, 0, USB_DT_DEVICE_SIZE);
 	if(retval < 0)
-	{
-		u32 status;
-		int ret;
-
-		s_printf("__usb_getdesc error USB_DT_DEVICE: retry\n");
-
-
-		ret=ehci_reset_port(current_port);
-		ehci_msleep(20);
-		status=ehci_readl(&ehci->regs->port_status[current_port]);
-		
-		if(ret<0 || (status & 0x3105)!=0x1005)
-		{
-			ret=ehci_reset_port2(current_port);
-			ehci_msleep(20);
-			ehci_readl(&ehci->regs->port_status[current_port]);
-		}
-
-		ehci_msleep(30);
-		retval = __usb_getdesc(fd, buffer, USB_DT_DEVICE, 0, USB_DT_DEVICE_SIZE);
-		if(retval < 0)
-		{
-			s_printf("__usb_getdesc error USB_DT_DEVICE\n"); 
-			goto free_and_error;
-		}
-	}
+		goto free_and_error;
 	memcpy(udd, buffer, USB_DT_DEVICE_SIZE);
 	USB_Free(buffer);
 
@@ -215,7 +188,7 @@ void USB_FreeDescriptors(usb_devdesc *udd)
 }
 
 
-s32 USB_WriteBlkMsg(struct ehci_device *fd,u8 bEndpoint,u32 wLength,void *rpData)
+s32 USB_WriteBlkMsg(struct ehci_device *fd,u8 bEndpoint,u16 wLength,void *rpData)
 {
 	return ehci_bulk_message(fd,bEndpoint,wLength,rpData);
 }
@@ -247,8 +220,8 @@ s32 USB_SetConfiguration(struct ehci_device *fd, u8 configuration)
 }
 s32 USB_SetAlternativeInterface(struct ehci_device *fd, u8 interface, u8 alternateSetting)
 {
-	//if(alternateSetting == 0)
-	//	return -EINVAL;
+	if(alternateSetting == 0)
+		return -EINVAL;
 	return __usb_control_message(fd, (USB_CTRLTYPE_DIR_HOST2DEVICE | USB_CTRLTYPE_TYPE_STANDARD | USB_CTRLTYPE_REC_INTERFACE),
                                      USB_REQ_SETINTERFACE, alternateSetting, interface, 0, NULL, NULL, NULL);
 

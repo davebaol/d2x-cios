@@ -169,7 +169,7 @@ s32 Patch_EsModule(void)
 	/** 03/03/10 10:40:14 **/
 	case 0x4B8E90EE: {	// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
 		static esAddrInfo addrInfo = {
-			0x13A7547A,	// signatureCheck1   (added in d2x v8 r42)
+			0x13A7547A,	// signatureCheck1  (added in d2x v8 r42)
 			0x13A75626,	// signatureCheck2
 			0x20100E74,	// identifyCheck1
 			0x20100EEC,	// identifyCheck2
@@ -192,7 +192,7 @@ s32 Patch_EsModule(void)
 	/** 03/01/10 03:26:03 **/
 	case 0x4B8B882B: {	// IOS: 37v5662, 53v5662, 55v5662
 		static esAddrInfo addrInfo = {
-			0x13A750DE,	// signatureCheck1   (added in d2x v8 r42)
+			0x13A750DE,	// signatureCheck1  (added in d2x v8 r42)
 			0x13A752E6,	// signatureCheck2
 			0x20100D46,	// identifyCheck1
 			0x20100DBE,	// identifyCheck2
@@ -215,7 +215,7 @@ s32 Patch_EsModule(void)
 	/** 03/01/10 03:18:58 **/
 	case 0x4B8B8682: {	// IOS: 36v3607, 38v4123
 		static esAddrInfo addrInfo = {
-			0x13A750DE,	// signatureCheck1   (added in d2x v8 r42)
+			0x13A750DE,	// signatureCheck1  (added in d2x v8 r42)
 			0x13A75266,	// signatureCheck2
 			0x20100CC4,	// identifyCheck1
 			0x20100D3C,	// identifyCheck2

@@ -7,7 +7,7 @@ PREFIX	=	$(DEVKITARM)/bin/arm-eabi-
 # Executables
 CC	=	$(PREFIX)gcc
 LD	=	$(PREFIX)gcc
-STRIP	=	./stripios
+STRIP	=	../stripios
 
 # Flags
 ARCH	=	-mcpu=arm926ej-s -mthumb -mthumb-interwork -mbig-endian
@@ -21,17 +21,12 @@ LIBS	=	../cios-lib/cios-lib.a
 TARGET	=	ehci-module
 
 # Objects
-OBJS	=	ehci_config.o	\
-		ehci_irq.o	\
-		irq.o		\
-		loop.o		\
-		main.o		\
-		patches.o	\
-		start.o		\
-		tinyehci.o	\
-		usb_os.o	\
-		watchdog.o	\
-		wbfs_usb.o
+OBJS	=	loop.o				\
+		main.o				\
+		start.o				\
+		tinyehci.o			\
+		usb_os.o			\
+		wbfs.o
 
 
 $(TARGET).elf: $(OBJS) $(LIBS)

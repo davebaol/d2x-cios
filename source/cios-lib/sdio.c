@@ -132,14 +132,8 @@ static s32 __sd0_sdhc = 0;
 static u8  __sd0_cid[16];
 static s32 __sdio_initialized = 0;
 
-/* Device path
- *
- * NOTE: The custom name without the starting slash is required to avoid deadlock
- * when you have to open the sd card from inside fs.
- * In fact a message is sent to fs queue each time you open a path starting
- * with slash.
- */
-static char _sd0_fs[] ATTRIBUTE_ALIGN(32) = "dev/sdio/slot0";
+/* Device */
+static char _sd0_fs[] ATTRIBUTE_ALIGN(32) = "/dev/sdio/slot0";
 
 /* Buffers */
 static struct _sdiorequest __request ATTRIBUTE_ALIGN(32);
@@ -589,7 +583,7 @@ bool sdio_Startup(void)
 	/* Already initialized */
 	if (__sdio_initialized)
 		return true;
-
+ 
 	/* Open device */
 	__sd0_fd = os_open(_sd0_fs, 1);
 

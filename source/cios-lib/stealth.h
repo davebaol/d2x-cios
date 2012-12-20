@@ -31,7 +31,8 @@
 #define STEALTH_RUNNING_TITLE  0x01
 #define STEALTH_ES_REQUEST     0x02
 
-#define TID_RIGHTS_FORCE_REAL_NAND     0x01
+#define TID_RIGHTS_FORCE_REAL_NAND  0x01
+#define TID_RIGHTS_OPEN_FAT         0x02
 
 
 /* Prototypes */

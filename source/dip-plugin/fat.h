@@ -1,5 +1,5 @@
 /*
- * EHCI plugin for Custom IOS.
+ * DIP plugin for Custom IOS.
  *
  * Copyright (C) 2011 davebaol.
  *
@@ -17,15 +17,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _IRQ_H_
-#define _IRQ_H_
+#ifndef _FAT_H_
+#define _FAT_H_
 
 #include "types.h"
 
 
 /* Prototypes */
-void (*irq_send_device_message)(u32 device);
-void irq_vector(void);
+s32 FAT_Mount(u32 device, u32 partition);
+s32 FAT_GetPartition(u32 device, u32 *partition);
 
 #endif
-

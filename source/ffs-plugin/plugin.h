@@ -21,13 +21,30 @@
 #ifndef _PLUGIN_H_
 #define _PLUGIN_H_
 
-#include "isfs.h"
+#include "fat.h"
 #include "types.h"
 
+/* Mode codes */
+#define MODE_SDHC		0x01
+#define MODE_USB		0x02
+#define MODE_REV17		0x80
+#define MODE_FULL		0x100
+
+
+/* Config structure */
+struct fsConfig {
+	/* Mode */
+	u32 mode;
+
+	/* Nand path */
+	char path[FAT_MAXPATH];
+
+	/* Nand path length */
+	u32 pathlen;
+};
 
 /* Extern */
-extern fsconfig config;
-extern u32      nandpathlen;
-extern u32      forceRealPath;
+extern struct fsConfig config;
+extern u32 forceRealPath;
 
 #endif

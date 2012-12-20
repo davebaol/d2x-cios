@@ -210,11 +210,10 @@ static s32 __MLoad_DisableMem2Protection(void)
 /* System detectors and patchers */
 static patcher moduleDetectors[] = {
 	{Detect_DipModule, 0},
-	{Detect_EsModule,  0},
+	{Detect_EsModule, 0},
 	{Detect_FfsModule, 0},
 	{Detect_IopModule, 0},
-	{Detect_SdiModule, 0},
-	{Patch_IopModule,  0}  // We want to patch swi vector asap
+	{Patch_IopModule, 0}  // We want to patch swi vector asap
 };
 
 s32 __MLoad_System(void)

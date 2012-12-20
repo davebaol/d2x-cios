@@ -1,9 +1,8 @@
 #ifndef _MODULE_H_
 #define _MODULE_H_
 
-/* USB device names */
-#define DEVICE_USB_NO_SLASH   "dev/usb2"
-#define DEVICE_USB            "/"DEVICE_USB_NO_SLASH
+/* Device name */
+#define DEVICE					"/dev/usb2"
 
 /* USB IOCTL commands */
 #define USB_IOCTL_CTRLMSG			0
@@ -25,10 +24,8 @@
 #define USB_IOCTL_UMS_SET_VERBOSE		(UMS_BASE+0x6)
 #define USB_IOCTL_UMS_UMOUNT			(UMS_BASE+0x10)
 #define USB_IOCTL_UMS_WATCHDOG			(UMS_BASE+0x80)
-#define USB_IOCTL_UMS_SET_PORT			(UMS_BASE+0x83)
-#define USB_IOCTL_UMS_SAVE_CONFIG		(UMS_BASE+0x90)
 
-/* USB/WBFS IOCTL commands */
+/* WBFS IOCTL commands */
 #define WBFS_BASE				(('W'<<24)|('F'<<16)|('S'<<8))
 #define USB_IOCTL_WBFS_OPEN_DISC	        (WBFS_BASE+0x1)
 #define USB_IOCTL_WBFS_READ_DISC	        (WBFS_BASE+0x2)

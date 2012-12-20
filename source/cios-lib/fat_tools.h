@@ -1,10 +1,10 @@
 /*   
-	Custom IOS Module (EHCI)
+	Custom IOS Library
 
 	Copyright (C) 2008 neimod.
-	Copyright (C) 2009 kwiirk.
-	Copyright (C) 2009 Hermes.
+	Copyright (C) 2009 WiiGator.
 	Copyright (C) 2009 Waninkoko.
+	Copyright (C) 2010 Hermes.
 	Copyright (C) 2011 davebaol.
 
 	This program is free software; you can redistribute it and/or modify
@@ -22,16 +22,13 @@
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef _LOOP_H_
-#define _LOOP_H_
+#ifndef _FAT_TOOLS_H_
+#define _FAT_TOOLS_H_ 
 
 #include "types.h"
 
 /* Prototypes */
-s32 EHCI_Loop(void);
-
-/* Extern variables */
-extern u32 current_port;
+void FAT_Escape(char *dst, const char *src);
+s32  FAT_Unescape(char *path);
 
 #endif
-

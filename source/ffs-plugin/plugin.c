@@ -21,61 +21,62 @@
 #include <string.h>
 
 #include "fat.h"
-#include "ff.h"
 #include "fs_calls.h"
 #include "fs_tools.h"
 #include "ioctl.h"
 #include "ipc.h"
 #include "isfs.h"
-#include "mem.h"
 #include "plugin.h"
 #include "stealth.h"
 #include "swi_mload.h"
 #include "syscalls.h"
 #include "types.h"
 
-#define FORCE_LED_ACTIVITY
+/* Constants */
+#define FORCE_MODE_REV17
+#define MAX_FAT_FD	20
 
-/* Global variables */
-fsconfig config      = { 0, 0, {'\0'}};
-u32      nandpathlen = 0;
+/* Global config */
+struct fsConfig config = { 0, {'\0'}, 0 };
 
-/* Global flag to force real nand access */
+/* Global flag to force real path in mode rev17-like */
 u32 forceRealPath = 0;
 
-/* Static variables */
-static s32 __partition = 0;
-static FIL fatHandle[MAX_FILE] ATTRIBUTE_ALIGN(32);
+static s32 fat_fd[MAX_FAT_FD];
 
-static char __fatpath[FAT_MAXPATH];
-
-static u32 __FS_CheckHandle(s32 fd)
-{
-	if (fd < 0 || fd >= MAX_FILE)
-		return 0;
-
-	return (fatHandle[fd].fs != NULL);
-}
-
-static s32 __FS_GetHandle(void)
+s32 __FS_RegisterFile(s32 fd)
 {
 	s32 idx;
-	for (idx = 0; idx < MAX_FILE; idx++)
-		if (fatHandle[idx].fs == NULL)
+	for (idx=0; idx<MAX_FAT_FD; idx++)
+		if (fat_fd[idx] < 0) {
+			fat_fd[idx] = fd;
+			return idx;
+		}
+
+	return -1;
+}
+
+s32 __FS_GetFileIndex(s32 fd)
+{
+	s32 idx;
+	for (idx=0; idx<MAX_FAT_FD; idx++)
+		if (fat_fd[idx] == fd)
 			return idx;
 
-	return FS_ENFILE;
+	return -1;
 }
 
-static void __FS_ClearHandle(s32 idx)
+void __FS_UnregisterFile(s32 idx)
 {
-	if (idx >= 0 && idx < MAX_FILE)
-		memset(&fatHandle[idx], 0, sizeof(FIL));
+	if (idx >= 0 && idx < MAX_FAT_FD)
+		fat_fd[idx] = -1;
 }
 
-static void __FS_ClearAllHandles(void)
+void __FS_UnregisterAllFiles(void)
 {
-	memset(fatHandle, 0, sizeof(fatHandle));
+	s32 idx;
+	for (idx=0; idx<MAX_FAT_FD; idx++)
+		fat_fd[idx] = -1;
 }
 
 typedef struct {
@@ -86,8 +87,9 @@ typedef struct {
 	s32 inodes;
 } dirinfo;
 
+#define NUM_FOLDERS 12
 
-static dirinfo dirs[] = {
+static dirinfo dirs[NUM_FOLDERS] = {
 	{"/import",          0, 1,   -1,  -1},
 	{"/meta",            0, 0,    3,   8},
 	{"/sys",             0, 1,   -1,  -1},
@@ -102,28 +104,27 @@ static dirinfo dirs[] = {
 	{"/tmp",             1, 1,   -1,  -1}
 };
 
-#define NUM_FOLDERS (sizeof(dirs) / sizeof(dirinfo))
-
-static void __FS_PrepareFolders(void)
+void __FS_PrepareFolders(void)
 {
+	char fatpath[FAT_MAXPATH];
 	s32 cnt;
 
 	/* Create directories */
 	for (cnt = 0; cnt < NUM_FOLDERS; cnt++) {
-		/* Generate path */
-		FAT_GeneratePath(dirs[cnt].path, __fatpath);
+		/* Generate absolute path */
+		FS_GenerateAbsolutePath(dirs[cnt].path, fatpath);
 
 		/* Delete directory */
 		if (dirs[cnt].delete)
-			FAT_DeleteDir(__fatpath);
+			FAT_DeleteDir(fatpath);
 
 		/* Create directory */
 		if (dirs[cnt].make)
-			FAT_CreateDir(__fatpath);
+			FAT_CreateDir(fatpath);
 	}
 }
 
-static u32 __FS_FakeUsage(const char *path, u32 *blocks, u32 *inodes)
+u32 __FS_FakeUsage(const char *path, u32 *blocks, u32 *inodes)
 {
 	s32 cnt;
 
@@ -140,101 +141,74 @@ static u32 __FS_FakeUsage(const char *path, u32 *blocks, u32 *inodes)
 	return 0;			
 }
 
-
-static s32 __FS_FAT_Mount(s32 device, s32 partition)
-{
-	s32 ret;
-
-	/* Initialize FAT */
-	ret = FAT_Initialize();
-
-	/* Mount FAT partition of the specified device */
-	if (ret >= 0)
-		ret = FAT_Mount(device, partition);
-
-	return ret;
-}
-
-static s32 __FS_SetConfig(fsconfig *cfg, s32 mountFAT)
+s32 __FS_SetMode(u32 mode, const char *path)
 {
 	s32 ret = 0;
-	u32 device = FS_GetDevice(cfg->mode);
-
-	FS_printf("__FS_SetConfig: device = %d\n", device);
 
 	/* FAT mode enabled */
-	if (device != FS_MODE_NAND) {
+	if (mode & (MODE_SDHC | MODE_USB)) {
+		char fatNandPath[FAT_MAXPATH];
 
-		/* Can not enable nand emu when a title is running */
-		if (Stealth_CheckRunningTitle("IOCTL_ISFS_SETCONFIG(ON)"))
-			return FS_EFATAL;
+		/* Nand emu can not be enabled when a title is running */
+		if (Stealth_CheckRunningTitle("IOCTL_ISFS_SETMODE(ON)"))
+			return IPC_ENOENT;
 
-
-		/* Clear file handlers */
-		__FS_ClearAllHandles();
-
-		/* Mount FAT device/partition */
-		if (mountFAT) {
-			ret = __FS_FAT_Mount(device, cfg->partition);
-			if (ret < 0)
-				return ret;
-		}
-
-		/* Set nand path length */
-		nandpathlen = strnlen(cfg->nandpath, sizeof(cfg->nandpath));
-
-		/* Check nand path length */
-		if (nandpathlen == sizeof(cfg->nandpath)) {
-			ret = FS_EFATAL;
-			goto set_nand_mode;
-		}
-
-		/* Ignore final '/' in nand path, if any */
-		if (nandpathlen > 0 && cfg->nandpath[nandpathlen-1] == '/')
-			nandpathlen--;
-
-		/* Set nand path */
-		strncpy(config.nandpath, cfg->nandpath, nandpathlen);
-		config.nandpath[nandpathlen] = '\0';
-
-		/* Set mounted partition */
-		config.partition = ret;
-
-
-		/* Set mode */
-		config.mode = cfg->mode;
-
-#ifdef FORCE_LED_ACTIVITY
-		config.mode |= FS_MODE_LED;
+#ifdef FORCE_MODE_REV17
+		mode |= MODE_REV17;
 #endif
 
-		/* Prepare folders */
-		__FS_PrepareFolders();
+		/* FAT mode rev17-like */
+		if (mode & MODE_REV17) {
+			s32 tid;
 
-		/* Success */
-		return ret;
+			/* Get current thread id */
+			tid = os_get_thread_id();
+
+			/* Add thread rights for stealth mode */
+			Swi_AddThreadRights(tid, TID_RIGHTS_OPEN_FAT);
+		}
+
+		/* Clear open files */
+		__FS_UnregisterAllFiles();
+
+		/* Set nand path */
+		strcpy(config.path, path);
+
+		/* Set nand path length */
+		config.pathlen = strlen(path);
+
+		/* Set FS mode */
+		config.mode = mode;
+
+		/* Generate absolute nand path */
+		FS_GenerateAbsolutePath("", fatNandPath);
+
+		/* Initialize FAT */
+		ret = FAT_Init(fatNandPath);
+		if (ret >= 0) {
+			/* Prepare folders */
+			__FS_PrepareFolders();
+
+			/* Success */
+			return ret;
+		}
 	}
 	else {
 		/* When a title is running nand emu can be disabled through ES only */
 		if (Swi_GetRunningTitle() && !Swi_GetEsRequest()) {
-			Stealth_Log(STEALTH_RUNNING_TITLE | STEALTH_ES_REQUEST, "IOCTL_ISFS_SETCONFIG(OFF)");
-			return FS_EFATAL;
+			Stealth_Log(STEALTH_RUNNING_TITLE | STEALTH_ES_REQUEST, "IOCTL_ISFS_SETMODE(OFF)");
+			return IPC_ENOENT;
 		}
 	}
-
-	set_nand_mode:
 
 	/* Set FS mode */
 	config.mode = 0;
 
-	/* Set partition */
-	config.partition = 0;
-
 	/* Set nand path */
-	config.nandpath[0] = '\0';
+	config.path[0] = '\0';
 
 	/* Set nand path length */
-	nandpathlen = 0;
+	config.pathlen = 0;
 
 	return ret;
 }
@@ -249,7 +223,7 @@ s32 FS_Open(ipcmessage *message, u32 *performed)
 	u32 mode = message->open.mode;
 
 #ifdef DEBUG
-#ifdef DEBUG_FILTER_OPENING_REQUESTS
+#ifdef FILTER_OPENING_REQUESTS
 	if (strncmp(path, "/dev", 4) || !strncmp(path, "/dev/fs", 7))
 #endif
 		FS_printf("FS_Open(\"%s\", %d)\n", path, mode);
@@ -258,8 +232,8 @@ s32 FS_Open(ipcmessage *message, u32 *performed)
 	/* Clear flag */
 	*performed = 0;
 
-	/* FAT mode */
-	if (config.mode) {
+	/* FAT mode rev17-like */
+	if (config.mode & MODE_REV17 ) {
 		s32 ret;
 
 		/* Force real path */
@@ -273,31 +247,24 @@ s32 FS_Open(ipcmessage *message, u32 *performed)
 		/* Check path */
 		ret = FS_CheckRealPath(path);
 		if (!ret) {
-			s32 fd;
+			char fatpath[FAT_MAXPATH];
 
 			FS_printf("FS_Open: Emulating...\n");
 
 			/* Set flag */
 			*performed = 1;
 
-			fd = __FS_GetHandle();
-			if (fd >= 0) {
-				/* Generate path */ 
-				FAT_GeneratePath(path, __fatpath);
+			/* Generate relative path */ 
+			FS_GenerateRelativePath(path, fatpath);
 
-				/* Open file */
-				ret = FAT_Open(&fatHandle[fd], __fatpath, mode);
+			/* Open file */
+			ret = os_open(fatpath, mode);
 
-				/* Error */
-				if (ret < 0) {
-					/* Unregister file */
-					__FS_ClearHandle(fd);
+			/* Register file */
+			if (ret >= 0)
+				__FS_RegisterFile(ret);
 
-					return ret;
-				}
-			}
-
-			return fd;
+			return ret;
 		}
 	}
 
@@ -317,24 +284,24 @@ s32 FS_Close(ipcmessage *message, u32 *performed)
 	/* Clear flag */
 	*performed = 0;
 
-	/* FAT mode */
-	if (config.mode) {
-		s32 ret;
+	/* FAT mode rev17-like */
+	if (config.mode & MODE_REV17) {
+		s32 fileIndex;
 
-		ret = __FS_CheckHandle(fd);
+		fileIndex = __FS_GetFileIndex(fd);
 
-		if (ret) {
-			FS_printf("FS_Close: Emulating...\n");
+		if (fileIndex >= 0) {
+			s32 ret;
 			
 			/* Set flag */
 			*performed = 1;
 			
 			/* Close file */
-			ret = FAT_Close(&fatHandle[fd]);
+			ret = os_close(fd);
 
 			/* Unregister file */
 			if (ret >= 0)
-				__FS_ClearHandle(fd);
+				__FS_UnregisterFile(fileIndex);
 
 			return ret;
 		}
@@ -353,34 +320,24 @@ s32 FS_Read(ipcmessage *message, u32 *performed)
 	u32   len    = message->read.length;
 	s32   fd     = message->fd;
 
-#ifndef DEBUG_NO_READ_WRITE_SEEK
 	FS_printf("FS_Read(%d, 0x%08x, %d)\n", fd, (u32)buffer, len);
-#endif
-
+  
 	/* Clear flag */
 	*performed = 0;
 
-	/* FAT mode */
-	if (config.mode) {
-		s32 ret;
+	/* FAT mode rev17-like */
+	if (config.mode & MODE_REV17) {
+		s32 fileIndex;
 
-		ret = __FS_CheckHandle(fd);
+		fileIndex = __FS_GetFileIndex(fd);
 
-		if (ret) {
-#ifndef DEBUG_NO_READ_WRITE_SEEK
-			FS_printf("FS_Read: Emulating...\n");
-#endif
-
+		if (fileIndex >= 0) {
+			
 			/* Set flag */
 			*performed = 1;
-
+			
 			/* Read file */
-			ret = FAT_Read(&fatHandle[fd], buffer, len);
-
-			/* Flush cache */
-			os_sync_after_write(buffer, len);
-
-			return ret;
+			return os_read(fd, buffer, len);
 		}
 	}
 
@@ -397,31 +354,24 @@ s32 FS_Write(ipcmessage *message, u32 *performed)
 	u32   len    = message->write.length;
 	s32   fd     = message->fd;
 
-#ifndef DEBUG_NO_READ_WRITE_SEEK
 	FS_printf("FS_Write(%d, 0x%08x, %d)\n", fd, (u32)buffer, len);
- #endif
+  
 	/* Clear flag */
 	*performed = 0;
 
-	/* FAT mode */
-	if (config.mode) {
-		s32 ret;
+	/* FAT mode rev17-like */
+	if (config.mode & MODE_REV17) {
+		s32 fileIndex;
 
-		ret = __FS_CheckHandle(fd);
+		fileIndex = __FS_GetFileIndex(fd);
 
-		if (ret) {
-#ifndef DEBUG_NO_READ_WRITE_SEEK
-			FS_printf("FS_Write: Emulating...\n");
-#endif
-
+		if (fileIndex >= 0) {
+			
 			/* Set flag */
 			*performed = 1;
-
-			/* Invalidate cache */
-			os_sync_before_read(buffer, len);
 			
 			/* Write file */
-			return FAT_Write(&fatHandle[fd], buffer, len);
+			return os_write(fd, buffer, len);
 		}
 	}
 
@@ -438,29 +388,24 @@ s32 FS_Seek(ipcmessage *message, u32 *performed)
 	s32 where  = message->seek.offset;
 	s32 whence = message->seek.origin;
 
-#ifndef DEBUG_NO_READ_WRITE_SEEK
 	FS_printf("FS_Seek(%d, %d, %d)\n", fd, where, whence);
-#endif
   
 	/* Clear flag */
 	*performed = 0;
 
-	/* FAT mode */
-	if (config.mode) {
-		s32 ret;
+	/* FAT mode rev17-like */
+	if (config.mode & MODE_REV17) {
+		s32 fileIndex;
 
-		ret = __FS_CheckHandle(fd);
+		fileIndex = __FS_GetFileIndex(fd);
 
-		if (ret) {
-#ifndef DEBUG_NO_READ_WRITE_SEEK
-			FS_printf("FS_Seek: Emulating...\n");
-#endif
+		if (fileIndex >= 0) {
 			
 			/* Set flag */
 			*performed = 1;
 			
 			/* Seek file */
-			return FAT_Seek(&fatHandle[fd], where, whence);
+			return os_seek(fd, where, whence);
 		}
 	}
 	
@@ -473,6 +418,8 @@ s32 FS_Seek(ipcmessage *message, u32 *performed)
  */
 s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 {
+	static struct stats stats ATTRIBUTE_ALIGN(32);
+
 	u32 *inbuf = message->ioctl.buffer_in;
 	u32  inlen = message->ioctl.length_in;
 	u32 *iobuf = message->ioctl.buffer_io;
@@ -501,14 +448,15 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 		/* FAT mode */
 		if (config.mode) {
+			char fatpath[FAT_MAXPATH];
 
-			FS_printf("FSCreateDir: Emulating...\n");
+			FS_printf("FS_CreateDir: Emulating...\n");
 
-			/* Generate path */
-			FAT_GeneratePath(attr->filepath, __fatpath);
+			/* Generate absolute path */
+			FS_GenerateAbsolutePath(attr->filepath, fatpath);
 
 			/* Create directory */
-			return FAT_CreateDir(__fatpath);
+			return FAT_CreateDir(fatpath);
 		}
 
 		break;
@@ -529,14 +477,15 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 		/* FAT mode */
 		if (config.mode) {
+			char fatpath[FAT_MAXPATH];
 
 			FS_printf("FS_CreateFile: Emulating...\n");
 
-			/* Generate path */
-			FAT_GeneratePath(attr->filepath, __fatpath);
+			/* Generate absolute path */
+			FS_GenerateAbsolutePath(attr->filepath, fatpath);
 
 			/* Create file */
-			return FAT_CreateFile(__fatpath); 
+			return FAT_CreateFile(fatpath); 
 		}
 
 		break;
@@ -557,14 +506,15 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 		/* FAT mode */
 		if (config.mode) {
+			char fatpath[FAT_MAXPATH];
 
 			FS_printf("FS_Delete: Emulating...\n");
 
-			/* Generate path */
-			FAT_GeneratePath(filepath, __fatpath);
+			/* Generate absolute path */
+			FS_GenerateAbsolutePath(filepath, fatpath);
 
 			/* Delete */
-			return FAT_Delete(__fatpath); 
+			return FAT_Delete(fatpath); 
 		}
 
 		break;
@@ -592,48 +542,38 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 		/* FAT mode */
 		if (config.mode) {
-			char *newpath;
-			struct stats stats;
+			char oldpath[FAT_MAXPATH];
+			char newpath[FAT_MAXPATH];
 
-			/* Generate source path */
-			FAT_GeneratePath(rename->filepathOld, __fatpath);
-			
+//			struct stats stats;
+
 			FS_printf("FS_Rename: Emulating...\n");
 
-			/* Source and destination paths are the same */
-			if (!strcmp(rename->filepathOld, rename->filepathNew)) {
-				/* Check path exists */
-				return FAT_GetStats(__fatpath, NULL);
+			/* Generate absolute paths */
+			FS_GenerateAbsolutePath(rename->filepathOld, oldpath);
+			FS_GenerateAbsolutePath(rename->filepathNew, newpath);
+
+			/* Compare paths */
+			if (strcmp(oldpath, newpath)) {
+				/* Check new path */
+				ret = FAT_GetStats(newpath, &stats);
+
+				/* New path exists */
+				if (ret >= 0) {
+					/* Delete directory */
+					if (stats.attrib & AM_DIR)
+						FAT_DeleteDir(newpath);
+
+					/* Delete */
+					FAT_Delete(newpath);
+				}
+
+				/* Rename */
+				return FAT_Rename(oldpath, newpath); 
 			}
 
-			/* Alloc destination path buffer */
-			newpath = Mem_Alloc(FAT_MAXPATH);
-			if (!newpath)
-				return IPC_ENOMEM;
-
-			/* Generate destination path */
-			FAT_GeneratePath(rename->filepathNew, newpath);
-
-			/* Check destination path */
-			ret = FAT_GetStats(newpath, &stats);
-
-			/* Destination path exists */
-			if (ret >= 0) {
-				/* Delete directory */
-				if (stats.attrib & AM_DIR)
-					FAT_DeleteDir(newpath);
-
-				/* Delete */
-				FAT_Delete(newpath);
-			}
-
-			/* Rename */
-			ret = FAT_Rename(__fatpath, newpath); 
-
-			/* Free destination path buffer */
-			Mem_Free(newpath); 
-
-			return ret; 
+			/* Check path exists */
+			return FAT_GetStats(oldpath, NULL);
 		}
 
 		break;
@@ -683,23 +623,18 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 		/* Disable flag */
 		*performed = 0;
 
-		/* FAT mode */
-		if (config.mode) {
+		/* FAT mode rev17-like */
+		if (config.mode & MODE_REV17) {
+			s32 fileIndex;
 
-			ret = __FS_CheckHandle(fd);
-			if (ret) {
-				FS_printf("FS_GetFileStats: Emulating...\n");
+			fileIndex = __FS_GetFileIndex(fd);
 
+			if (fileIndex >= 0) {
 				/* Set flag */
 				*performed = 1;
 
 				/* Get file stats */
-				ret = FAT_GetFileStats(&fatHandle[fd], (void *)iobuf);
-
-				/* Flush cache */
-				os_sync_after_write(iobuf, iolen);
-
-				return ret;
+				return FAT_GetFileStats(fd, (void *)iobuf);
 			}
 		}
 
@@ -708,20 +643,7 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 	/** Get attributes **/
 	case IOCTL_ISFS_GETATTR: {
-		char *path = NULL;
-
-		/* Set path */
-		switch (inlen) {
-		case 0x40:
-			path = (char *)inbuf;
-			break;
-		case 0x4A:
-			path = (char *)(inbuf + 6);
-			break;
-		default:
-			*performed = 1;
-			return FS_EFATAL;
-		}
+		char *path = (char *)inbuf;
 		
 		FS_printf("FS_GetAttributes(\"%s\")\n", path);
 
@@ -735,14 +657,15 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 		/* FAT mode */
 		if (config.mode) {
 			fsattr *attr = (fsattr *)iobuf;
+			char    fatpath[FAT_MAXPATH];
 
 			FS_printf("FS_GetAttributes: Emulating...\n");
 
-			/* Generate path */
-			FAT_GeneratePath(path, __fatpath);
+			/* Generate absolute path */
+			FS_GenerateAbsolutePath(path, fatpath);
 
 			/* Check path */
-			ret = FAT_GetStats(__fatpath, NULL);
+			ret = FAT_GetStats(fatpath, NULL);
 			if (ret < 0)
 				return ret;
 
@@ -808,14 +731,15 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 
 		/* FAT mode */
 		if (config.mode) {
+			char fatpath[FAT_MAXPATH];
 
 			FS_printf("FS_SetAttributes: Emulating...\n");
 
-			/* Generate path */
-			FAT_GeneratePath(attr->filepath, __fatpath);
+			/* Generate absolute path */
+			FS_GenerateAbsolutePath(attr->filepath, fatpath);
 
 			/* Check path exists, permission ignored */
-			return FAT_GetStats(__fatpath, NULL);
+			return FAT_GetStats(fatpath, NULL);
 		}
 
 		break;
@@ -834,50 +758,20 @@ s32 FS_Ioctl(ipcmessage *message, u32 *performed)
 		break;
 	}
 
-	/** Set FS config **/
-	case IOCTL_ISFS_SETCONFIG: {
+	/** Set FS mode **/
+	case IOCTL_ISFS_SETMODE: {
 		/* Set flag */
 		*performed = 1;
 
 		/* Check input */
-		if (inbuf == NULL || inlen < sizeof(u32) || inlen > sizeof(fsconfig))
-			return FS_EFATAL;
+		if (inbuf == NULL || inlen < 4)
+			return IPC_ENOENT;
 
-		fsconfig cfg = { 0, 0, {'\0'} };
+		u32 mode = inbuf[0];
 
-		/* Copy input */
-		memcpy(&cfg, inbuf, inlen);
-
-		FS_printf("FS_SetConfig(%d, %d, \"%s\")\n", cfg.mode, cfg.partition, cfg.nandpath);
+		FS_printf("FS_SetMode(%d, \"/\")\n", mode);
 		
-		return __FS_SetConfig(&cfg, 1);
-	}
-
-	/** Get FS config **/
-	case IOCTL_ISFS_GETCONFIG: {
-
-		FS_printf("FS_GetMode()\n");
-
-		/* Set flag */
-		*performed = 1;
-
-		/* When a title is running this command can be invoked through ES only */
-		if (Swi_GetRunningTitle() && !Swi_GetEsRequest()) {
-			Stealth_Log(STEALTH_RUNNING_TITLE | STEALTH_ES_REQUEST, "IOCTL_ISFS_GETCONFIG");
-			return FS_EFATAL;
-		}
-
-		/* Check output */
-		if (iobuf == NULL || iolen < sizeof(fsconfig))
-			return FS_EFATAL;
-
-		/* Copy data */
-		memcpy(iobuf, &config, sizeof(fsconfig));
-
-		/* Flush cache */
-		os_sync_after_write(iobuf, iolen);
-		
-		return 0;
+		return __FS_SetMode(mode, "");
 	}
 
 	default:
@@ -922,45 +816,37 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 
 		/* FAT mode */
 		if (config.mode) {
-			char *outbuf  = NULL;
-			u32  *outlen  = NULL;
-			u32   buflen  = 0;	
-			u32   entries = 0;
+			char *outbuf = NULL;
+			u32  *outlen = NULL;
+			u32   buflen = 0;
+			
+			char fatpath[FAT_MAXPATH];
+			u32  entries;
 
 			FS_printf("FS_Readdir: Emulating...\n");
 
 			/* Set pointers/values */
-			if (inlen == 1 && iolen == 1) {
-				outlen  =  (u32 *)vector[1].data;
-				FS_printf("FS_Readdir: Counting entries...\n");
-			}
-			else if (inlen == 2 && iolen == 2) {
+			if (iolen > 1) {
 				entries = *(u32 *)vector[1].data;
 				outbuf  = (char *)vector[2].data;
 				outlen  =  (u32 *)vector[3].data;
 				buflen  =         vector[2].len;
-				FS_printf("FS_Readdir: Listing entries...\n");
-			}
-			else {
-				FS_printf("FS_Readdir: ERROR: Wrong number of input/output arguments!!!\n");
-				return FS_EFATAL;
-			}
+			} else
+				outlen  =  (u32 *)vector[1].data;
 
-			FS_printf("FS_Readdir: Generating fat path...\n");
-			/* Generate path */
-			FAT_GeneratePath(dirpath, __fatpath);
-			FS_printf("FS_Readdir: Reading fat dir %s ...\n", __fatpath);
+			/* Generate absolute path */
+			FS_GenerateAbsolutePath(dirpath, fatpath);
 
 			/* Read directory */
-			ret = FAT_ReadDir(__fatpath, outbuf, buflen, outlen, entries);
-			FS_printf("FS_Readdir: ret = %d\n",ret);
+			ret = FAT_ReadDir(fatpath, outbuf, &entries);
 			if (ret >= 0) {
+				*outlen = entries;
 				os_sync_after_write(outlen, sizeof(u32));
-
-				/* Flush cache */
-				if (outbuf)
-					os_sync_after_write(outbuf, buflen);
 			}
+
+			/* Flush cache */
+			if (outbuf)
+				os_sync_after_write(outbuf, buflen);
 
 			return ret;
 		}
@@ -1006,10 +892,11 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 				*blocks = 1;
 				*inodes = 1;
 
-				ret = FS_SUCCESS;
+				ret = 0;
 			}
 			else {
-				s32   fake;
+				char fatpath[FAT_MAXPATH];
+				s32 fake;
 
 				FS_printf(dbgstr,"TRUE");
 
@@ -1018,16 +905,16 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 
 				fake = __FS_FakeUsage(dirpath, blocks, inodes);
 			
-				/* Generate path */
-				FAT_GeneratePath(dirpath, __fatpath);
+				/* Generate absolute path */
+				FS_GenerateAbsolutePath(dirpath, fatpath);
 
 				if (fake) {
 					/* Check path */
-					ret = FAT_GetStats(__fatpath, NULL);
+					ret = FAT_GetStats(fatpath, NULL);
 				}  
 				else {
 					/* Get usage */
-					ret = FAT_GetUsage(__fatpath, blocks, inodes);
+					ret = FAT_GetUsage(fatpath, blocks, inodes);
 				}  
 			}  
 
@@ -1042,70 +929,55 @@ s32 FS_Ioctlv(ipcmessage *message, u32 *performed)
 	}
 
 	/** Set FS mode **/
-	case IOCTL_ISFS_SETCONFIG: {
+	case IOCTL_ISFS_SETMODE: {
 
 		/* Set flag */
 		*performed = 1;
 
 		/* Check input */
 		if (vector == NULL || inlen == 0)
-			return FS_EFATAL;
+			return IPC_ENOENT;
 
-		fsconfig cfg = { 0 };
+		u32  mode  = *(u32 *)vector[0].data;
+		char *path = "";
 
-		/* Get mode */
-		cfg.mode = *(u32 *)vector[0].data;
+		/* Get path */
+		if (inlen > 1)
+			path = (char *)vector[1].data;
 
-		/* Get partition */
-		cfg.partition = __partition;
-
-		/* Get nand path */
-		char *nandpath = (inlen > 1) ? (char *)vector[1].data : "";
-		strncpy(cfg.nandpath, nandpath, sizeof(cfg.nandpath));
-		config.nandpath[sizeof(cfg.nandpath)-1] = '\0';
+		FS_printf("FS_SetMode(%d, \"%s\")\n", mode, path);
 		
-		return __FS_SetConfig(&cfg, 0);
+		return __FS_SetMode(mode, path);
 	}
 
-	/** Mount USB or SD card **/
-	case IOCTL_ISFS_FAT_MOUNT_USB:
-	case IOCTL_ISFS_FAT_MOUNT_SD: {
+	/** Get FS mode **/
+	case IOCTL_ISFS_GETMODE: {
+
 		/* Set flag */
 		*performed = 1;
 
-		/* Can not mount FAT when a title is running */
-		if (Stealth_CheckRunningTitle("IOCTL_ISFS_FAT_MOUNT"))
-			return FS_EFATAL;
+		/* When a title is running this command can be invoked through ES only */
+		if (Swi_GetRunningTitle() && !Swi_GetEsRequest()) {
+			Stealth_Log(STEALTH_RUNNING_TITLE | STEALTH_ES_REQUEST, "IOCTL_ISFS_GETMODE");
+			return IPC_ENOENT;
+		}
 
-		/* Set device */
-		u32 device = (cmd==IOCTL_ISFS_FAT_MOUNT_SD ? FS_MODE_SDHC : FS_MODE_USB);
+		u32  *mode     = (u32 *) vector[0].data;
+		u32   mode_len = (u32)   vector[0].len;
+		char *path     = (char *)vector[1].data;
+		u32   path_len = (u32)   vector[1].len;
 
-		/* Set partition */
-		__partition = inlen > 0 ? *(s32 *)vector[0].data : -1;
+		FS_printf("FS_GetMode()\n");
 
-		FS_printf("FS_FatMount(%d, %d)\n", device, __partition);
+		/* Copy config */
+		*mode = config.mode;
+		memcpy(path, config.path, path_len);
 
-		/* Mount SD card */
-		return __FS_FAT_Mount(device, __partition);
-	}
-
-	/** Unmount USB or SD card **/
-	case IOCTL_ISFS_FAT_UMOUNT_USB:
-	case IOCTL_ISFS_FAT_UMOUNT_SD: {
-		/* Set flag */
-		*performed = 1;
-
-		/* Can not mount FAT when a title is running */
-		if (Stealth_CheckRunningTitle("IOCTL_ISFS_FAT_UMOUNT"))
-			return FS_EFATAL;
-
-		/* Set device */
-		u32 device = (cmd==IOCTL_ISFS_FAT_UMOUNT_SD ? FS_MODE_SDHC : FS_MODE_USB);
-
-		FS_printf("FS_FatUnmount(%d)\n", device);
-
-		/* Unmount SD card */
-		return FAT_Unmount(device);
+		/* Flush cache */
+		os_sync_after_write(mode, mode_len);
+		os_sync_after_write(path, path_len);
+		
+		return 0;
 	}
 
 	default:

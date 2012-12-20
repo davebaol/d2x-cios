@@ -58,19 +58,14 @@ s32 USBStorage_MountLUN(usbstorage_handle *dev, u8 lun);
 s32 USBStorage_Suspend(usbstorage_handle *dev);
 
 s32 USBStorage_ReadCapacity(usbstorage_handle *dev, u8 lun, u32 *sector_size, u32 *n_sectors);
-s32 USBStorage_Get_Capacity(u32*sector_size);
-
 s32 USBStorage_Read(usbstorage_handle *dev, u8 lun, u32 sector, u16 n_sectors, u8 *buffer);
 s32 USBStorage_Write(usbstorage_handle *dev, u8 lun, u32 sector, u16 n_sectors, const u8 *buffer);
 s32 USBStorage_Inquiry(usbstorage_handle *dev, u8 lun);
 
-s32 USBStorage_Read_Sectors(u32 sector, u32 numSectors, void *buffer);
-s32 USBStorage_Write_Sectors(u32 sector, u32 numSectors, const void *buffer);
-
 #define DEVICE_TYPE_WII_USB (('W'<<24)|('U'<<16)|('S'<<8)|'B')
 
 s32 USBStorage_Try_Device(struct ehci_device *fd);
-
+void USBStorage_Umount(void);
 
 #ifdef __cplusplus
    }
