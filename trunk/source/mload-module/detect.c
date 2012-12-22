@@ -21,6 +21,8 @@
 	Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#include <string.h>
+
 #include "ios.h"
 #include "swi.h"
 #include "types.h"
@@ -28,6 +30,22 @@
 #define DETECT_ERROR	((s32)error_msg)
 
 static char *error_msg = "Version not detected";
+
+typedef struct {
+	u32 idAddress;
+	u8  idValue[20];
+	u32 version;
+} moduleId;
+
+static s32 __Detect_ModuleVersion(moduleId* moduleIds, u32 n)
+{
+	u32 i;
+	for (i = 0; i < n; i++) {
+		if (memcmp((u32 *)(moduleIds[i].idAddress), moduleIds[i].idValue, 17) == 0)
+			return moduleIds[i].version;  
+	}
+	return 0;  
+}
 
 s32 Detect_DipModule(void)
 {
@@ -56,6 +74,11 @@ s32 Detect_DipModule(void)
 		ios.dipVersion = 0x492ACA9D;
 		break;
 
+	case 0x20207EC4:		// vIOS: 56v5918, 57v6175, 58v6432
+		/* DIP: 04/02/12 14:03:54 */
+		ios.dipVersion = 0x4F79B1CA;
+		break;
+
 	default:
 		/* Unknown version */
 		return DETECT_ERROR;
@@ -80,10 +103,20 @@ s32 Detect_EsModule(void)
 		ios.esVersion = 0x492AC9E8;
 		break;
 
-	case 0x201015E9:		// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
-		/* ES: 03/03/10 10:40:14 */
-		ios.esVersion = 0x4B8E90EE;
+	case 0x201015E9:
+	{
+		#define ES_NUM 2
+		static moduleId esIds[ES_NUM] = {
+			{0x2010B8D2, "03/03/10 10:40:14", 0x4B8E90EE},  //  IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
+			{0x2010BB2E, "04/02/12 14:00:51", 0x4F79B113}   // vIOS: 56v5918, 57v6175, 58v6432
+		};
+		
+		ios.esVersion = __Detect_ModuleVersion(esIds, ES_NUM);
+		if (ios.esVersion == 0)
+			return DETECT_ERROR;
+
 		break;
+	}		
 
 	case 0x2010142D:		// IOS: 37v5662, 53v5662, 55v5662		
 		/* ES: 03/01/10 03:26:03 */
@@ -124,6 +157,11 @@ s32 Detect_FfsModule(void)
 		ios.ffsVersion = 0x492AC9EA;
 		break;
 
+	case 0x20005FDD:		// vIOS: 56v5918, 57v6175, 58v6432
+		/* FFS: 04/02/12 14:00:54 */
+		ios.ffsVersion = 0x4F79B116;
+		break;
+
 	default:
 		/* Unknown version */
 		return DETECT_ERROR;
@@ -155,31 +193,36 @@ s32 Detect_IopModule(void)
 		break;
 
 	case 0xFFFF1F20:	//               IOS: 60v6174, 70v6687, 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
+	                	//              vIOS: 56v5918, 57v6175, 58v6432
 	case 0xFFFF7B98:	// gecko patched IOS: 60v6174, 70v6687
 	case 0xFFFF7BD0:	// gecko patched IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
-		iopAddr = *(vu32 *)0xFFFF2418;
+	{
+		#define IOSP_NUM 3
+		static moduleId iospIds[IOSP_NUM] = {
+			{0xFFFF880B, "03/03/10 10:43:18", 0x4B8E3D46},  //  IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
+			{0xFFFF8693, "04/02/12 14:03:56", 0x4F79B1CC},  // vIOS: 56v5918, 57v6175, 58v6432
+			{0xFFFF87D3, "11/24/08 15:39:12", 0x492ACAA0}   //  IOS: 60v6174, 70v6687
+		};
 
-		switch (iopAddr) {
-		case 0xFFFF9390:		// IOS: 60v6174, 70v6687
-			/* IOSP: 11/24/08 15:39:12 */
-			ios.iopVersion  = 0x492ACAA0;
-			ios.syscallBase = 0xFFFF9390;
+		ios.iopVersion = __Detect_ModuleVersion(iospIds, IOSP_NUM);
 
-			break;
-
-		case 0xFFFF93D0:		// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
-			/* IOSP: 03/03/10 10:43:18 */
-			ios.iopVersion  = 0x4B8E3D46;
+		switch (ios.iopVersion) {
+		case 0x4B8E3D46:   // IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
 			ios.syscallBase = 0xFFFF93D0;
-
 			break;
-
+		case 0x4F79B1CC:   // vIOS: 56v5918, 57v6175
+			ios.syscallBase = 0xFFFF9250;
+			break;
+		case 0x492ACAA0:   // IOS: 60v6174, 70v6687
+			ios.syscallBase = 0xFFFF9390;
+			break;
 		default:
 			/* Unknown version */
 			return DETECT_ERROR;
 		}
 
 		break;
+	}
 
 	default:
 		/* Unknown version */

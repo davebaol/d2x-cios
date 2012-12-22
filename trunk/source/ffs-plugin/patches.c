@@ -83,7 +83,7 @@ static void __PatchSyscall(u32 addr1, u32 addr2, u32 func)
 
 #endif
 
-void __Patch_FfsModule(ffsAddrInfo *aInfo)
+static void __Patch_FfsModule(ffsAddrInfo *aInfo)
 {
 	/* Set addresses */
 	addrTable   = *(u32 *)aInfo->table;
@@ -152,6 +152,17 @@ s32 Patch_FfsModule(void)
 		break;
 	}
 
+	/** 04/02/12 14:00:54 **/
+	case 0x4F79B116: {	// vIOS: 56v5918, 57v6175, 58v6432
+		static ffsAddrInfo aInfo = {
+			0x2000618C,	// table
+			0x2000615E,	// reentry
+			0x200062D8	// printf
+		};
+		__Patch_FfsModule(&aInfo);
+		break;
+	}
+
 	default:
 		/* Unknown version */
 		return IOS_ERROR_FFS;
@@ -160,7 +171,7 @@ s32 Patch_FfsModule(void)
 	return 0;
 }
 
-void __Patch_IopModule(u32 aSysOpen)
+static void __Patch_IopModule(u32 aSysOpen)
 {
 	/* Set addresses */
 	addrSysOpen = aSysOpen + 12;
@@ -191,6 +202,11 @@ s32 Patch_IopModule(void)
 	case 0x492ACAA0:        // IOS: 60v6174, 70v6687 
 	case 0x4B8E3D46:        // IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943 
 		__Patch_IopModule(0xFFFF3020);
+		break;
+
+	/** 04/02/12 14:03:56 **/
+	case 0x4F79B1CC:        // vIOS: 56v5918, 57v6175, 58v6432
+		__Patch_IopModule(0xFFFF3040);
 		break;
 
 	default:

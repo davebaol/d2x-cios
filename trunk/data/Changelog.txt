@@ -2,23 +2,26 @@
 | CHANGELOG |
 +-----------+
 
+
 [ d2x v10 ]
+
+- Added support for Virtual Wii bases 56/57/58.
 - Reverted to r43, i.e. last v8 revision. Also ported some useful fixes and
   features from r49, i.e. last v9 revision, especially:    
+  * Fixed an EHCI issue in ReadCapacity that prevented certain usb devices from
+    working (tnx to digicroxx).
+  * Fixed an EHCI issue in GetDescriptors that prevented certain usb devices
+    from working (tnx to digicroxx). 
   * Removed from ciosmaps.xml the patch to skip the process id check inside
     os_software_IRQ(4).
   * Fixed content id for bases 60/70/80 in ciosmaps.xml (tnx to dragbe).
   * Added maked2x.sh to build the cios on Linux (tnx to r-win).
   * Added stripios source to svn.
   * Removed the easter egg introduced by Waninkoko in cios rev20.
-  * Fixed an EHCI issue in ReadCapacity that prevented certain usb devices from
-    working (tnx to digicroxx).
-  * Fixed an EHCI issue in GetDescriptors that prevented certain usb devices
-    from working (tnx to digicroxx). 
   * Minor changes and code clean up.
 
 [ d2x v9 ]
-- Switched to d2x-alt branch
+- Switched to d2x-alt branch.
 
 [ d2x v8 ]
 
