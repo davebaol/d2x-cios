@@ -66,9 +66,10 @@ call :make usb-module   %d2x_build%\USBS  %clean%
 if "%clean%"=="clean" goto :done
 
 :: Replace variables in some files 
-call :replace_vars ciosmaps.xml "build"
-call :replace_vars d2x-beta.bat "build\%d2x_build%"
-call :replace_vars ReadMe.txt   "build"
+call :replace_vars ciosmaps.xml      "build"
+call :replace_vars ciosmaps-vWii.xml "build"
+call :replace_vars d2x-beta.bat      "build\%d2x_build%"
+call :replace_vars ReadMe.txt        "build"
 
 :: Copy Changelog.txt to the build directory 
 copy "%~dp0\data\Changelog.txt" "%~dp0\build" > NUL
@@ -82,6 +83,7 @@ if exist "%MODMII%\Support\d2x-beta" rd /S /Q "%MODMII%\Support\d2x-beta"
 md "%MODMII%\Support\d2x-beta"
 copy "%~dp0\build\%d2x_build%\*.*" "%MODMII%\Support\d2x-beta" > NUL
 copy "%~dp0\build\ciosmaps.xml"    "%MODMII%\Support\d2x-beta" > NUL
+copy "%~dp0\build\ciosmaps-vWii.xml" "%MODMII%\Support\d2x-beta" > NUL
 copy "%~dp0\build\ReadMe.txt"      "%MODMII%\Support\d2x-beta" > NUL
 copy "%~dp0\build\Changelog.txt"   "%MODMII%\Support\d2x-beta" > NUL
 :: Launch ModMii to build the wad files, calculate their md5 and generate the zip file

@@ -160,6 +160,18 @@ s32 Patch_FfsModule(void)
 		break;
 	}
 
+	/** 04/02/12 14:00:54 **/
+	case 0x4F79B116: {	// vIOS: 56v5918, 57v6175, 58v6432
+		static ffsAddrInfo aInfo = {
+			0x2000618C,	// table
+			0x2000615E,	// reentry
+			0x200062D8,	// printf
+			0x20006780	// snprintf
+		};
+		__Patch_FfsModule(&aInfo);
+		break;
+	}
+
 	default:
 		/* Unknown version */
 		return IOS_ERROR_FFS;
@@ -201,6 +213,11 @@ s32 Patch_IopModule(void)
 		__Patch_IopModule(0xFFFF3020);
 		break;
 
+	/** 04/02/12 14:03:56 **/
+	case 0x4F79B1CC:        // vIOS: 56v5918, 57v6175, 58v6432
+		__Patch_IopModule(0xFFFF3040);
+		break;
+
 	default:
 		/* Unknown version */
 		return IOS_ERROR_IOP;
@@ -230,7 +247,8 @@ s32 Patch_SdiModule(void)
 		break;
 
 	/** 03/03/10 10:43:23 **/
-	case 0x4B8E3D4B:		// IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
+	case 0x4B8E3D4B:		//  IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943
+					// vIOS: 56v5918, 57v6175, 58v6432
 		__Patch_SdiModule(0x20401DFC, 0x20401940);
 		break;
 
