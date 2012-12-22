@@ -36,7 +36,7 @@ typedef struct {
 	u32 openContentPerm2;
 	u32 openContentPerm3;
 	u32 readContentPerm;
-	u32 closeContentPerm;
+	u32 seekContentPerm;
 	u32 setUidCheck;
 	u32 titleVersionCheck;
 	u32 titleDeleteCheck;
@@ -65,9 +65,9 @@ static void __Patch_EsModule(esAddrInfo *aInfo)
 	DCWrite8 (aInfo->readContentPerm + 8, 0xE0);
 
 	/* Close content permissions */
-	DCWrite16(aInfo->closeContentPerm    , 0x46C0);
-	DCWrite16(aInfo->closeContentPerm + 4, 0x46C0);
-	DCWrite8 (aInfo->closeContentPerm + 8, 0xE0);
+	DCWrite16(aInfo->seekContentPerm    , 0x46C0);
+	DCWrite16(aInfo->seekContentPerm + 4, 0x46C0);
+	DCWrite8 (aInfo->seekContentPerm + 8, 0xE0);
 
 	/* Set UID check */
 	DCWrite16(aInfo->setUidCheck, 0x46C0);
@@ -109,6 +109,13 @@ s32 Patch_DipModule(void)
 
 		break;
 
+	/** 04/02/12 14:03:54 **/
+	case 0x4F79B1CA:       // vIOS: 56v5918, 57v6175, 58v6432
+		/* Unencrypted read limit */
+		DCWrite32(0x202066F8, 0x7ED40000);
+
+		break;
+
 	default:
 		/* Unknown module version */
 		return IOS_ERROR_DIP;
@@ -131,7 +138,7 @@ s32 Patch_EsModule(void)
 			0x201052D0,	// openContentPerm2
 			0x201052F4,	// openContentPerm3
 			0x201053FC,	// readContentPerm
-			0x20105498,	// closeContentPerm
+			0x20105498,	// seekContentPerm
 			0x2010576A,	// setUidCheck
 			0x20102C74,	// titleVersionCheck
 			0x2010849A,	// titleDeleteCheck
@@ -154,7 +161,7 @@ s32 Patch_EsModule(void)
 			0x20104DA0,	// openContentPerm2
 			0x20104DC4,	// openContentPerm3
 			0x20104ECC,	// readContentPerm
-			0x20104F68,	// closeContentPerm
+			0x20104F68,	// seekContentPerm
 			0x2010523A,	// setUidCheck
 			0x20102800,	// titleVersionCheck
 			0x20107B32,	// titleDeleteCheck
@@ -177,7 +184,7 @@ s32 Patch_EsModule(void)
 			0x20105324,	// openContentPerm2
 			0x20105348,	// openContentPerm3
 			0x20105450,	// readContentPerm
-			0x201054A0,	// closeContentPerm
+			0x201054A0,	// seekContentPerm
 			0x201057BE,	// setUidCheck
 			0x20102CB8,	// titleVersionCheck
 			0x20108562,	// titleDeleteCheck
@@ -200,7 +207,7 @@ s32 Patch_EsModule(void)
 			0x20104E1A,	// openContentPerm2
 			0x20104E3E,	// openContentPerm3
 			0x20104F38,	// readContentPerm
-			0x20104F88,	// closeContentPerm
+			0x20104F88,	// seekContentPerm
 			0x201052A6,	// setUidCheck
 			0x20102818,	// titleVersionCheck
 			0x20107BAA,	// titleDeleteCheck
@@ -223,11 +230,34 @@ s32 Patch_EsModule(void)
 			0x20104B44,	// openContentPerm2
 			0x0,		// openContentPerm3
 			0x20104C3C,	// readContentPerm
-			0x20104C8C,	// closeContentPerm
+			0x20104C8C,	// seekContentPerm
 			0x20104FAA,	// setUidCheck
 			0x201026CC,	// titleVersionCheck
 			0x20107642,	// titleDeleteCheck
 			0x0		// decryptCheck
+		};
+
+		__Patch_EsModule(&addrInfo);
+
+		break;
+	}
+
+	/** 04/02/12 14:00:51 **/
+	case 0x4F79B113: {	// vIOS: 56v5918, 57v6175, 58v6432
+		static esAddrInfo addrInfo = {
+			0x13A7547A,	// signatureCheck1
+			0x13A75626,	// signatureCheck2
+			0x20100E74,	// identifyCheck1
+			0x20100EEC,	// identifyCheck2
+			0x20105540,	// openContentPerm1
+			0x20105580,	// openContentPerm2
+			0x201055A4,	// openContentPerm3
+			0x201056AC,	// readContentPerm
+			0x201056FC,	// seekContentPerm 
+			0x20105A1A,	// setUidCheck
+			0x20102CD8,	// titleVersionCheck
+			0x201087BE,	// titleDeleteCheck
+			0x201067BC	// decryptCheck
 		};
 
 		__Patch_EsModule(&addrInfo);
@@ -261,7 +291,9 @@ s32 Patch_FfsModule(void)
 		break;
 
 	/** 11/24/08 15:36:10 **/
-	case 0x492AC9EA:
+	case 0x492AC9EA:           //  IOS: 56v5661, ....
+	/** 04/02/12 14:00:54 **/
+	case 0x4F79B116:           // vIOS: 56v5918, 57v6175, 58v6432
 		/* Permissions check */
 		DCWrite8(0x20001306, 0xE0);
 
@@ -289,6 +321,8 @@ s32 Patch_IopModule(void)
 	case 0x49511FC0:        // IOS: ???
 	case 0x4B8E3D46:        // IOS: 56v5661, 57v5918, 58v6175, 61v5661, 80v6943 
 	case 0x4B8B30CD:        // IOS: 36v3607, 38v4123
+	/** 04/02/12 14:03:56 **/
+	case 0x4F79B1CC:        // vIOS: 56v5918, 57v6175, 58v6432
 		/* SWI handler */
 		DCWrite32(0xFFFF0028, (u32)SwiVector);
 

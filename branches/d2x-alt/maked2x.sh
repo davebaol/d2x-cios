@@ -30,9 +30,10 @@ make_modules() {
         [ "${CLEAN}" == "clean" ] && completed
 
         # Replace variables in some files
-        replace_vars ciosmaps.xml  build
-        replace_vars d2x-beta.bat  build/${D2XBUILD}
-        replace_vars ReadMe.txt    build
+        replace_vars ciosmaps.xml      build
+        replace_vars ciosmaps-vWii.xml build
+        replace_vars d2x-beta.bat      build/${D2XBUILD}
+        replace_vars ReadMe.txt        build
 
 
         # Copy Changelog.txt to the build directory
@@ -46,10 +47,11 @@ make_modules() {
         # Copy files to ModMii
         [ -d "dist/Support/d2x-beta" ] && rm -rf dist/Support/d2x-beta
         mkdir -p dist/Support/d2x-beta
-        cp build/${D2XBUILD}/*  dist/Support/d2x-beta
-        cp build/ciosmaps.xml   dist/Support/d2x-beta
-        cp build/ReadMe.txt     dist/Support/d2x-beta
-        cp build/Changelog.txt  dist/Support/d2x-beta
+        cp build/${D2XBUILD}/*     dist/Support/d2x-beta
+        cp build/ciosmaps.xml      dist/Support/d2x-beta
+        cp build/ciosmaps-vWii.xml dist/Support/d2x-beta
+        cp build/ReadMe.txt        dist/Support/d2x-beta
+        cp build/Changelog.txt     dist/Support/d2x-beta
 
         echo done
         echo
@@ -94,7 +96,7 @@ completed() {
 menu() {
         echo
         echo "Usage 1: $0 [<major_version> [<minor_version> [dist | DIST]]]"
-        echo "  It builds d2x with the specified major and minor version."
+        echo "  It builds d2x-alt with the specified major and minor version."
         echo "  Default values are \"999\" and \"unknown\" respectively."
         echo "  If option dist or DIST is specified then a zip file is generated, i.e. the"
         echo "  distribution package. Be aware that:"
@@ -147,7 +149,7 @@ if [ ! -z "${DIST}" ] && [ "${DIST}" != "dist" ]; then
 
 fi
 
-export D2XBUILD=d2x-v${MAJOR_VERSION}-${MINOR_VERSION}
+export D2XBUILD=d2x-alt-v${MAJOR_VERSION}-${MINOR_VERSION}
 
 echo -----------------------------
 echo Building ${D2XBUILD}

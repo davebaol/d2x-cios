@@ -100,6 +100,17 @@ s32 Patch_IopModule(void)
 		break;
 	}
 
+	/** 04/02/12 14:03:56 **/
+	case 0x4F79B1CC: {       // vIOS: 56v5918, 57v6175, 58v6432
+		static iopAddrInfo aInfo = {
+			0xFFFF8E8C,	// irq4check
+			0xFFFF2128,	// reentry
+			0xFFFF1FF4	// send
+		};
+		__Patch_IopModule(&aInfo);
+		break;
+	}
+
 	default:
 		/* Unknown version */
 		return IOS_ERROR_IOP;

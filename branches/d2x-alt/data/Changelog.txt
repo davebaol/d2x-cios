@@ -3,6 +3,10 @@
 +-----------+
 
 
+[ d2x-alt v10 ]
+- Added support for Virtual Wii bases 56/57/58.
+- Switched to d2x-alt branch.
+
 [ d2x v9 ]
 
 - ModMii 6.0.6 or higher is required to build d2x wads. The d2x-cios-installer

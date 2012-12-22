@@ -142,6 +142,20 @@ s32 Patch_EsModule(void)
 		break;
 	}
 
+	/** 04/02/12 14:00:51 **/
+	case 0x4F79B113: {	// vIOS: 56v5918, 57v6175, 58v6432
+		static esAddrInfo addrInfo = {
+			0x20100048,	// open
+			0x201000CC,	// ioctlv
+			0x20104DB0,	// launchTitle 
+			0x2010A904,	// memcpy
+			0x2010AA4C,	// printf
+			0x2010AEF4	// snprintf
+		};
+		__Patch_EsModule(&addrInfo);
+		break;
+	}
+
 	default:
 		/* Unknown version */
 		return IOS_ERROR_ES;

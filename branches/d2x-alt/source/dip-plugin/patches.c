@@ -128,6 +128,22 @@ s32 Patch_DipModule(void)
 		break;
 	}
 
+	/** 04/02/12 14:03:54 **/
+	case 0x4F79B1CA: {       // vIOS: 56v5918, 57v6175, 58v6432
+		static dipAddrInfo aInfo = {
+			0x20200074,	// aInit
+			0x20200400,	// aIoctl
+			0x20200EF8,	// aCmd
+			0x20202958,	// aReadHash
+			0x2020096C,	// aAlloc
+			0x2020093C,	// aFree
+			0x20203764,	// aPrintf
+			0x2022DD60	// aReadCtrl
+		};
+		__Patch_DipModule(&aInfo);
+		break;
+	}
+
 	default:
 		/* Unknown version */
 		return IOS_ERROR_DIP;
