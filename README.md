@@ -25,7 +25,7 @@ NO ONE BUT YOURSELF IS RESPONSIBLE FOR ANY DAMAGE TO YOUR WII CONSOLE BECAUSE OF
 
 #### DOCUMENTATION
 
-  For documentation and tutorials visit our [Wiki](http://code.google.com/p/d2x-cios/w/list).
+  For documentation and tutorials visit our [Wiki](https://github.com/davebaol/d2x-cios/wiki).
 
 
 
