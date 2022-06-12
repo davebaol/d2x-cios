@@ -1,16 +1,13 @@
 #d2x cIOS
 
-[![d2x-cios logo](http://img403.imageshack.us/img403/585/d2xcioslogo.png)](https://github.com/davebaol/d2x-cios/)
-
+[![d2x-cios logo](https://gbatemp.net/attachments/d2x-logo-jpg.313534)](https://github.com/davebaol/d2x-cios/)
 
 #### DISCLAIMER
-
+**DO NOT USE THIS ON THE WII MINI!**
 ````
 THIS APPLICATION COMES WITH NO WARRANTY AT ALL, NEITHER EXPRESSED NOR IMPLIED.
 NO ONE BUT YOURSELF IS RESPONSIBLE FOR ANY DAMAGE TO YOUR WII CONSOLE BECAUSE OF A IMPROPER USAGE OF THIS SOFTWARE.
 ````
-
-
 
 #### DESCRIPTION
 
