@@ -33,7 +33,7 @@ NO ONE BUT YOURSELF IS RESPONSIBLE FOR ANY DAMAGE TO YOUR WII CONSOLE BECAUSE OF
  * *Oggzee*, for his brilliant fraglist.
  * *WiiPower*, for the great help with ios reload block from usb.
  * *dragbe* and *NutNut*, for their [d2x cios installer](http://code.google.com/p/d2x-cios-installer).
- * *XFlak*, for his wonderful [ModMii](http://gbatemp.net/topic/207126-modmii-for-windows) which supported d2x wads since its birth. Without ModMii d2x cios would probably never have existed. Also, XFlak had the original idea to replace the buggy EHCI module of cIOSX rev21 with the  working one from rev19. 
+ * *XFlak*, for his wonderful [ModMii](https://gbatemp.net/threads/best-way-to-mod-any-wii-modmii-for-windows-official-support-thread.207126) which supported d2x wads since its birth. Without ModMii d2x cios would probably never have existed. Also, XFlak had the original idea to replace the buggy EHCI module of cIOSX rev21 with the  working one from rev19. 
  * *[HackWii](http://www.hackwii.it)* and *[GBAtemp](http://www.gbatemp.net)* communities, for their ideas and support.
  * *Totoro*, for the official d2x logo
  * *ChaN*, for his [FatFs](http://elm-chan.org/fsw/ff/00index_e.html).
